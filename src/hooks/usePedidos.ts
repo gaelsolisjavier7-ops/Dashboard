@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { useCallback, useEffect, useState } from 'react';
+import { collection, doc, onSnapshot, query, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import type { Pedido } from '../types/finance';
+import { estadoParaEscribir, parseFechaPedido } from '../lib/pedidos';
+import type { EstadoPedido } from '../lib/pedidos';
 
 export function usePedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -19,27 +21,34 @@ export function usePedidos() {
         const items: Pedido[] = snapshot.docs.map((docSnap) => {
           const data = docSnap.data();
 
-          let fechaStr = '';
-          if (data.fecha?.toDate) {
-            fechaStr = data.fecha.toDate().toISOString().split('T')[0];
-          } else if (typeof data.fecha === 'string') {
-            fechaStr = data.fecha;
-          } else {
-            fechaStr = new Date().toISOString().split('T')[0];
-          }
+          // Fecha con hora (Timestamp de Firestore, ISO, epoch o texto)
+          const { ms, hasTime } = parseFechaPedido(data.fecha ?? data.createdAt ?? data.fechaPedido);
 
           return {
             id: docSnap.id,
-            fecha: fechaStr,
-            total: Number(data.total ?? 0),
+            fecha: new Date(ms).toISOString(),
+            fechaMs: ms,
+            tieneHora: hasTime,
+            total: Number(data.total ?? data.monto ?? 0),
+            subtotal: data.subtotal != null ? Number(data.subtotal) : undefined,
             productos: data.productos ?? [],
-            cliente: data.cliente ?? 'Cliente',
-            estado: data.estado ?? 'pendiente',
+            cliente: (typeof data.cliente === 'object' && data.cliente !== null
+  ? data.cliente.nombre
+  : data.cliente) ?? data.nombre ?? 'Cliente',
+clienteTelefono: (typeof data.cliente === 'object' && data.cliente !== null
+  ? data.cliente.telefono
+  : undefined) ?? data.telefono ?? null,
+clienteDireccion: (typeof data.cliente === 'object' && data.cliente !== null
+  ? data.cliente.direccion
+  : undefined) ?? data.direccion ?? null,
+  estado: String(data.estado ?? 'pendiente'),  
+  modalidad: data.modalidad ?? '',
+  origen: data.origen ?? '',
           };
         });
 
-        // Ordenar por fecha descendente
-        items.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+        // Más recientes primero (por fecha/hora real, no solo por día)
+        items.sort((a, b) => b.fechaMs - a.fechaMs);
 
         setPedidos(items);
         setLoading(false);
@@ -55,5 +64,18 @@ export function usePedidos() {
     return () => unsubscribe();
   }, []);
 
-  return { pedidos, loading, error };
+  /**
+   * Actualiza el campo `estado` del pedido en Firestore.
+   * El cambio se refleja en la UI automáticamente vía onSnapshot.
+   */
+  const updateEstado = useCallback(
+    async (id: string, nuevoEstado: EstadoPedido, estadoActual?: string) => {
+      await updateDoc(doc(db, 'pedidos', id), {
+        estado: estadoParaEscribir(nuevoEstado, estadoActual),
+      });
+    },
+    []
+  );
+
+  return { pedidos, loading, error, updateEstado };
 }

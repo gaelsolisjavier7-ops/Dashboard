@@ -1,9 +1,17 @@
 import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
+import { DATE_FILTER_LABEL, isPedidoCancelado } from '../../lib/pedidos';
 import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag } from 'lucide-react';
 
 export const HeroMetrics: React.FC = () => {
-  const { metrics, selectedEntity, pedidos, loadingTransactions } = useFinance();
+  const {
+    metrics,
+    selectedEntity,
+    pedidosDelPeriodo,
+    webOrdersIncome,
+    dateFilter,
+    loadingTransactions,
+  } = useFinance();
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -13,7 +21,12 @@ export const HeroMetrics: React.FC = () => {
     }).format(val || 0);
   };
 
-  const totalPedidosMonto = pedidos.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+  // Pedidos web del periodo (los cancelados no cuentan como ingreso)
+  const pedidosWebActivos = pedidosDelPeriodo.filter((p) => !isPedidoCancelado(p));
+  const totalPedidosMonto = webOrdersIncome;
+
+  // Los pedidos web se integran al Consolidado y a Hamburguesas
+  const includeWebOrders = selectedEntity === 'all' || selectedEntity === 'hamburguesas';
 
   const getEntityTitle = () => {
     switch (selectedEntity) {
@@ -98,14 +111,14 @@ export const HeroMetrics: React.FC = () => {
               </span>
               <div className="flex items-center space-x-2 mt-1">
                 <span className="text-[28px] font-semibold text-white tracking-tight">
-                  {pedidos.length}
+                  {pedidosWebActivos.length}
                 </span>
                 <span className="text-[14px] text-[#34c759] font-medium">
                   {formatCurrency(totalPedidosMonto)}
                 </span>
               </div>
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">
-                Colección 'pedidos'
+                Colección 'pedidos' · {DATE_FILTER_LABEL[dateFilter]}
               </span>
             </div>
           </div>
@@ -131,7 +144,9 @@ export const HeroMetrics: React.FC = () => {
               </div>
             </div>
             <p className="text-[13px] text-[#7a7a7a] mt-4 border-t border-[#f0f0f0] pt-3">
-              Ventas y entradas registradas
+              {includeWebOrders
+                ? 'Ventas registradas + pedidos web del periodo'
+                : 'Ventas y entradas registradas'}
             </p>
           </div>
 

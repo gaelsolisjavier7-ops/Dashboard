@@ -4,6 +4,7 @@ import { FinanceProvider } from './context/FinanceContext';
 import { GlobalNav } from './components/common/GlobalNav';
 import { SubNav } from './components/common/SubNav';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
+import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
 import { ExpenseCategoryChart } from './components/dashboard/ExpenseCategoryChart';
 import { EntityComparison } from './components/dashboard/EntityComparison';
 import { CashFlowView } from './components/cashflow/CashFlowView';
@@ -56,7 +57,10 @@ function FinanceApp() {
             {/* 1. Hero Tiles (Alternating dark and parchment) */}
             <HeroMetrics />
 
-            {/* 2. Charts & Financial Deep-dive (White Canvas) */}
+            {/* 2. Pedidos web recientes (justo debajo del contador de pedidos) */}
+            <PedidosRecientes />
+
+            {/* 3. Charts & Financial Deep-dive (White Canvas) */}
             <div className="w-full py-12 px-6 sm:px-12 bg-[#ffffff] border-b border-[#e0e0e0]">
               <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-10">
                 <ExpenseCategoryChart />

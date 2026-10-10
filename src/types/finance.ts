@@ -4,6 +4,8 @@ export type TransactionType = 'ingreso' | 'gasto';
 
 export type PaymentMethod = 'efectivo' | 'transferencia' | 'tarjeta' | 'otro';
 
+export type DateFilter = 'month' | 'quarter' | 'all';
+
 export interface CategoryItem {
   id: string;
   name: string;
@@ -36,11 +38,19 @@ export type Transaccion = Transaction;
 
 export interface Pedido {
   id: string;
+  /** Fecha completa en ISO 8601 (incluye hora cuando el pedido la trae). */
   fecha: string;
+  /** Fecha del pedido en milisegundos (epoch) para ordenar y filtrar por periodo. */
+  fechaMs: number;
+  /** true si la fecha original del pedido incluía hora y minutos. */
+  tieneHora: boolean;
   total: number;
   productos: any;
   cliente: string;
   estado: string;
+  subtotal?: number;
+  modalidad?: string;
+  origen?: string;
 }
 
 export interface CashFlowMetrics {

@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../services/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { LogIn, LogOut, CheckCircle2, AlertCircle, X, ChevronDown } from 'lucide-react';
 
 interface GlobalNavProps {
@@ -17,8 +15,6 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
 }) => {
   const { user, logout, signInWithGoogle, authError, clearAuthError } = useAuth();
 
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -43,35 +39,6 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleConnectFirebase = async () => {
-    if (isConnecting) return;
-    setIsConnecting(true);
-
-    try {
-      await addDoc(collection(db, 'config'), {
-        conectado: true,
-        fecha: serverTimestamp(),
-      });
-
-      setIsConnected(true);
-      setToast({
-        message: '¡Firebase conectado con éxito! Documento guardado en la colección "config".',
-        type: 'success',
-      });
-      setTimeout(() => setToast(null), 4000);
-    } catch (error: unknown) {
-      console.error('Error al conectar con Firebase:', error);
-      const err = error as { message?: string };
-      setToast({
-        message: err?.message || 'Error al conectar con Firebase. Revisa los permisos de Firestore.',
-        type: 'error',
-      });
-      setTimeout(() => setToast(null), 5000);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   const handleSignIn = async () => {
     await signInWithGoogle();
@@ -126,33 +93,8 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           </nav>
         </div>
 
-        {/* Right actions: Firebase Connection Button & Auth */}
+        {/* Right actions: Auth (único indicador de estado del header) */}
         <div className="flex items-center space-x-3 text-[12px]">
-          {/* Botón Conectar Firebase */}
-          <button
-            onClick={handleConnectFirebase}
-            disabled={isConnecting}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-[8px] transition-all apple-pressable font-medium cursor-pointer ${
-              isConnected
-                ? 'bg-[#34c759] text-white hover:bg-[#30d158]'
-                : 'bg-[#1d1d1f] hover:bg-[#272729] text-white'
-            }`}
-          >
-            {isConnecting ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>Conectando...</span>
-              </>
-            ) : isConnected ? (
-              <span>✅ Firebase Conectado</span>
-            ) : (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#2997ff]" />
-                <span>Conectar Firebase</span>
-              </>
-            )}
-          </button>
-
           {/* Auth Button: User Photo + Menu  or  "Iniciar Sesión" */}
           {user ? (
             <div className="relative" ref={menuRef}>

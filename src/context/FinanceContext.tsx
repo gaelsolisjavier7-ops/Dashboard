@@ -2,11 +2,14 @@ import React, { createContext, useContext, useState, useMemo } from 'react';
 import type {
   Transaction,
   CategoryItem,
+  DateFilter,
   EntityType,
   CashFlowMetrics,
   Pedido,
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../lib/initialData';
+import { isPedidoCancelado, pedidoEnPeriodo } from '../lib/pedidos';
+import type { EstadoPedido } from '../lib/pedidos';
 import { useTransactions } from '../hooks/useTransactions';
 import { usePedidos } from '../hooks/usePedidos';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -15,6 +18,10 @@ import { db } from '../services/firebase';
 interface FinanceContextType {
   transactions: Transaction[];
   pedidos: Pedido[];
+  /** Pedidos web que caen dentro del periodo seleccionado (month | quarter | all). */
+  pedidosDelPeriodo: Pedido[];
+  /** Suma de pedidos web del periodo, excluyendo los cancelados. */
+  webOrdersIncome: number;
   loadingTransactions: boolean;
   loadingPedidos: boolean;
   errorTransactions: Error | null;
@@ -22,14 +29,15 @@ interface FinanceContextType {
   categories: CategoryItem[];
   selectedEntity: EntityType | 'all';
   setSelectedEntity: (entity: EntityType | 'all') => void;
-  dateFilter: 'month' | 'quarter' | 'all';
-  setDateFilter: (filter: 'month' | 'quarter' | 'all') => void;
+  dateFilter: DateFilter;
+  setDateFilter: (filter: DateFilter) => void;
   filteredTransactions: Transaction[];
   metrics: CashFlowMetrics;
   categoryExpenses: { name: string; amount: number; color: string; count: number }[];
   addTransaction: (data: Partial<Transaction>) => Promise<void>;
   updateTransaction: (tx: Transaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  updatePedidoEstado: (id: string, estado: EstadoPedido, estadoActual?: string) => Promise<void>;
   transferProfitToPersonal: (
     fromEntity: 'hamburguesas' | 'airpods',
     amount: number,
@@ -43,10 +51,15 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { transacciones, loading: loadingTransactions, error: errorTransactions } = useTransactions();
-  const { pedidos, loading: loadingPedidos, error: errorPedidos } = usePedidos();
+  const {
+    pedidos,
+    loading: loadingPedidos,
+    error: errorPedidos,
+    updateEstado: updateEstadoPedido,
+  } = usePedidos();
 
   const [selectedEntity, setSelectedEntity] = useState<EntityType | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState<'month' | 'quarter' | 'all'>('month');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('month');
   const [categories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
 
   // Filtro de transacciones por entidad y fecha
@@ -88,6 +101,26 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, [transacciones, selectedEntity, dateFilter]);
 
+  // Pedidos web dentro del periodo seleccionado (mismo filtro que las transacciones)
+  const pedidosDelPeriodo = useMemo(
+    () => pedidos.filter((pedido) => pedidoEnPeriodo(pedido, dateFilter)),
+    [pedidos, dateFilter]
+  );
+
+  // Ingreso real generado por la web: excluye pedidos cancelados
+  const webOrdersIncome = useMemo(
+    () =>
+      pedidosDelPeriodo.reduce(
+        (acc, pedido) => (isPedidoCancelado(pedido) ? acc : acc + (Number(pedido.total) || 0)),
+        0
+      ),
+    [pedidosDelPeriodo]
+  );
+
+  // Los pedidos web pertenecen al negocio de hamburguesas: se suman al
+  // Consolidado y al tab de Hamburguesas, nunca a Personal ni AirPods.
+  const includesWebOrders = selectedEntity === 'all' || selectedEntity === 'hamburguesas';
+
   // Métricas financieras calculadas en tiempo real
   // Si Firestore está vacío, todo da 0 automáticamente sin errores ni mocks
   const metrics: CashFlowMetrics = useMemo(() => {
@@ -115,6 +148,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
 
+    // Cambio 1: integrar los pedidos web a los ingresos principales
+    if (includesWebOrders && webOrdersIncome > 0) {
+      totalIncome += webOrdersIncome;
+      breakdown.hamburguesas.income += webOrdersIncome;
+    }
+
     // Calcular margen y flujo libre para cada entidad
     (['hamburguesas', 'airpods', 'personal'] as EntityType[]).forEach((ent) => {
       const inc = breakdown[ent].income;
@@ -138,7 +177,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       savingsOrProfitMargin,
       entityBreakdown: breakdown,
     };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, includesWebOrders, webOrdersIncome]);
 
   // Gastos por categoría para gráficos
   const categoryExpenses = useMemo(() => {
@@ -229,6 +268,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await deleteDoc(docRef);
   };
 
+  // Cambio 2: actualizar el estado de un pedido web en Firestore (`updateDoc`)
+  const updatePedidoEstado = async (id: string, estado: EstadoPedido, estadoActual?: string) => {
+    await updateEstadoPedido(id, estado, estadoActual);
+  };
+
   // Transferencia de utilidad entre negocio y finanzas personales
   const transferProfitToPersonal = async (
     fromEntity: 'hamburguesas' | 'airpods',
@@ -298,6 +342,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       value={{
         transactions: transacciones,
         pedidos,
+        pedidosDelPeriodo,
+        webOrdersIncome,
         loadingTransactions,
         loadingPedidos,
         errorTransactions,
@@ -313,6 +359,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addTransaction,
         updateTransaction,
         deleteTransaction,
+        updatePedidoEstado,
         transferProfitToPersonal,
         exportDataJSON,
         importDataJSON,
