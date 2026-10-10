@@ -19,7 +19,7 @@ export const SubNav: React.FC<SubNavProps> = ({
   const getSectionTitle = () => {
     switch (currentTab) {
       case 'dashboard':
-        return 'Resumen Financiero';
+        return selectedEntity === 'airpods' ? 'Inventario AirPods' : 'Resumen Financiero';
       case 'cashflow':
         return 'Flujo de Caja Libre';
       case 'transactions':

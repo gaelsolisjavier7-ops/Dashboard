@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
-import { FinanceProvider } from './context/FinanceContext';
+import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { GlobalNav } from './components/common/GlobalNav';
 import { SubNav } from './components/common/SubNav';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
+import { AirPodsModule } from './components/dashboard/AirPodsModule';
 import { ExpenseCategoryChart } from './components/dashboard/ExpenseCategoryChart';
 import { EntityComparison } from './components/dashboard/EntityComparison';
 import { CashFlowView } from './components/cashflow/CashFlowView';
@@ -17,6 +18,7 @@ import type { Transaction } from './types/finance';
 import { ArrowRight } from 'lucide-react';
 
 function FinanceApp() {
+  const { selectedEntity } = useFinance();
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'transactions' | 'cashflow'>('dashboard');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -52,46 +54,50 @@ function FinanceApp() {
 
       {/* Main Content Areas */}
       <main className="flex-1">
-        {currentTab === 'dashboard' && (
-          <div>
-            {/* 1. Hero Tiles (Alternating dark and parchment) */}
-            <HeroMetrics />
+        {currentTab === 'dashboard' &&
+          (selectedEntity === 'airpods' ? (
+            /* Tab AirPods: módulo de inventario en lugar del resumen general */
+            <AirPodsModule />
+          ) : (
+            <div>
+              {/* 1. Hero Tiles (Alternating dark and parchment) */}
+              <HeroMetrics />
 
-            {/* 2. Pedidos web recientes (justo debajo del contador de pedidos) */}
-            <PedidosRecientes />
+              {/* 2. Pedidos web recientes (justo debajo del contador de pedidos) */}
+              <PedidosRecientes />
 
-            {/* 3. Charts & Financial Deep-dive (White Canvas) */}
-            <div className="w-full py-12 px-6 sm:px-12 bg-[#ffffff] border-b border-[#e0e0e0]">
-              <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-10">
-                <ExpenseCategoryChart />
-              </div>
-            </div>
-
-            {/* 3. Entity Comparison (Smash Burgers, AirPods, Personal) */}
-            <EntityComparison />
-
-            {/* 4. Quick Jump to Cash Flow & Transactions */}
-            <div className="w-full py-14 px-6 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
-              <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div>
-                  <h3 className="text-[24px] font-semibold text-[#1d1d1f] tracking-tight">
-                    ¿Quieres ver cuánto dinero libre te queda exactamente?
-                  </h3>
-                  <p className="text-[15px] text-[#7a7a7a] mt-1">
-                    Accede a la vista detallada de Flujo de Caja con el desglose paso a paso de cada negocio.
-                  </p>
+              {/* 3. Charts & Financial Deep-dive (White Canvas) */}
+              <div className="w-full py-12 px-6 sm:px-12 bg-[#ffffff] border-b border-[#e0e0e0]">
+                <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-10">
+                  <ExpenseCategoryChart />
                 </div>
-                <button
-                  onClick={() => setCurrentTab('cashflow')}
-                  className="apple-btn-primary whitespace-nowrap px-6 py-3 cursor-pointer"
-                >
-                  <span>Abrir Flujo de Caja</span>
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </button>
+              </div>
+
+              {/* 3. Entity Comparison (Smash Burgers, AirPods, Personal) */}
+              <EntityComparison />
+
+              {/* 4. Quick Jump to Cash Flow & Transactions */}
+              <div className="w-full py-14 px-6 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
+                <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-[24px] font-semibold text-[#1d1d1f] tracking-tight">
+                      ¿Quieres ver cuánto dinero libre te queda exactamente?
+                    </h3>
+                    <p className="text-[15px] text-[#7a7a7a] mt-1">
+                      Accede a la vista detallada de Flujo de Caja con el desglose paso a paso de cada negocio.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCurrentTab('cashflow')}
+                    className="apple-btn-primary whitespace-nowrap px-6 py-3 cursor-pointer"
+                  >
+                    <span>Abrir Flujo de Caja</span>
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          ))}
 
         {currentTab === 'cashflow' && <CashFlowView />}
 

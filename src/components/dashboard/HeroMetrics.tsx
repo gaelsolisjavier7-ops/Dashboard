@@ -28,6 +28,15 @@ export const HeroMetrics: React.FC = () => {
   // Los pedidos web se integran al Consolidado y a Hamburguesas
   const includeWebOrders = selectedEntity === 'all' || selectedEntity === 'hamburguesas';
 
+  // Las ventas del inventario AirPods se integran al Consolidado y a AirPods
+  const includeAirPodsSales = selectedEntity === 'all' || selectedEntity === 'airpods';
+
+  const fuentesDeIngreso = [
+    'Ventas registradas',
+    ...(includeWebOrders ? ['pedidos web del periodo'] : []),
+    ...(includeAirPodsSales ? ['ventas de inventario AirPods'] : []),
+  ].join(' + ');
+
   const getEntityTitle = () => {
     switch (selectedEntity) {
       case 'personal':
@@ -144,9 +153,7 @@ export const HeroMetrics: React.FC = () => {
               </div>
             </div>
             <p className="text-[13px] text-[#7a7a7a] mt-4 border-t border-[#f0f0f0] pt-3">
-              {includeWebOrders
-                ? 'Ventas registradas + pedidos web del periodo'
-                : 'Ventas y entradas registradas'}
+              {fuentesDeIngreso}
             </p>
           </div>
 

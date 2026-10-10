@@ -5,13 +5,19 @@ import type {
   DateFilter,
   EntityType,
   CashFlowMetrics,
+  InventarioAirPodsMetrics,
+  MovimientoAirPods,
   Pedido,
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../lib/initialData';
 import { isPedidoCancelado, pedidoEnPeriodo } from '../lib/pedidos';
+import { estaEnPeriodo } from '../lib/fechas';
 import type { EstadoPedido } from '../lib/pedidos';
 import { useTransactions } from '../hooks/useTransactions';
 import { usePedidos } from '../hooks/usePedidos';
+import { useAirPods } from '../hooks/useAirPods';
+import { eliminarMovimiento, registrarMovimiento } from '../services/airpods';
+import type { NuevoMovimientoAirPods } from '../services/airpods';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
@@ -38,6 +44,13 @@ interface FinanceContextType {
   updateTransaction: (tx: Transaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updatePedidoEstado: (id: string, estado: EstadoPedido, estadoActual?: string) => Promise<void>;
+  /* Inventario AirPods */
+  movimientosAirPods: MovimientoAirPods[];
+  loadingAirPods: boolean;
+  errorAirPods: Error | null;
+  airPodsMetrics: InventarioAirPodsMetrics;
+  registrarMovimientoAirPods: (data: NuevoMovimientoAirPods) => Promise<void>;
+  eliminarMovimientoAirPods: (id: string) => Promise<void>;
   transferProfitToPersonal: (
     fromEntity: 'hamburguesas' | 'airpods',
     amount: number,
@@ -57,6 +70,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     error: errorPedidos,
     updateEstado: updateEstadoPedido,
   } = usePedidos();
+
+  // Inventario AirPods: movimientos + métricas (stock, capital, ganancia)
+  const airPods = useAirPods();
+  const {
+    movimientos: movimientosAirPods,
+    loading: loadingAirPods,
+    error: errorAirPods,
+  } = airPods;
+  const airPodsMetrics: InventarioAirPodsMetrics = airPods;
 
   const [selectedEntity, setSelectedEntity] = useState<EntityType | 'all'>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('month');
@@ -121,6 +143,22 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Consolidado y al tab de Hamburguesas, nunca a Personal ni AirPods.
   const includesWebOrders = selectedEntity === 'all' || selectedEntity === 'hamburguesas';
 
+  // Ventas de AirPods del periodo: son ingresos del negocio de reventa.
+  // Se respeta el mismo filtro de periodo que las transacciones y los pedidos.
+  const airPodsSalesIncome = useMemo(
+    () =>
+      airPods.movimientos.reduce(
+        (acc, mov) =>
+          mov.tipo === 'venta' && estaEnPeriodo(mov.fechaMs, dateFilter)
+            ? acc + (Number(mov.total) || 0)
+            : acc,
+        0
+      ),
+    [airPods.movimientos, dateFilter]
+  );
+
+  const includesAirPodsSales = selectedEntity === 'all' || selectedEntity === 'airpods';
+
   // Métricas financieras calculadas en tiempo real
   // Si Firestore está vacío, todo da 0 automáticamente sin errores ni mocks
   const metrics: CashFlowMetrics = useMemo(() => {
@@ -154,6 +192,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       breakdown.hamburguesas.income += webOrdersIncome;
     }
 
+    // Módulo de inventario: las ventas de AirPods también son ingresos
+    if (includesAirPodsSales && airPodsSalesIncome > 0) {
+      totalIncome += airPodsSalesIncome;
+      breakdown.airpods.income += airPodsSalesIncome;
+    }
+
     // Calcular margen y flujo libre para cada entidad
     (['hamburguesas', 'airpods', 'personal'] as EntityType[]).forEach((ent) => {
       const inc = breakdown[ent].income;
@@ -177,7 +221,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       savingsOrProfitMargin,
       entityBreakdown: breakdown,
     };
-  }, [filteredTransactions, includesWebOrders, webOrdersIncome]);
+  }, [
+    filteredTransactions,
+    includesWebOrders,
+    webOrdersIncome,
+    includesAirPodsSales,
+    airPodsSalesIncome,
+  ]);
 
   // Gastos por categoría para gráficos
   const categoryExpenses = useMemo(() => {
@@ -273,6 +323,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await updateEstadoPedido(id, estado, estadoActual);
   };
 
+  // Módulo de inventario AirPods: altas y bajas en `inventario_airpods`
+  const registrarMovimientoAirPods = async (data: NuevoMovimientoAirPods) => {
+    await registrarMovimiento(data);
+  };
+
+  const eliminarMovimientoAirPods = async (id: string) => {
+    await eliminarMovimiento(id);
+  };
+
   // Transferencia de utilidad entre negocio y finanzas personales
   const transferProfitToPersonal = async (
     fromEntity: 'hamburguesas' | 'airpods',
@@ -310,7 +369,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const exportDataJSON = () => {
-    return JSON.stringify({ transacciones, pedidos, exportedAt: new Date().toISOString() }, null, 2);
+    return JSON.stringify(
+      { transacciones, pedidos, movimientosAirPods, exportedAt: new Date().toISOString() },
+      null,
+      2
+    );
   };
 
   const importDataJSON = async (jsonStr: string) => {
@@ -360,6 +423,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateTransaction,
         deleteTransaction,
         updatePedidoEstado,
+        movimientosAirPods,
+        loadingAirPods,
+        errorAirPods,
+        airPodsMetrics,
+        registrarMovimientoAirPods,
+        eliminarMovimientoAirPods,
         transferProfitToPersonal,
         exportDataJSON,
         importDataJSON,

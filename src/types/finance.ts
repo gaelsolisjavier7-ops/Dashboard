@@ -47,10 +47,51 @@ export interface Pedido {
   total: number;
   productos: any;
   cliente: string;
+  clienteTelefono?: string | null;
+  clienteDireccion?: string | null;
   estado: string;
   subtotal?: number;
   modalidad?: string;
   origen?: string;
+}
+
+/* ── Inventario AirPods (colección `inventario_airpods`) ── */
+
+export type TipoMovimientoAirPods = 'compra' | 'venta';
+
+/** Documento de `inventario_airpods` normalizado para la UI. */
+export interface MovimientoAirPods {
+  id: string;
+  tipo: TipoMovimientoAirPods;
+  cantidad: number;
+  precio_unitario: number;
+  /** cantidad × precio_unitario (lo que realmente se guarda en Firestore). */
+  total: number;
+  /** Fecha del movimiento en ISO 8601. */
+  fecha: string;
+  /** Fecha del movimiento en milisegundos (epoch) para ordenar y filtrar. */
+  fechaMs: number;
+  tieneHora: boolean;
+  notas: string | null;
+  cliente: string | null;
+  createdAtMs: number | null;
+}
+
+export interface InventarioAirPodsMetrics {
+  /** Unidades en stock: compradas − vendidas. */
+  stockActual: number;
+  /** Dinero parado en inventario: stockActual × precioPromedioCompra. */
+  capitalInmovilizado: number;
+  /** Ventas cobradas − costo promedio de lo vendido. */
+  gananciaAcumulada: number;
+  unidadesCompradas: number;
+  unidadesVendidas: number;
+  precioPromedioCompra: number;
+  precioPromedioVenta: number;
+  /** Ratio 0..1: para mostrarlo como % hay que multiplicar por 100. */
+  margenPromedio: number;
+  inversionTotal: number;
+  ingresosTotales: number;
 }
 
 export interface CashFlowMetrics {
