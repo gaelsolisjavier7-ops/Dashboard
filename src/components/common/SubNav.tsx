@@ -1,13 +1,32 @@
 import React from 'react';
-import type { EntityType } from '../../types/finance';
+import type { SeccionId, TabId } from '../../types/finance';
 import { useFinance } from '../../context/FinanceContext';
-import { Plus, User, Utensils, Headphones, Layers } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { SECCION_LABEL, seccionesDisponibles, tabsDisponibles } from '../../lib/roles';
+import { Boxes, ClipboardList, Plus, User, Utensils, Headphones, Layers } from 'lucide-react';
 
 interface SubNavProps {
   onOpenNewTransaction: () => void;
-  currentTab: 'dashboard' | 'transactions' | 'cashflow';
-  setCurrentTab: (tab: 'dashboard' | 'transactions' | 'cashflow') => void;
+  currentTab: TabId;
+  setCurrentTab: (tab: TabId) => void;
 }
+
+/** Etiquetas cortas para el conmutador de pestañas de tablet. */
+const TAB_CORTO: Record<TabId, string> = {
+  dashboard: 'Dash',
+  cashflow: 'Flujo',
+  transactions: 'Lista',
+};
+
+/** Icono de cada sección (las visibles dependen del rol). */
+const ICONO_SECCION: Record<SeccionId, React.ReactNode> = {
+  all: <Layers className="w-3.5 h-3.5" />,
+  personal: <User className="w-3.5 h-3.5" />,
+  hamburguesas: <Utensils className="w-3.5 h-3.5" />,
+  airpods: <Headphones className="w-3.5 h-3.5" />,
+  insumos: <Boxes className="w-3.5 h-3.5" />,
+  recetas: <ClipboardList className="w-3.5 h-3.5" />,
+};
 
 export const SubNav: React.FC<SubNavProps> = ({
   onOpenNewTransaction,
@@ -15,6 +34,7 @@ export const SubNav: React.FC<SubNavProps> = ({
   setCurrentTab,
 }) => {
   const { selectedEntity, setSelectedEntity, dateFilter, setDateFilter } = useFinance();
+  const { rol } = useAuth();
 
   const getSectionTitle = () => {
     switch (currentTab) {
@@ -29,12 +49,13 @@ export const SubNav: React.FC<SubNavProps> = ({
     }
   };
 
-  const entities: { id: EntityType | 'all'; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: 'Consolidado', icon: <Layers className="w-3.5 h-3.5" /> },
-    { id: 'personal', label: 'Personal', icon: <User className="w-3.5 h-3.5" /> },
-    { id: 'hamburguesas', label: 'Hamburguesas', icon: <Utensils className="w-3.5 h-3.5" /> },
-    { id: 'airpods', label: 'AirPods', icon: <Headphones className="w-3.5 h-3.5" /> },
-  ];
+  // Pills según rol: el socio sólo ve Hamburguesas, Insumos y Recetas
+  const entities: { id: SeccionId; label: string; icon: React.ReactNode }[] =
+    seccionesDisponibles(rol).map((id) => ({
+      id,
+      label: SECCION_LABEL[id],
+      icon: ICONO_SECCION[id],
+    }));
 
   return (
     <div className="sticky top-[44px] z-40 w-full apple-frosted border-b border-[rgba(0,0,0,0.08)] select-none">
@@ -47,24 +68,17 @@ export const SubNav: React.FC<SubNavProps> = ({
 
           {/* Quick tab switch: solo en tablet (en móvil vive en la bottom nav) */}
           <div className="hidden sm:flex md:hidden items-center space-x-1 text-[13px] flex-shrink-0">
-            <button
-              onClick={() => setCurrentTab('dashboard')}
-              className={`px-2 py-1 rounded-full ${currentTab === 'dashboard' ? 'bg-[#1d1d1f] text-white font-semibold' : 'text-[#7a7a7a]'}`}
-            >
-              Dash
-            </button>
-            <button
-              onClick={() => setCurrentTab('cashflow')}
-              className={`px-2 py-1 rounded-full ${currentTab === 'cashflow' ? 'bg-[#1d1d1f] text-white font-semibold' : 'text-[#7a7a7a]'}`}
-            >
-              Flujo
-            </button>
-            <button
-              onClick={() => setCurrentTab('transactions')}
-              className={`px-2 py-1 rounded-full ${currentTab === 'transactions' ? 'bg-[#1d1d1f] text-white font-semibold' : 'text-[#7a7a7a]'}`}
-            >
-              Lista
-            </button>
+            {tabsDisponibles(rol).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setCurrentTab(tab)}
+                className={`px-2 py-1 rounded-full ${
+                  currentTab === tab ? 'bg-[#1d1d1f] text-white font-semibold' : 'text-[#7a7a7a]'
+                }`}
+              >
+                {TAB_CORTO[tab]}
+              </button>
+            ))}
           </div>
         </div>
 

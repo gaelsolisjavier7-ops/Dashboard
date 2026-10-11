@@ -1,11 +1,14 @@
 import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
+import { useAuth } from '../../context/AuthContext';
 import type { EntityType } from '../../types/finance';
+import { puedeVerNegocio } from '../../lib/roles';
 import { BurgerVisual, AirPodsVisual, AppleCardVisual } from '../common/ProductVisuals';
 import { ArrowRight, Utensils, Headphones, User } from 'lucide-react';
 
 export const EntityComparison: React.FC = () => {
   const { metrics, setSelectedEntity } = useFinance();
+  const { rol } = useAuth();
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -67,7 +70,10 @@ export const EntityComparison: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          {entitiesData.map((item) => {
+          {/* Sólo se muestran las unidades de negocio que el rol puede ver */}
+          {entitiesData
+            .filter((item) => puedeVerNegocio(rol, item.key))
+            .map((item) => {
             const hasActivity = item.stats.income > 0 || item.stats.expenses > 0;
             const isProfitable = item.stats.freeCash > 0;
 

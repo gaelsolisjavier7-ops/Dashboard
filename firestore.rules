@@ -1,0 +1,149 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ENTRE 3 · Reglas de Firestore
+//  Pegar completo en: Firebase Console → Firestore Database → Reglas → Publicar
+//
+//  Roles (colección `usuarios`, docId = email en minúsculas):
+//    super_admin        → gaelsolisjavier7@gmail.com   (acceso total)
+//    admin_hamburguesas → jcmissdj@gmail.com           (Hamburguesas, Insumos, Recetas)
+//
+//  Nota: el filtrado "solo hamburguesas" del socio se aplica en el frontend.
+//  Al final del archivo hay un bloque OPCIONAL para imponerlo también en la
+//  base de datos (modo estricto).
+// ═══════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────────────────────────── helpers ─────────────────────────────
+
+    function correosPermitidos() {
+      return ['gaelsolisjavier7@gmail.com', 'jcmissdj@gmail.com'];
+    }
+
+    function emailActual() {
+      return request.auth != null ? request.auth.token.email.lower() : '';
+    }
+
+    // Autenticado y con correo dentro de la whitelist
+    function estaEnWhitelist() {
+      return request.auth != null && emailActual() in correosPermitidos();
+    }
+
+    function rutaPerfil(email) {
+      return /databases/$(database)/documents/usuarios/$(email);
+    }
+
+    function perfilExiste(email) {
+      return exists(rutaPerfil(email));
+    }
+
+    // El rol se lee del documento; se acepta `rol` o `role`.
+    // El correo del super admin se acepta como respaldo (bootstrap) para que
+    // nunca te quedes fuera si el documento tarda en crearse o cambia de campo.
+    function esSuperAdmin() {
+      return estaEnWhitelist() && (
+        emailActual() == 'gaelsolisjavier7@gmail.com' ||
+        (
+          perfilExiste(emailActual()) && (
+            get(rutaPerfil(emailActual())).data.rol == 'super_admin' ||
+            get(rutaPerfil(emailActual())).data.role == 'super_admin'
+          )
+        )
+      );
+    }
+
+    function esAdminHamburguesas() {
+      return estaEnWhitelist() && (
+        emailActual() == 'jcmissdj@gmail.com' ||
+        (
+          perfilExiste(emailActual()) && (
+            get(rutaPerfil(emailActual())).data.rol == 'admin_hamburguesas' ||
+            get(rutaPerfil(emailActual())).data.role == 'admin_hamburguesas'
+          )
+        )
+      );
+    }
+
+    // Cualquiera de los dos correos autorizados
+    function esStaff() {
+      return estaEnWhitelist() && (esSuperAdmin() || esAdminHamburguesas());
+    }
+
+    // ───────────────────────── usuarios/{email} ─────────────────────────
+    // Cada uno lee SÓLO su documento; el super admin puede leer y escribir todos.
+    match /usuarios/{email} {
+      allow get: if estaEnWhitelist() && (emailActual() == email.lower() || esSuperAdmin());
+      allow list: if esSuperAdmin();
+      allow create, update, delete: if esSuperAdmin();
+    }
+
+    // ─────────────────────────── pedidos/{doc} ──────────────────────────
+    // La web pública de hamburguesas crea los pedidos sin login.
+    // Ambos correos autorizados pueden leer, actualizar y borrar.
+    match /pedidos/{pedido} {
+      allow create: if true;
+
+      // OPCIONAL (más seguro, no lo activamos para no romper la web actual):
+      // allow create: if request.resource.data.total is number
+      //               && request.resource.data.cliente is string;
+
+      allow read: if esStaff();
+      allow update, delete: if esStaff();
+    }
+
+    // ──────────────────────── transacciones/{doc} ───────────────────────
+    match /transacciones/{transaccion} {
+      allow read, create, update, delete: if esStaff();
+    }
+
+    // ─────────────────────────── insumos/{doc} ──────────────────────────
+    match /insumos/{insumo} {
+      allow read, create, update, delete: if esStaff();
+    }
+
+    // ─────────────────────────── recetas/{doc} ──────────────────────────
+    match /recetas/{receta} {
+      allow read, create, update, delete: if esStaff();
+    }
+
+    // ──────────────────── inventario_airpods/{doc} ──────────────────────
+    // Sólo el super admin.
+    match /inventario_airpods/{movimiento} {
+      allow read, create, update, delete: if esSuperAdmin();
+    }
+
+    // ─────────────────────────── config/{doc} ───────────────────────────
+    // Sólo el super admin.
+    match /config/{documento} {
+      allow read, write: if esSuperAdmin();
+    }
+
+    // Todo lo demás: cerrado.
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  OPCIONAL · Modo estricto de transacciones
+//
+//  Con el bloque de arriba, el socio puede leer y escribir CUALQUIER
+//  transacción por API (el filtro de "solo hamburguesas" es de frontend).
+//  Si quieres que también lo imponga la base de datos, reemplaza el match de
+//  `transacciones` por este:
+//
+//    match /transacciones/{transaccion} {
+//      allow read: if esStaff();
+//      allow create: if esSuperAdmin()
+//                    || (esAdminHamburguesas() && request.resource.data.negocio == 'hamburguesas');
+//      allow update: if esSuperAdmin()
+//                    || (esAdminHamburguesas()
+//                        && resource.data.negocio == 'hamburguesas'
+//                        && request.resource.data.negocio == 'hamburguesas');
+//      allow delete: if esSuperAdmin()
+//                    || (esAdminHamburguesas() && resource.data.negocio == 'hamburguesas');
+//    }
+// ═══════════════════════════════════════════════════════════════════════════

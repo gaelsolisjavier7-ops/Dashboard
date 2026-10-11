@@ -1,3 +1,7 @@
+import type { Rol } from '../lib/roles';
+
+export type { NegocioId, Rol, SeccionId, TabId } from '../lib/roles';
+
 export type EntityType = 'personal' | 'hamburguesas' | 'airpods';
 
 export type TransactionType = 'ingreso' | 'gasto';
@@ -116,4 +120,18 @@ export interface FirebaseConfigState {
   storageBucket?: string;
   messagingSenderId?: string;
   appId?: string;
+}
+
+/* ── Permisos multi-usuario (colección `usuarios`) ── */
+
+/** Documento `usuarios/{email}` normalizado para la UI. */
+export interface UsuarioPerfil {
+  /** docId: el correo exacto en minúsculas. */
+  id: string;
+  email: string;
+  nombre?: string | null;
+  /** null ⇒ documento inexistente o sin un rol reconocido. */
+  rol: Rol | null;
+  /** Documento crudo de Firestore, por si se necesitan campos extra. */
+  datos: Record<string, unknown>;
 }

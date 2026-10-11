@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFinance } from '../../context/FinanceContext';
+import { negocioDeSeccion } from '../../lib/roles';
 import type { Transaction, EntityType, TransactionType, PaymentMethod } from '../../types/finance';
 import { X } from 'lucide-react';
 
@@ -46,7 +47,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTitle('');
       setAmount('');
       setType('gasto');
-      const defaultEnt = selectedEntity !== 'all' ? selectedEntity : 'hamburguesas';
+      // La sección activa puede ser Insumos/Recetas/Consolidado: en ese caso el
+      // movimiento se registra por defecto en hamburguesas.
+      const defaultEnt: EntityType = negocioDeSeccion(selectedEntity) ?? 'hamburguesas';
       setEntity(defaultEnt);
       setDate(new Date().toISOString().split('T')[0]);
       setPaymentMethod('transferencia');

@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { ROL_LABEL, TAB_LABEL, tabsDisponibles } from '../../lib/roles';
+import type { TabId } from '../../lib/roles';
 import { LogIn, LogOut, CheckCircle2, AlertCircle, X, ChevronDown } from 'lucide-react';
 
 interface GlobalNavProps {
   onOpenAuth: () => void;
   onOpenFirebaseConfig: () => void;
-  currentTab: 'dashboard' | 'transactions' | 'cashflow';
-  setCurrentTab: (tab: 'dashboard' | 'transactions' | 'cashflow') => void;
+  currentTab: TabId;
+  setCurrentTab: (tab: TabId) => void;
 }
 
 export const GlobalNav: React.FC<GlobalNavProps> = ({
   currentTab,
   setCurrentTab,
 }) => {
-  const { user, logout, signInWithGoogle, authError, clearAuthError } = useAuth();
+  const { user, rol, logout, signInWithGoogle, authError, clearAuthError } = useAuth();
+
+  const tabsVisibles = tabsDisponibles(rol);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -54,42 +58,40 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
   return (
     <header className="sticky top-0 z-50 w-full bg-[#000000] text-white select-none">
       <div className="mx-auto flex h-[44px] max-w-[1440px] items-center justify-between px-4 sm:px-8 text-[12px] font-normal tracking-[-0.12px]">
-        {/* Left: Apple Logo & Brand */}
-        <div className="flex items-center space-x-6">
+        {/* Left: ENTRE 3 logo & Brand */}
+        <div className="flex items-center space-x-4 sm:space-x-6">
           <div
             onClick={() => setCurrentTab('dashboard')}
-            className="flex items-center space-x-2 cursor-pointer opacity-90 hover:opacity-100 transition-opacity"
+            className="flex items-center space-x-2 sm:space-x-2.5 cursor-pointer opacity-95 hover:opacity-100 transition-opacity"
           >
-            <span className="text-[17px] leading-none"></span>
-            <span className="font-semibold tracking-tight text-[13px] text-white">Finance</span>
+            <img
+              src="/entre3-logo.png"
+              alt="ENTRE 3"
+              className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover flex-shrink-0"
+            />
+            <span className="flex items-baseline space-x-1.5">
+              <span className="font-semibold tracking-tight text-[14px] sm:text-[15px] text-white">
+                ENTRE 3
+              </span>
+              <span className="hidden sm:inline text-[12px] text-[#8e8e93] font-normal">
+                Finance
+              </span>
+            </span>
           </div>
 
-          {/* Navigation Links */}
+          {/* Navigation Links (filtradas por rol) */}
           <nav className="hidden md:flex items-center space-x-6 text-[#cccccc]">
-            <button
-              onClick={() => setCurrentTab('dashboard')}
-              className={`transition-colors hover:text-white cursor-pointer ${
-                currentTab === 'dashboard' ? 'text-white font-semibold' : ''
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setCurrentTab('cashflow')}
-              className={`transition-colors hover:text-white cursor-pointer ${
-                currentTab === 'cashflow' ? 'text-white font-semibold' : ''
-              }`}
-            >
-              Flujo de Caja
-            </button>
-            <button
-              onClick={() => setCurrentTab('transactions')}
-              className={`transition-colors hover:text-white cursor-pointer ${
-                currentTab === 'transactions' ? 'text-white font-semibold' : ''
-              }`}
-            >
-              Transacciones
-            </button>
+            {tabsVisibles.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setCurrentTab(tab)}
+                className={`transition-colors hover:text-white cursor-pointer ${
+                  currentTab === tab ? 'text-white font-semibold' : ''
+                }`}
+              >
+                {TAB_LABEL[tab]}
+              </button>
+            ))}
           </nav>
         </div>
 
@@ -128,6 +130,11 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
                     <p className="text-[11px] text-[#7a7a7a] truncate">
                       {user.email}
                     </p>
+                    {rol && (
+                      <p className="text-[11px] text-[#2997ff] font-medium mt-1">
+                        {ROL_LABEL[rol]}
+                      </p>
+                    )}
                   </div>
                   {/* Cerrar Sesión */}
                   <button

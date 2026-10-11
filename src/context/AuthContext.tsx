@@ -1,20 +1,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut,
-} from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { useUsuario } from '../hooks/useUsuario';
+import { isEmailAllowed } from '../lib/roles';
+import type { Rol } from '../lib/roles';
+import type { UsuarioPerfil } from '../types/finance';
 
-// ── Solo este correo puede acceder ──
-const ALLOWED_EMAIL = 'gaelsolisjavier7@gmail.com';
+const MENSAJE_ACCESO_DENEGADO = 'Acceso denegado. Este panel es privado.';
 
 interface AuthContextType {
   user: User | null;
+  usuarioPerfil: UsuarioPerfil | null;
+  /** null ⇒ sin sesión, correo fuera de la whitelist o cuenta sin activar. */
+  rol: Rol | null;
   loading: boolean;
   authError: string | null;
+  /** Error de lectura de `usuarios/{email}` (reglas, red...). */
+  perfilError: Error | null;
   clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -23,28 +26,28 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // useUsuario escucha onAuthStateChanged y lee usuarios/{email}.
+  // Su `loading` ya cubre toda la cadena (sesión + perfil).
+  const { usuarioAuth, usuarioPerfil, rol, loading, error: errorPerfil } = useUsuario();
+
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Escuchar cambios de sesión
+  // Guardia de whitelist: cualquier correo no autorizado cierra sesión al instante
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        // Si el usuario existente no es el correo permitido, cerramos sesión
-        if (currentUser.email !== ALLOWED_EMAIL) {
-          signOut(auth);
-          setUser(null);
-        } else {
-          setUser(currentUser);
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    if (!usuarioAuth) return;
+    if (isEmailAllowed(usuarioAuth.email)) return;
+
+    console.warn('[permisos] Correo no autorizado, cerrando sesión:', usuarioAuth.email);
+    setAuthError(MENSAJE_ACCESO_DENEGADO);
+    signOut(auth).catch((err) => console.error('[permisos] signOut falló:', err));
+  }, [usuarioAuth]);
+
+  // Errores de lectura del perfil (p. ej. reglas de `usuarios`) hacia la UI
+  useEffect(() => {
+    if (errorPerfil) {
+      setAuthError((prev) => prev ?? 'No se pudo verificar tu perfil. Revisa tu conexión.');
+    }
+  }, [errorPerfil]);
 
   const signInWithGoogle = async () => {
     setAuthError(null);
@@ -53,15 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = await signInWithPopup(auth, provider);
       const loggedUser = result.user;
 
-      if (loggedUser.email !== ALLOWED_EMAIL) {
+      if (!isEmailAllowed(loggedUser.email)) {
         // Correo no autorizado → cerrar sesión inmediatamente
+        console.warn('[permisos] Intento de acceso con correo no autorizado:', loggedUser.email);
+        setAuthError(MENSAJE_ACCESO_DENEGADO);
         await signOut(auth);
-        setUser(null);
-        setAuthError('Acceso denegado. Solo el correo autorizado puede iniciar sesión.');
         return;
       }
-
-      setUser(loggedUser);
     } catch (err: unknown) {
       const error = err as { message?: string; code?: string };
       // Ignorar si el usuario cerró el popup
@@ -72,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await signOut(auth);
-    setUser(null);
+    setAuthError(null);
   };
 
   const clearAuthError = () => setAuthError(null);
@@ -80,9 +81,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: usuarioAuth,
+        usuarioPerfil,
+        rol,
         loading,
         authError,
+        perfilError: errorPerfil,
         clearAuthError,
         signInWithGoogle,
         logout,

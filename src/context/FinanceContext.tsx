@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import type {
   Transaction,
   CategoryItem,
@@ -8,11 +8,14 @@ import type {
   InventarioAirPodsMetrics,
   MovimientoAirPods,
   Pedido,
+  SeccionId,
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../lib/initialData';
 import { isPedidoCancelado, pedidoEnPeriodo } from '../lib/pedidos';
 import { estaEnPeriodo } from '../lib/fechas';
+import { filtrarTransaccionesPorRol, puedeVerSeccion, seccionInicial } from '../lib/roles';
 import type { EstadoPedido } from '../lib/pedidos';
+import { useAuth } from './AuthContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { usePedidos } from '../hooks/usePedidos';
 import { useAirPods } from '../hooks/useAirPods';
@@ -22,6 +25,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from '
 import { db } from '../services/firebase';
 
 interface FinanceContextType {
+  /** Transacciones YA filtradas por rol (el socio sólo recibe hamburguesas). */
   transactions: Transaction[];
   pedidos: Pedido[];
   /** Pedidos web que caen dentro del periodo seleccionado (month | quarter | all). */
@@ -33,8 +37,8 @@ interface FinanceContextType {
   errorTransactions: Error | null;
   errorPedidos: Error | null;
   categories: CategoryItem[];
-  selectedEntity: EntityType | 'all';
-  setSelectedEntity: (entity: EntityType | 'all') => void;
+  selectedEntity: SeccionId;
+  setSelectedEntity: (entity: SeccionId) => void;
   dateFilter: DateFilter;
   setDateFilter: (filter: DateFilter) => void;
   filteredTransactions: Transaction[];
@@ -63,6 +67,9 @@ interface FinanceContextType {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Rol del usuario (este provider sólo se monta con sesión y rol válidos)
+  const { rol } = useAuth();
+
   const { transacciones, loading: loadingTransactions, error: errorTransactions } = useTransactions();
   const {
     pedidos,
@@ -71,8 +78,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     updateEstado: updateEstadoPedido,
   } = usePedidos();
 
-  // Inventario AirPods: movimientos + métricas (stock, capital, ganancia)
-  const airPods = useAirPods();
+  // Inventario AirPods: movimientos + métricas (stock, capital, ganancia).
+  // Sólo se suscribe el super_admin: las reglas de Firestore niegan esa
+  // colección al socio, así que no tiene sentido abrir el listener.
+  const airPods = useAirPods({ enabled: rol === 'super_admin' });
   const {
     movimientos: movimientosAirPods,
     loading: loadingAirPods,
@@ -80,9 +89,25 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   } = airPods;
   const airPodsMetrics: InventarioAirPodsMetrics = airPods;
 
-  const [selectedEntity, setSelectedEntity] = useState<EntityType | 'all'>('all');
+  const [selectedEntity, setSelectedEntity] = useState<SeccionId>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('month');
   const [categories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+
+  // Capa 1 de permisos: el socio sólo puede ver movimientos de hamburguesas.
+  // Todo lo que se calcula después (métricas, gráficas, listas, export) parte
+  // de esta lista ya filtrada, así que ningún total ajeno llega al frontend.
+  const transaccionesVisibles = useMemo(
+    () => filtrarTransaccionesPorRol(rol, transacciones),
+    [transacciones, rol]
+  );
+
+  // Si el rol no puede ver la sección seleccionada, se redirige a la suya
+  useEffect(() => {
+    if (!rol) return;
+    if (!puedeVerSeccion(rol, selectedEntity)) {
+      setSelectedEntity(seccionInicial(rol));
+    }
+  }, [rol, selectedEntity]);
 
   // Filtro de transacciones por entidad y fecha
   const filteredTransactions = useMemo(() => {
@@ -90,7 +115,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-indexado
 
-    return transacciones.filter((tx) => {
+    return transaccionesVisibles.filter((tx) => {
       // Filtro por entidad / negocio
       const txNegocio = tx.negocio || tx.entity || 'personal';
       if (selectedEntity !== 'all' && txNegocio !== selectedEntity) {
@@ -370,7 +395,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const exportDataJSON = () => {
     return JSON.stringify(
-      { transacciones, pedidos, movimientosAirPods, exportedAt: new Date().toISOString() },
+      { transacciones: transaccionesVisibles, pedidos, movimientosAirPods, exportedAt: new Date().toISOString() },
       null,
       2
     );
@@ -403,7 +428,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   return (
     <FinanceContext.Provider
       value={{
-        transactions: transacciones,
+        transactions: transaccionesVisibles,
         pedidos,
         pedidosDelPeriodo,
         webOrdersIncome,

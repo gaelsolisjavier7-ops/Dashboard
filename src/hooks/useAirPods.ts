@@ -6,18 +6,31 @@ import type { MovimientoAirPods } from '../types/finance';
 import { calcularMetricasAirPods } from '../lib/inventario';
 import { parseFechaFirestore } from '../lib/fechas';
 
+export interface UseAirPodsOptions {
+  /** false ⇒ no se abre el listener (rol sin permiso sobre `inventario_airpods`). */
+  enabled?: boolean;
+}
+
 /**
  * Inventario de AirPods en tiempo real.
  *
  * Devuelve los movimientos (más recientes primero) y las métricas del negocio:
  * stock, capital inmovilizado, ganancia acumulada y precios/márgenes promedio.
+ * Con `enabled: false` devuelve listas vacías y no toca Firestore.
  */
-export function useAirPods() {
+export function useAirPods({ enabled = true }: UseAirPodsOptions = {}) {
   const [movimientos, setMovimientos] = useState<MovimientoAirPods[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setMovimientos([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
 
     // Ordenado por fecha descendente desde Firestore
@@ -69,7 +82,7 @@ export function useAirPods() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [enabled]);
 
   const metrics = useMemo(() => calcularMetricasAirPods(movimientos), [movimientos]);
 
