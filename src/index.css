@@ -259,3 +259,39 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #7a7a7a;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE MÓVIL (<640px = breakpoint `sm`)
+   Todo lo de este bloque es exclusivo de móvil: el diseño de escritorio no
+   se ve afectado porque vive dentro de @media (max-width: 639.98px).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Carrusel horizontal de pills (SubNav) sin barra de scroll visible */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Barra de navegación inferior: respeta el home indicator del iPhone */
+.bottom-nav-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Padding de las tarjetas en móvil.
+   OJO: .apple-card se emite FUERA de @layer (igual que .apple-btn-*), así que
+   las utilidades de Tailwind (p-4, p-5…) NO pueden sobrescribirlo: las reglas
+   sin capa ganan a las que están en @layer. Por eso el ajuste móvil se hace
+   aquí y no con clases en el JSX. */
+@media (max-width: 639.98px) {
+  .apple-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+}
+

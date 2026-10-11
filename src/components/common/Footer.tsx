@@ -2,7 +2,7 @@ import React from 'react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-[#f5f5f7] text-[#333333] pt-16 pb-12 px-6 sm:px-12 border-t border-[#e0e0e0] select-none">
+    <footer className="w-full bg-[#f5f5f7] text-[#333333] pt-12 pb-24 sm:pt-16 sm:pb-12 px-4 sm:px-12 border-t border-[#e0e0e0] select-none">
       <div className="max-w-[1200px] mx-auto">
         {/* Footnote / Disclaimer section (Apple micro-legal / fine-print) */}
         <div className="text-[12px] text-[#7a7a7a] leading-relaxed pb-8 border-b border-[#e0e0e0] space-y-2">

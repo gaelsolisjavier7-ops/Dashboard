@@ -55,10 +55,10 @@ export const HeroMetrics: React.FC = () => {
   return (
     <div className="w-full">
       {/* Hero Showcase Banner: Dark Tile (Apple surface-tile-1 #272729) */}
-      <div className="w-full bg-[#272729] text-white py-14 sm:py-20 px-6 sm:px-12 border-b border-[#333333]">
+      <div className="w-full bg-[#272729] text-white py-10 sm:py-20 px-4 sm:px-12 border-b border-[#333333]">
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-          <div>
-            <div className="flex items-center space-x-2">
+          <div className="w-full min-w-0 md:w-auto">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[14px] font-semibold tracking-wider uppercase text-[#2997ff]">
                 {getEntityTitle()}
               </span>
@@ -69,10 +69,10 @@ export const HeroMetrics: React.FC = () => {
               )}
             </div>
 
-            <h1 className="text-[34px] sm:text-[48px] lg:text-[56px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white">
+            <h1 className="text-[34px] sm:text-[48px] lg:text-[56px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white break-words">
               {formatCurrency(metrics.netFreeCash)}
             </h1>
-            <p className="text-[17px] sm:text-[19px] text-[#cccccc] font-normal leading-relaxed mt-2 max-w-[550px]">
+            <p className="text-[16px] sm:text-[19px] text-[#cccccc] font-normal leading-relaxed mt-2 max-w-[550px]">
               {metrics.netFreeCash === 0 && metrics.totalIncome === 0
                 ? 'Sin movimientos registrados en Firestore. Todas las métricas en $0.'
                 : isPositiveCashFlow
@@ -81,9 +81,9 @@ export const HeroMetrics: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full md:w-auto">
             {/* Margen Card */}
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-5 min-w-[190px]">
+            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
               <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider block">
                 Margen Libre
               </span>
@@ -113,7 +113,7 @@ export const HeroMetrics: React.FC = () => {
             </div>
 
             {/* Pedidos Web en vivo */}
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-5 min-w-[190px]">
+            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
               <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider flex items-center justify-between">
                 <span>Pedidos Web</span>
                 <ShoppingBag className="w-3.5 h-3.5 text-[#2997ff]" />
@@ -135,8 +135,8 @@ export const HeroMetrics: React.FC = () => {
       </div>
 
       {/* Grid of Key Financial Cards: Light Parchment Surface (#f5f5f7) */}
-      <div className="w-full bg-[#f5f5f7] py-12 px-6 sm:px-12 border-b border-[#e0e0e0]">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="w-full bg-[#f5f5f7] py-8 px-4 sm:py-12 sm:px-12 border-b border-[#e0e0e0]">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Card 1: Ingresos Brutos */}
           <div className="apple-card bg-white flex flex-col justify-between">
             <div>

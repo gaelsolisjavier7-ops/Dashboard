@@ -228,7 +228,7 @@ export const FirebaseConfigModal: React.FC<FirebaseConfigModalProps> = ({ isOpen
               </div>
             </div>
 
-            <div className="pt-3 flex items-center justify-end space-x-2">
+            <div className="pt-3 flex flex-col gap-2 sm:gap-0 sm:flex-row sm:items-center sm:justify-end sm:space-x-2">
               <button
                 type="button"
                 onClick={onClose}

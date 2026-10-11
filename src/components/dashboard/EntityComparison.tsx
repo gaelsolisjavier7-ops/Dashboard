@@ -50,14 +50,14 @@ export const EntityComparison: React.FC = () => {
   ];
 
   return (
-    <div className="w-full py-12 px-6 sm:px-12 bg-[#ffffff]">
+    <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[#ffffff]">
       <div className="max-w-[1200px] mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8">
           <div>
             <span className="text-[13px] font-semibold text-[#0066cc] uppercase tracking-wider">
               Ecosistema Financiero
             </span>
-            <h2 className="text-[28px] sm:text-[34px] font-semibold text-[#1d1d1f] tracking-[-0.374px] mt-1">
+            <h2 className="text-[24px] sm:text-[34px] font-semibold text-[#1d1d1f] tracking-[-0.374px] mt-1">
               Rendimiento por Unidad de Negocio
             </h2>
           </div>
@@ -66,7 +66,7 @@ export const EntityComparison: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {entitiesData.map((item) => {
             const hasActivity = item.stats.income > 0 || item.stats.expenses > 0;
             const isProfitable = item.stats.freeCash > 0;

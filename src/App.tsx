@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { GlobalNav } from './components/common/GlobalNav';
 import { SubNav } from './components/common/SubNav';
+import { BottomNav } from './components/common/BottomNav';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
 import { AirPodsModule } from './components/dashboard/AirPodsModule';
@@ -15,7 +16,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { FirebaseConfigModal } from './components/common/FirebaseConfigModal';
 import { Footer } from './components/common/Footer';
 import type { Transaction } from './types/finance';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 
 function FinanceApp() {
   const { selectedEntity } = useFinance();
@@ -67,7 +68,7 @@ function FinanceApp() {
               <PedidosRecientes />
 
               {/* 3. Charts & Financial Deep-dive (White Canvas) */}
-              <div className="w-full py-12 px-6 sm:px-12 bg-[#ffffff] border-b border-[#e0e0e0]">
+              <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[#ffffff] border-b border-[#e0e0e0]">
                 <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-10">
                   <ExpenseCategoryChart />
                 </div>
@@ -77,7 +78,7 @@ function FinanceApp() {
               <EntityComparison />
 
               {/* 4. Quick Jump to Cash Flow & Transactions */}
-              <div className="w-full py-14 px-6 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
+              <div className="w-full py-10 px-4 sm:py-14 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
                 <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div>
                     <h3 className="text-[24px] font-semibold text-[#1d1d1f] tracking-tight">
@@ -132,6 +133,22 @@ function FinanceApp() {
         isOpen={isFirebaseConfigModalOpen}
         onClose={() => setIsFirebaseConfigModalOpen(false)}
       />
+
+      {/* Móvil: FAB de nuevo registro.
+          Va en la raíz (no dentro del SubNav) porque el backdrop-filter del
+          SubNav convertiría a este elemento en `fixed` respecto a él y no al viewport. */}
+      <button
+        type="button"
+        onClick={handleOpenNewTransaction}
+        aria-label="Nuevo Registro"
+        title="Nuevo Registro"
+        className="sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[#0066cc] text-white shadow-2xl flex items-center justify-center apple-pressable cursor-pointer hover:bg-[#0071e3]"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {/* Móvil: navegación inferior estilo app nativa */}
+      <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} />
     </div>
   );
 }

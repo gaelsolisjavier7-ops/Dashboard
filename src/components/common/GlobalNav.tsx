@@ -143,10 +143,10 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           ) : (
             <button
               onClick={handleSignIn}
-              className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-[8px] text-[#cccccc] hover:text-white hover:bg-[#272729] transition-all cursor-pointer"
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-[8px] text-[#cccccc] hover:text-white hover:bg-[#272729] transition-all cursor-pointer"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Iniciar Sesión</span>
+              <span className="hidden sm:inline">Iniciar Sesión</span>
             </button>
           )}
         </div>
@@ -155,7 +155,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
       {/* Floating Apple-Style Toast */}
       {toast && (
         <div
-          className={`fixed top-14 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-[14px] shadow-2xl text-[14px] transition-all animate-fade-in ${
+          className={`fixed top-14 left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-[14px] shadow-2xl text-[14px] transition-all animate-fade-in ${
             toast.type === 'success'
               ? 'bg-[#1d1d1f] text-white border border-[#34c759]/60 shadow-[0_10px_30px_rgba(52,199,89,0.2)]'
               : 'bg-[#1d1d1f] text-white border border-[#ff3b30]/60 shadow-[0_10px_30px_rgba(255,59,48,0.2)]'

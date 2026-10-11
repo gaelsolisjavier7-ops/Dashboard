@@ -36,7 +36,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-[#ffffff] rounded-[24px] max-w-[440px] w-full p-8 border border-[#e0e0e0] shadow-2xl relative">
+      <div className="bg-[#ffffff] rounded-[24px] max-w-[440px] w-full p-6 sm:p-8 border border-[#e0e0e0] shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={() => {
             clearAuthError();

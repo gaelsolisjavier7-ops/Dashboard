@@ -104,11 +104,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-[#ffffff] rounded-[24px] max-w-[540px] w-full p-6 sm:p-8 border border-[#e0e0e0] shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#ffffff] rounded-[24px] max-w-[540px] w-full px-5 pt-5 pb-0 sm:p-8 border border-[#e0e0e0] shadow-2xl relative max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#f0f0f0]">
           <div>
-            <h3 className="text-[22px] font-semibold text-[#1d1d1f] tracking-[-0.28px]">
+            <h3 className="text-[20px] sm:text-[22px] font-semibold text-[#1d1d1f] tracking-[-0.28px]">
               {editingTransaction ? 'Editar Movimiento' : 'Registrar Ingreso o Gasto'}
             </h3>
             <p className="text-[13px] text-[#7a7a7a] mt-0.5">
@@ -123,7 +123,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-5 sm:mt-6 space-y-4 sm:space-y-5">
           {/* 1. Type Switcher: Income vs Expense (Apple style segment) */}
           <div>
             <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-2">
@@ -133,7 +133,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setType('gasto')}
-                className={`py-2 text-[14px] rounded-full font-medium transition-all cursor-pointer ${
+                className={`py-2 text-[13px] sm:text-[14px] rounded-full font-medium transition-all cursor-pointer ${
                   type === 'gasto'
                     ? 'bg-[#ffffff] text-[#ff3b30] shadow-sm font-semibold'
                     : 'text-[#7a7a7a] hover:text-[#1d1d1f]'
@@ -144,7 +144,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setType('ingreso')}
-                className={`py-2 text-[14px] rounded-full font-medium transition-all cursor-pointer ${
+                className={`py-2 text-[13px] sm:text-[14px] rounded-full font-medium transition-all cursor-pointer ${
                   type === 'ingreso'
                     ? 'bg-[#ffffff] text-[#0066cc] shadow-sm font-semibold'
                     : 'text-[#7a7a7a] hover:text-[#1d1d1f]'
@@ -160,7 +160,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-2">
               Cuenta o Negocio
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {[
                 { id: 'hamburguesas', label: 'Hamburguesas' },
                 { id: 'airpods', label: 'AirPods' },
@@ -170,7 +170,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   key={ent.id}
                   type="button"
                   onClick={() => setEntity(ent.id as EntityType)}
-                  className={`py-2 px-3 text-[13px] rounded-full border text-center transition-all ${
+                  className={`py-2 px-1.5 sm:px-3 text-[12px] sm:text-[13px] rounded-full border text-center transition-all ${
                     entity === ent.id
                       ? 'border-[#0071e3] bg-[#0066cc]/5 text-[#0066cc] font-semibold'
                       : 'border-[#e0e0e0] bg-white text-[#1d1d1f] hover:bg-[#f5f5f7]'
@@ -214,7 +214,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="0.00"
-                className="w-full text-[20px] font-semibold pl-9 pr-4 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all"
+                className="w-full text-[18px] sm:text-[20px] font-semibold pl-9 pr-4 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all"
               />
             </div>
           </div>
@@ -260,7 +260,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
               Método de Pago
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {[
                 { id: 'transferencia', label: 'Transferencia' },
                 { id: 'efectivo', label: 'Efectivo' },
@@ -270,7 +270,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   key={m.id}
                   type="button"
                   onClick={() => setPaymentMethod(m.id as PaymentMethod)}
-                  className={`py-2 text-[13px] rounded-full border text-center transition-all ${
+                  className={`py-2 px-1.5 sm:px-3 text-[12px] sm:text-[13px] rounded-full border text-center transition-all ${
                     paymentMethod === m.id
                       ? 'border-[#1d1d1f] bg-[#1d1d1f] text-white font-medium'
                       : 'border-[#e0e0e0] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e0e0e0]'
@@ -297,18 +297,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-4 flex items-center justify-end space-x-3 border-t border-[#f0f0f0]">
+          <div className="sticky bottom-0 -mx-5 sm:static sm:mx-0 bg-white pt-4 flex flex-col gap-3 pb-5 sm:gap-0 sm:pb-0 sm:flex-row sm:items-center sm:justify-end sm:space-x-3 border-t border-[#f0f0f0]">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-[15px] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-full text-[15px] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="apple-btn-primary px-7 py-2.5 text-[15px] disabled:opacity-50"
+              className="apple-btn-primary w-full sm:w-auto px-7 py-2.5 text-[15px] disabled:opacity-50"
             >
               {submitting ? 'Guardando...' : editingTransaction ? 'Guardar Cambios' : 'Registrar Movimiento'}
             </button>
