@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { DATE_FILTER_LABEL, isPedidoCancelado } from '../../lib/pedidos';
-import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag } from 'lucide-react';
+import { formatMXN, promediosRecetas } from '../../lib/costeo';
+import { precioVentaProducto } from '../../lib/products';
+import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag, ClipboardList } from 'lucide-react';
 
 export const HeroMetrics: React.FC = () => {
   const {
@@ -11,6 +13,8 @@ export const HeroMetrics: React.FC = () => {
     webOrdersIncome,
     dateFilter,
     loadingTransactions,
+    insumos,
+    recetas,
   } = useFinance();
 
   const formatCurrency = (val: number) => {
@@ -30,6 +34,26 @@ export const HeroMetrics: React.FC = () => {
 
   // Las ventas del inventario AirPods se integran al Consolidado y a AirPods
   const includeAirPodsSales = selectedEntity === 'all' || selectedEntity === 'airpods';
+
+  // Costo y margen promedio según las recetas (sólo tiene sentido en hamburguesas)
+  const promedioRecetas = useMemo(
+    () =>
+      promediosRecetas({
+        recetas: recetas.map((r) => ({
+          productoId: r.productoId,
+          ingredientes: r.ingredientes.map((ing) => ({
+            insumoId: ing.insumoId,
+            cantidad: ing.cantidad,
+          })),
+          incluyePapas: r.incluyePapas,
+        })),
+        insumos: insumos.filter((i) => i.activo !== false),
+        precioDe: precioVentaProducto,
+      }),
+    [recetas, insumos]
+  );
+
+  const mostrarRecetas = includeWebOrders && promedioRecetas.conReceta > 0;
 
   const fuentesDeIngreso = [
     'Ventas registradas',
@@ -130,6 +154,37 @@ export const HeroMetrics: React.FC = () => {
                 Colección 'pedidos' · {DATE_FILTER_LABEL[dateFilter]}
               </span>
             </div>
+
+            {/* Costo y margen promedio según las recetas (sólo si hay recetas) */}
+            {mostrarRecetas && (
+              <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+                <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider flex items-center justify-between">
+                  <span>Costo por producto</span>
+                  <ClipboardList className="w-3.5 h-3.5 text-[#34c759]" />
+                </span>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-[28px] font-semibold text-white tracking-tight">
+                    {formatMXN(promedioRecetas.costoPromedio)}
+                  </span>
+                  <span
+                    className={`text-[13px] px-2 py-0.5 rounded-full font-medium ${
+                      promedioRecetas.margenPromedio >= 50
+                        ? 'bg-[#30d158]/20 text-[#30d158]'
+                        : promedioRecetas.margenPromedio >= 30
+                        ? 'bg-[#ff9f0a]/20 text-[#ff9f0a]'
+                        : 'bg-[#ff3b30]/20 text-[#ff453a]'
+                    }`}
+                  >
+                    {promedioRecetas.margenPromedio}% margen
+                  </span>
+                </div>
+                <span className="text-[12px] text-[#7a7a7a] mt-1 block">
+                  Promedio de {promedioRecetas.conReceta} receta
+                  {promedioRecetas.conReceta === 1 ? '' : 's'} · ganancia{' '}
+                  {formatMXN(promedioRecetas.gananciaPromedio)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

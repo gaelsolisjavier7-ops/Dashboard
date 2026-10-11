@@ -5,9 +5,11 @@ import type {
   DateFilter,
   EntityType,
   CashFlowMetrics,
+  Insumo,
   InventarioAirPodsMetrics,
   MovimientoAirPods,
   Pedido,
+  Receta,
   SeccionId,
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../lib/initialData';
@@ -19,6 +21,8 @@ import { useAuth } from './AuthContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { usePedidos } from '../hooks/usePedidos';
 import { useAirPods } from '../hooks/useAirPods';
+import { useInsumos } from '../hooks/useInsumos';
+import { useRecetas } from '../hooks/useRecetas';
 import { eliminarMovimiento, registrarMovimiento } from '../services/airpods';
 import type { NuevoMovimientoAirPods } from '../services/airpods';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -48,6 +52,13 @@ interface FinanceContextType {
   updateTransaction: (tx: Transaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updatePedidoEstado: (id: string, estado: EstadoPedido, estadoActual?: string) => Promise<void>;
+  /* Insumos y Recetas (módulo de costeo) */
+  insumos: Insumo[];
+  loadingInsumos: boolean;
+  errorInsumos: Error | null;
+  recetas: Receta[];
+  loadingRecetas: boolean;
+  errorRecetas: Error | null;
   /* Inventario AirPods */
   movimientosAirPods: MovimientoAirPods[];
   loadingAirPods: boolean;
@@ -88,6 +99,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     error: errorAirPods,
   } = airPods;
   const airPodsMetrics: InventarioAirPodsMetrics = airPods;
+
+  // Módulo de costeo: insumos y recetas los lee todo el dashboard (HeroMetrics,
+  // EntityComparison y el propio módulo), así que se suscriben una sola vez aquí.
+  const {
+    insumos,
+    loading: loadingInsumos,
+    error: errorInsumos,
+  } = useInsumos();
+  const {
+    recetas,
+    loading: loadingRecetas,
+    error: errorRecetas,
+  } = useRecetas();
 
   const [selectedEntity, setSelectedEntity] = useState<SeccionId>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('month');
@@ -454,6 +478,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         airPodsMetrics,
         registrarMovimientoAirPods,
         eliminarMovimientoAirPods,
+        insumos,
+        loadingInsumos,
+        errorInsumos,
+        recetas,
+        loadingRecetas,
+        errorRecetas,
         transferProfitToPersonal,
         exportDataJSON,
         importDataJSON,

@@ -1,4 +1,5 @@
 import type { Rol } from '../lib/roles';
+import type { UnidadBase, UnidadCompra } from '../lib/costeo';
 
 export type { NegocioId, Rol, SeccionId, TabId } from '../lib/roles';
 
@@ -134,4 +135,62 @@ export interface UsuarioPerfil {
   rol: Rol | null;
   /** Documento crudo de Firestore, por si se necesitan campos extra. */
   datos: Record<string, unknown>;
+}
+
+/* ── Insumos (colección `insumos`) ── */
+
+export type CategoriaInsumo =
+  | 'Carne'
+  | 'Panadería'
+  | 'Quesos'
+  | 'Verduras'
+  | 'Salsas'
+  | 'Papas'
+  | 'Bebidas'
+  | 'Extras'
+  | 'Otros';
+
+export interface Insumo {
+  id: string;
+  nombre: string;
+  categoria: CategoriaInsumo | string;
+  unidadCompra: UnidadCompra;
+  /** Cuánto trae la compra: 5 (kg), 1 (litro), 30 (pza), 2 (paquetes)… */
+  cantidadCompra: number;
+  /** Precio del paquete completo */
+  precioCompra: number;
+  /** Sólo para unidadCompra === 'paquete': piezas que trae cada paquete */
+  piezasPorPaquete?: number | null;
+  unidadBase: UnidadBase;
+  factorConversion: number;
+  costoUnidadBase: number;
+  stockActual: number;
+  stockMinimo: number;
+  proveedor: string | null;
+  notas: string | null;
+  activo: boolean;
+}
+
+/* ── Recetas (colección `recetas`) ── */
+
+export interface RecetaIngrediente {
+  insumoId: string;
+  insumoNombre: string;
+  /** En unidadBase del insumo (150 = 150 g de carne) */
+  cantidad: number;
+  /** Costo por unidad base en el momento de guardar (histórico) */
+  costoUnitarioSnapshot: number;
+  costoTotal: number;
+}
+
+export interface Receta {
+  id: string;
+  /** id del producto en MENU_DATA ('burger-especial', 'hotdog-tocino'…) */
+  productoId: string;
+  productoNombre: string;
+  ingredientes: RecetaIngrediente[];
+  /** Suma de ingredientes (+ papas si incluyePapas) al momento de guardar */
+  costoTotal: number;
+  incluyePapas: boolean;
+  activo: boolean;
 }

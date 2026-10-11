@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test:permisos": "node scripts/test-permisos.mjs",
+    "test:insumos": "node scripts/test-insumos.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

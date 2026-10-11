@@ -7,7 +7,7 @@ import { BottomNav } from './components/common/BottomNav';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
 import { AirPodsModule } from './components/dashboard/AirPodsModule';
-import { Proximamente } from './components/dashboard/Proximamente';
+import { InsumosModule } from './components/dashboard/InsumosModule';
 import { ExpenseCategoryChart } from './components/dashboard/ExpenseCategoryChart';
 import { EntityComparison } from './components/dashboard/EntityComparison';
 import { CashFlowView } from './components/cashflow/CashFlowView';
@@ -58,7 +58,8 @@ function FinanceApp({ rol }: { rol: Rol }) {
     setIsTransactionModalOpen(true);
   };
 
-  const esSeccionEnConstruccion = seccion === 'insumos' || seccion === 'recetas';
+  // Insumos y Recetas comparten el mismo módulo de costeo (con sub-tabs)
+  const esSeccionCosteo = seccion === 'insumos' || seccion === 'recetas';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1d1d1f]">
@@ -83,9 +84,12 @@ function FinanceApp({ rol }: { rol: Rol }) {
           (seccion === 'airpods' ? (
             /* Tab AirPods: módulo de inventario en lugar del resumen general */
             <AirPodsModule />
-          ) : esSeccionEnConstruccion ? (
-            /* Insumos y Recetas: permisos listos, módulo pendiente */
-            <Proximamente seccion={seccion} />
+          ) : esSeccionCosteo ? (
+            /* Insumos y Recetas: módulo de costeo con sub-tabs Inventario | Recetas */
+            <InsumosModule
+              key={seccion}
+              subTabInicial={seccion === 'recetas' ? 'recetas' : 'inventario'}
+            />
           ) : (
             <div>
               {/* 1. Hero Tiles (Alternating dark and parchment) */}

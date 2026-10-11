@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { useAuth } from '../../context/AuthContext';
 import type { EntityType } from '../../types/finance';
 import { puedeVerNegocio } from '../../lib/roles';
+import { formatMXN, promediosRecetas } from '../../lib/costeo';
+import { precioVentaProducto } from '../../lib/products';
 import { BurgerVisual, AirPodsVisual, AppleCardVisual } from '../common/ProductVisuals';
 import { ArrowRight, Utensils, Headphones, User } from 'lucide-react';
 
 export const EntityComparison: React.FC = () => {
-  const { metrics, setSelectedEntity } = useFinance();
+  const { metrics, setSelectedEntity, insumos, recetas } = useFinance();
   const { rol } = useAuth();
+
+  // Margen real del negocio (recetas) para la tarjeta de Hamburguesas
+  const promedioRecetas = useMemo(
+    () =>
+      promediosRecetas({
+        recetas: recetas.map((r) => ({
+          productoId: r.productoId,
+          ingredientes: r.ingredientes.map((ing) => ({
+            insumoId: ing.insumoId,
+            cantidad: ing.cantidad,
+          })),
+          incluyePapas: r.incluyePapas,
+        })),
+        insumos: insumos.filter((i) => i.activo !== false),
+        precioDe: precioVentaProducto,
+      }),
+    [recetas, insumos]
+  );
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -143,6 +163,31 @@ export const EntityComparison: React.FC = () => {
                         {formatCurrency(item.stats.freeCash)}
                       </span>
                     </div>
+
+                    {/* Margen real del negocio de hamburguesas según las recetas */}
+                    {item.key === 'hamburguesas' && promedioRecetas.conReceta > 0 && (
+                      <div className="flex justify-between text-[14px] pt-3 mt-1 border-t border-[#f0f0f0]">
+                        <span className="text-[#7a7a7a]">
+                          Margen real (recetas)
+                          <span className="block text-[11px] text-[#8e8e93]">
+                            {promedioRecetas.conReceta} producto
+                            {promedioRecetas.conReceta === 1 ? '' : 's'} · costo prom.{' '}
+                            {formatMXN(promedioRecetas.costoPromedio)}
+                          </span>
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            promedioRecetas.margenPromedio >= 50
+                              ? 'text-[#34c759]'
+                              : promedioRecetas.margenPromedio >= 30
+                              ? 'text-[#ff9500]'
+                              : 'text-[#ff3b30]'
+                          }`}
+                        >
+                          {promedioRecetas.margenPromedio}%
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
