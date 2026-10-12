@@ -7,13 +7,13 @@
     "skipLibCheck": true,
 
     /*
-     * Resolución "de bundler": Vercel compila estas funciones con esbuild y
-     * espera imports SIN extensión (`from './menu'`). No usamos
-     * `allowImportingTsExtensions`, así el type-check funciona igual en
-     * cualquier versión de TypeScript (incluida la 7.x).
+     * Node ESM + TypeScript: Vercel transpila cada archivo de api/ a .js SIN
+     * bundlear, así que Node resuelve los imports tal cual quedan escritos.
+     * Por eso los imports llevan extensión .js (aunque el fuente sea .ts):
+     * es la única forma de que el runtime encuentre ./_lib/bot.js.
      */
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "node16",
+    "moduleResolution": "node16",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,

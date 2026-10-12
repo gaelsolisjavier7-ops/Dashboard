@@ -6,7 +6,7 @@
  * forzado por la API. Si Gemini falla, el bot responde TEXTO_NO_ENTENDIDO.
  */
 
-import { MENU_TEXTO, NOMBRES_CANONICOS } from './menu';
+import { MENU_TEXTO, NOMBRES_CANONICOS } from './menu.js';
 
 export const MODELO_DEFECTO = 'gemini-2.0-flash';
 const URL_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';

@@ -1,29 +1,51 @@
 /**
  * Hook de resolución para los tests locales.
  *
- * Los archivos de `api/` usan imports SIN extensión (`from './menu'`) porque así
- * los compila Vercel con esbuild. Node en cambio exige la extensión en ESM, así
- * que este hook la añade (`./menu` → `./menu.ts`) sólo cuando hace falta.
+ * Los archivos de `api/` importan con extensión `.js` (convención Node ESM +
+ * TypeScript: el fuente es `.ts`, pero el import apunta al `.js` que genera
+ * Vercel al transpilar). En local sólo existen los `.ts`, así que este hook
+ * mapea `./foo.js` → `./foo.ts`. También resuelve imports sin extensión.
  *
  * Se registra con:  node --import ./scripts/resolver-ts.mjs scripts/test-bot.mjs
  *
- * No afecta al build de Vercel: es sólo para `npm run test:bot` y `npm run bot:smoke`.
+ * No afecta al build de Vercel: es sólo para `npm run test:bot`, `bot:smoke`
+ * y `test:runtime`.
  */
 import { registerHooks } from 'node:module';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const EXTENSIONES = ['.ts', '.mjs', '.js', '/index.ts'];
+/** Candidatas en orden: el fuente real primero. */
+const EXTENSIONES = ['.ts', '.tsx', '.mts', '.mjs', '.js', '/index.ts'];
+
+function existe(especificador, parentURL) {
+  try {
+    const url = new URL(especificador, parentURL);
+    return url.protocol === 'file:' && existsSync(fileURLToPath(url));
+  } catch {
+    return false;
+  }
+}
 
 registerHooks({
   resolve(especificador, contexto, siguiente) {
     const esRelativo = especificador.startsWith('./') || especificador.startsWith('../');
-    const tieneExtension = /\.[a-z0-9]+$/i.test(especificador);
+    if (!esRelativo || !contexto.parentURL) return siguiente(especificador, contexto);
 
-    if (esRelativo && !tieneExtension && contexto.parentURL) {
+    // ./foo.js → ./foo.ts  (el .js no existe en el repo, el .ts sí)
+    if (especificador.endsWith('.js') && !existe(especificador, contexto.parentURL)) {
+      const sinJs = especificador.slice(0, -3);
       for (const extension of EXTENSIONES) {
-        const candidato = new URL(especificador + extension, contexto.parentURL);
-        if (candidato.protocol === 'file:' && existsSync(fileURLToPath(candidato))) {
+        if (existe(sinJs + extension, contexto.parentURL)) {
+          return siguiente(sinJs + extension, contexto);
+        }
+      }
+    }
+
+    // Imports sin extensión → probamos las candidatas típicas
+    if (!/\.[a-z0-9]+$/i.test(especificador)) {
+      for (const extension of EXTENSIONES) {
+        if (existe(especificador + extension, contexto.parentURL)) {
           return siguiente(especificador + extension, contexto);
         }
       }

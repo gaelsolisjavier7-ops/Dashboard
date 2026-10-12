@@ -8,12 +8,12 @@
  * para poder probar el webhook con dependencias falsas (`npm run test:bot`).
  */
 
-import { crearBot } from './_lib/bot';
-import type { BotTelegram } from './_lib/bot';
-import { crearAlmacen } from './_lib/firestore';
-import type { AlmacenBot, ConfiguracionFirestore } from './_lib/firestore';
-import { interpretarMensaje } from './_lib/gemini';
-import { crearClienteTelegram, esChatAutorizado, verificarSecret } from './_lib/telegram';
+import { crearBot } from './_lib/bot.js';
+import type { BotTelegram } from './_lib/bot.js';
+import { crearAlmacen } from './_lib/firestore.js';
+import type { AlmacenBot, ConfiguracionFirestore } from './_lib/firestore.js';
+import { interpretarMensaje } from './_lib/gemini.js';
+import { crearClienteTelegram, esChatAutorizado, verificarSecret } from './_lib/telegram.js';
 
 export interface PeticionMinima {
   method?: string;
@@ -96,9 +96,11 @@ function leerCuerpo(body: unknown): unknown {
       return {};
     }
   }
-  if (Buffer.isBuffer(body)) {
+  // Uint8Array cubre también los Buffer del runtime de Node, sin depender
+  // del global Buffer (que en el chequeo de tipos de Vercel no existe).
+  if (body instanceof Uint8Array) {
     try {
-      return JSON.parse(body.toString('utf8'));
+      return JSON.parse(new TextDecoder().decode(body));
     } catch {
       return {};
     }

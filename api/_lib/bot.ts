@@ -30,7 +30,7 @@ import {
   parsearCallback,
   rangoDiaLocal,
   sanitizarTexto,
-} from './pedido';
+} from './pedido.js';
 import type {
   EstadoBorrador,
   GastoDetectado,
@@ -39,9 +39,9 @@ import type {
   PedidoResumen,
   RegistroPlano,
   ResumenDia,
-} from './pedido';
-import { esChatAutorizado, tecladoConfirmacion, tecladoModalidad, tecladoPendientes } from './telegram';
-import type { ClienteTelegram } from './telegram';
+} from './pedido.js';
+import { esChatAutorizado, tecladoConfirmacion, tecladoModalidad, tecladoPendientes } from './telegram.js';
+import type { ClienteTelegram } from './telegram.js';
 
 export interface Almacen {
   /** Crea el pedido y sus transacciones en un solo lote. Devuelve el id del pedido. */

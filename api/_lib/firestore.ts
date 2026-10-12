@@ -13,9 +13,9 @@ import {
   MARCA_SERVIDOR,
   VIGENCIA_BORRADOR_MS,
   VIGENCIA_UPDATE_MS,
-} from './pedido';
-import type { PedidoResumen, RegistroPlano, ResumenDia } from './pedido';
-import type { Almacen } from './bot';
+} from './pedido.js';
+import type { PedidoResumen, RegistroPlano, ResumenDia } from './pedido.js';
+import type { Almacen } from './bot.js';
 
 export interface AlmacenBot extends Almacen {
   /** true si el update es nuevo; false si Telegram lo reintentó. */

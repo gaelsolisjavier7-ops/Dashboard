@@ -4,9 +4,9 @@
  * `npm run test:bot`; las llamadas HTTP se inyectan con `fetchImpl`.
  */
 
-import { datosCallback } from './pedido';
-import type { PedidoResumen } from './pedido';
-import type { FetchLike } from './gemini';
+import { datosCallback } from './pedido.js';
+import type { PedidoResumen } from './pedido.js';
+import type { FetchLike } from './gemini.js';
 
 export interface OpcionesTelegram {
   reply_markup?: unknown;
