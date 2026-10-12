@@ -9,7 +9,7 @@ export type TransactionType = 'ingreso' | 'gasto';
 
 export type PaymentMethod = 'efectivo' | 'transferencia' | 'tarjeta' | 'otro';
 
-export type DateFilter = 'month' | 'quarter' | 'all';
+export type { DateFilter, DateRange } from '../lib/fechas';
 
 export interface CategoryItem {
   id: string;

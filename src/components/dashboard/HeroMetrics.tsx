@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { DATE_FILTER_LABEL, isPedidoCancelado } from '../../lib/pedidos';
+import { isPedidoCancelado } from '../../lib/pedidos';
 import { formatMXN, promediosRecetas } from '../../lib/costeo';
 import { precioVentaProducto } from '../../lib/products';
 import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag, ClipboardList } from 'lucide-react';
@@ -11,7 +11,9 @@ export const HeroMetrics: React.FC = () => {
     selectedEntity,
     pedidosDelPeriodo,
     webOrdersIncome,
-    dateFilter,
+    dateRange,
+    labelPeriodo,
+    netoPeriodoAnterior,
     loadingTransactions,
     insumos,
     recetas,
@@ -55,6 +57,22 @@ export const HeroMetrics: React.FC = () => {
 
   const mostrarRecetas = includeWebOrders && promedioRecetas.conReceta > 0;
 
+  // Comparación del dinero libre contra el mismo periodo con offset -1
+  const comparacion = useMemo(() => {
+    if (dateRange.filter === 'all' || !netoPeriodoAnterior) return null;
+
+    const sinDatos = netoPeriodoAnterior.ingresos === 0 && netoPeriodoAnterior.gastos === 0;
+    if (sinDatos) return { sinDatos: true as const };
+
+    const delta = metrics.netFreeCash - netoPeriodoAnterior.neto;
+    const pct =
+      netoPeriodoAnterior.neto !== 0
+        ? (delta / Math.abs(netoPeriodoAnterior.neto)) * 100
+        : null;
+
+    return { sinDatos: false as const, delta, pct, subio: delta >= 0 };
+  }, [dateRange.filter, netoPeriodoAnterior, metrics.netFreeCash]);
+
   const fuentesDeIngreso = [
     'Ventas registradas',
     ...(includeWebOrders ? ['pedidos web del periodo'] : []),
@@ -80,12 +98,14 @@ export const HeroMetrics: React.FC = () => {
     <div className="w-full">
       {/* Hero Showcase Banner: Dark Tile (Apple surface-tile-1 #272729) */}
       <div className="w-full bg-[#272729] text-white py-10 sm:py-20 px-4 sm:px-12 border-b border-[#333333]">
-        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row md:flex-wrap items-start md:items-center justify-between gap-8">
           <div className="w-full min-w-0 md:w-auto">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[14px] font-semibold tracking-wider uppercase text-[#2997ff]">
                 {getEntityTitle()}
               </span>
+              <span className="text-[12px] text-[#8e8e93]">·</span>
+              <span className="text-[13px] font-medium text-[#cccccc]">{labelPeriodo}</span>
               {loadingTransactions && (
                 <span className="text-[12px] text-[#8e8e93] animate-pulse">
                   • Sincronizando con Firestore...
@@ -105,7 +125,7 @@ export const HeroMetrics: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row md:flex-wrap gap-3 sm:gap-4 w-full md:w-auto">
             {/* Margen Card */}
             <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
               <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider block">
@@ -151,7 +171,7 @@ export const HeroMetrics: React.FC = () => {
                 </span>
               </div>
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">
-                Colección 'pedidos' · {DATE_FILTER_LABEL[dateFilter]}
+                Colección 'pedidos' · {labelPeriodo}
               </span>
             </div>
 
@@ -182,6 +202,42 @@ export const HeroMetrics: React.FC = () => {
                   Promedio de {promedioRecetas.conReceta} receta
                   {promedioRecetas.conReceta === 1 ? '' : 's'} · ganancia{' '}
                   {formatMXN(promedioRecetas.gananciaPromedio)}
+                </span>
+              </div>
+            )}
+
+            {/* Comparación contra el periodo anterior (mismo filtro, offset -1) */}
+            {comparacion && (
+              <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+                <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider block">
+                  vs. periodo anterior
+                </span>
+
+                {comparacion.sinDatos ? (
+                  <div className="text-[18px] font-semibold text-[#8e8e93] mt-1">
+                    Sin datos previos
+                  </div>
+                ) : (
+                  <div
+                    className={`text-[26px] font-semibold tracking-tight mt-1 ${
+                      comparacion.subio ? 'text-[#30d158]' : 'text-[#ff453a]'
+                    }`}
+                  >
+                    {comparacion.delta >= 0 ? '+' : '−'}
+                    {formatCurrency(Math.abs(comparacion.delta))}
+                    {comparacion.pct !== null && (
+                      <span className="text-[14px] font-medium ml-1.5">
+                        ({comparacion.pct >= 0 ? '+' : ''}
+                        {comparacion.pct.toFixed(0)}%)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <span className="text-[12px] text-[#7a7a7a] mt-1 block">
+                  {comparacion.sinDatos
+                    ? 'No hubo movimientos en el periodo anterior'
+                    : `Periodo anterior: ${formatCurrency(netoPeriodoAnterior?.neto ?? 0)}`}
                 </span>
               </div>
             )}

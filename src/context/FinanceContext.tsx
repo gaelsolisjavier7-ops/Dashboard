@@ -11,10 +11,17 @@ import type {
   Pedido,
   Receta,
   SeccionId,
+  DateRange,
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../lib/initialData';
 import { isPedidoCancelado, pedidoEnPeriodo } from '../lib/pedidos';
-import { estaEnPeriodo } from '../lib/fechas';
+import {
+  DATE_FILTERS,
+  estaEnPeriodo,
+  formatPeriodoLabel,
+  parseFechaFirestore,
+  rangoDePeriodo,
+} from '../lib/fechas';
 import { filtrarTransaccionesPorRol, puedeVerSeccion, seccionInicial } from '../lib/roles';
 import type { EstadoPedido } from '../lib/pedidos';
 import { useAuth } from './AuthContext';
@@ -43,8 +50,17 @@ interface FinanceContextType {
   categories: CategoryItem[];
   selectedEntity: SeccionId;
   setSelectedEntity: (entity: SeccionId) => void;
-  dateFilter: DateFilter;
-  setDateFilter: (filter: DateFilter) => void;
+  /** Periodo activo (día/semana/mes/trimestre/año/todo) + desplazamiento. */
+  dateRange: DateRange;
+  /** Etiqueta legible del periodo: "Hoy (12 Oct)", "Octubre 2026"... */
+  labelPeriodo: string;
+  setFilter: (filter: DateFilter) => void;
+  setOffset: (offset: number) => void;
+  prevPeriod: () => void;
+  nextPeriod: () => void;
+  irAHoy: () => void;
+  /** Ingresos/gastos/neto del mismo periodo con offset -1 (null si filter === 'all'). */
+  netoPeriodoAnterior: { ingresos: number; gastos: number; neto: number } | null;
   filteredTransactions: Transaction[];
   metrics: CashFlowMetrics;
   categoryExpenses: { name: string; amount: number; color: string; count: number }[];
@@ -114,7 +130,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   } = useRecetas();
 
   const [selectedEntity, setSelectedEntity] = useState<SeccionId>('all');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('month');
+  const [dateRange, setDateRange] = useState<DateRange>(leerDateRangeGuardado);
   const [categories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
 
   // Capa 1 de permisos: el socio sólo puede ver movimientos de hamburguesas.
@@ -133,11 +149,25 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [rol, selectedEntity]);
 
-  // Filtro de transacciones por entidad y fecha
+  // Persistencia del periodo elegido (clave entre3_dateRange)
+  useEffect(() => {
+    guardarDateRange(dateRange);
+  }, [dateRange]);
+
+  // API de navegación por periodos
+  const setFilter = (filter: DateFilter) => setDateRange({ filter, offset: 0 });
+  const setOffset = (offset: number) =>
+    setDateRange((prev) => ({ ...prev, offset: Math.min(0, Math.trunc(Number(offset)) || 0) }));
+  const prevPeriod = () => setDateRange((prev) => ({ ...prev, offset: prev.offset - 1 }));
+  const nextPeriod = () =>
+    setDateRange((prev) => ({ ...prev, offset: Math.min(0, prev.offset + 1) }));
+  const irAHoy = () => setDateRange({ filter: 'day', offset: 0 });
+
+  const labelPeriodo = formatPeriodoLabel(dateRange.filter, dateRange.offset);
+
+  // Filtro de transacciones por entidad y periodo
   const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexado
+    const [inicio, fin] = rangoDePeriodo(dateRange.filter, dateRange.offset);
 
     return transaccionesVisibles.filter((tx) => {
       // Filtro por entidad / negocio
@@ -147,35 +177,24 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       // Filtro por fecha
-      if (dateFilter === 'all') return true;
+      if (dateRange.filter === 'all') return true;
 
       const dateStr = tx.fecha || tx.date || '';
       if (!dateStr) return true;
 
-      const txDate = new Date(dateStr);
-      if (isNaN(txDate.getTime())) return true;
+      // parseFechaFirestore interpreta "YYYY-MM-DD" como medianoche LOCAL:
+      // con new Date() caería en el día anterior (UTC-6) y el filtro por día fallaría.
+      const ms = parseFechaFirestore(dateStr).ms;
+      if (!Number.isFinite(ms)) return true;
 
-      const txYear = txDate.getFullYear();
-      const txMonth = txDate.getMonth();
-
-      if (dateFilter === 'month') {
-        return txYear === currentYear && txMonth === currentMonth;
-      }
-
-      if (dateFilter === 'quarter') {
-        const currentQuarter = Math.floor(currentMonth / 3);
-        const txQuarter = Math.floor(txMonth / 3);
-        return txYear === currentYear && currentQuarter === txQuarter;
-      }
-
-      return true;
+      return ms >= inicio && ms <= fin;
     });
-  }, [transacciones, selectedEntity, dateFilter]);
+  }, [transaccionesVisibles, selectedEntity, dateRange]);
 
   // Pedidos web dentro del periodo seleccionado (mismo filtro que las transacciones)
   const pedidosDelPeriodo = useMemo(
-    () => pedidos.filter((pedido) => pedidoEnPeriodo(pedido, dateFilter)),
-    [pedidos, dateFilter]
+    () => pedidos.filter((pedido) => pedidoEnPeriodo(pedido, dateRange.filter, dateRange.offset)),
+    [pedidos, dateRange]
   );
 
   // Ingreso real generado por la web: excluye pedidos cancelados
@@ -198,15 +217,52 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     () =>
       airPods.movimientos.reduce(
         (acc, mov) =>
-          mov.tipo === 'venta' && estaEnPeriodo(mov.fechaMs, dateFilter)
+          mov.tipo === 'venta' && estaEnPeriodo(mov.fechaMs, dateRange.filter, dateRange.offset)
             ? acc + (Number(mov.total) || 0)
             : acc,
         0
       ),
-    [airPods.movimientos, dateFilter]
+    [airPods.movimientos, dateRange]
   );
 
   const includesAirPodsSales = selectedEntity === 'all' || selectedEntity === 'airpods';
+
+  // Métricas del MISMO periodo desplazado a offset -1, para comparar en el hero.
+  // Replica la lógica de `metrics` (transacciones + pedidos web + ventas AirPods).
+  const netoPeriodoAnterior = useMemo(() => {
+    if (dateRange.filter === 'all') return null;
+
+    const [inicio, fin] = rangoDePeriodo(dateRange.filter, dateRange.offset - 1);
+    let ingresos = 0;
+    let gastos = 0;
+
+    transaccionesVisibles.forEach((tx) => {
+      const negocio = tx.negocio || tx.entity || 'personal';
+      if (selectedEntity !== 'all' && negocio !== selectedEntity) return;
+
+      const ms = parseFechaFirestore(tx.fecha || tx.date || '').ms;
+      if (!Number.isFinite(ms) || ms < inicio || ms > fin) return;
+
+      const monto = Number(tx.monto ?? tx.amount ?? 0);
+      const tipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
+      if (tipo === 'ingreso' || tipo === 'income') ingresos += monto;
+      else gastos += monto;
+    });
+
+    if (selectedEntity === 'all' || selectedEntity === 'hamburguesas') {
+      ingresos += pedidos
+        .filter((p) => !isPedidoCancelado(p) && p.fechaMs >= inicio && p.fechaMs <= fin)
+        .reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+    }
+
+    if (selectedEntity === 'all' || selectedEntity === 'airpods') {
+      ingresos += airPods.movimientos
+        .filter((m) => m.tipo === 'venta' && m.fechaMs >= inicio && m.fechaMs <= fin)
+        .reduce((acc, m) => acc + (Number(m.total) || 0), 0);
+    }
+
+    return { ingresos, gastos, neto: ingresos - gastos };
+  }, [transaccionesVisibles, pedidos, airPods.movimientos, selectedEntity, dateRange]);
 
   // Métricas financieras calculadas en tiempo real
   // Si Firestore está vacío, todo da 0 automáticamente sin errores ni mocks
@@ -463,8 +519,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         categories,
         selectedEntity,
         setSelectedEntity,
-        dateFilter,
-        setDateFilter,
+        dateRange,
+        labelPeriodo,
+        setFilter,
+        setOffset,
+        prevPeriod,
+        nextPeriod,
+        irAHoy,
+        netoPeriodoAnterior,
         filteredTransactions,
         metrics,
         categoryExpenses,
@@ -493,6 +555,38 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     </FinanceContext.Provider>
   );
 };
+
+/* ────────────────── persistencia del periodo (localStorage) ────────────────── */
+
+const CLAVE_DATE_RANGE = 'entre3_dateRange';
+const DATE_RANGE_DEFECTO: DateRange = { filter: 'month', offset: 0 };
+
+function leerDateRangeGuardado(): DateRange {
+  try {
+    const raw = localStorage.getItem(CLAVE_DATE_RANGE);
+    if (!raw) return DATE_RANGE_DEFECTO;
+    const parsed = JSON.parse(raw) as Partial<DateRange>;
+    const filter =
+      parsed?.filter && DATE_FILTERS.includes(parsed.filter as DateFilter)
+        ? (parsed.filter as DateFilter)
+        : DATE_RANGE_DEFECTO.filter;
+    const offset = Number.isFinite(Number(parsed?.offset))
+      ? Math.min(0, Math.trunc(Number(parsed?.offset)))
+      : 0;
+    return { filter, offset };
+  } catch (err) {
+    console.warn('[periodo] No se pudo leer dateRange guardado:', err);
+    return DATE_RANGE_DEFECTO;
+  }
+}
+
+function guardarDateRange(dateRange: DateRange): void {
+  try {
+    localStorage.setItem(CLAVE_DATE_RANGE, JSON.stringify(dateRange));
+  } catch (err) {
+    console.warn('[periodo] No se pudo guardar dateRange:', err);
+  }
+}
 
 export const useFinance = () => {
   const ctx = useContext(FinanceContext);

@@ -39,7 +39,7 @@ export const MENU_DATA: ProductoMenu[] = [
   { id: 'hotdog-combinado', nombre: 'Hot Dog Combinado', categoria: 'hotdogs', precio: 80, precioConPapas: 90 },
 
   // ── Extras ──
-  { id: 'extra-papas', nombre: 'Papas', categoria: 'extras', precio: 40 },
+  { id: 'extra-papas', nombre: 'Papas', categoria: 'extras', precio: 50 },
 ];
 
 export function getProducto(productoId: string): ProductoMenu | undefined {

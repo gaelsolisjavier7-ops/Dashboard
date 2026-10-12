@@ -322,7 +322,7 @@ t('precios de hamburguesas y hot dogs coinciden con el menú', () => {
   assert.equal(precioVentaProducto('hotdog-sencillo'), 40);
   assert.equal(precioVentaProducto('hotdog-sencillo', true), 50);
   assert.equal(precioVentaProducto('hotdog-combinado', true), 90);
-  assert.equal(precioVentaProducto('extra-papas'), 40);
+  assert.equal(precioVentaProducto('extra-papas'), 50);
 });
 t('un producto inexistente devuelve precio 0', () => {
   assert.equal(precioVentaProducto('no-existe'), 0);

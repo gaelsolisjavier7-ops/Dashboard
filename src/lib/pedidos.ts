@@ -1,5 +1,6 @@
-import type { DateFilter, Pedido } from '../types/finance';
+import type { Pedido } from '../types/finance';
 import { estaEnPeriodo, parseFechaFirestore } from './fechas';
+import type { DateFilter } from './fechas';
 
 /**
  * Utilidades para los pedidos de la colección `pedidos` de Firestore.
@@ -10,7 +11,6 @@ import { estaEnPeriodo, parseFechaFirestore } from './fechas';
  */
 
 export {
-  DATE_FILTER_LABEL,
   formatFechaRelativa as formatFechaPedido,
   parseFechaFirestore as parseFechaPedido,
 } from './fechas';
@@ -68,9 +68,14 @@ export function estadoParaEscribir(nuevo: EstadoPedido, estadoActual?: string): 
 }
 
 /** ¿El pedido cae dentro del periodo seleccionado en el dashboard? */
-export function pedidoEnPeriodo(pedido: Pedido, filter: DateFilter, ahora: Date = new Date()): boolean {
+export function pedidoEnPeriodo(
+  pedido: Pedido,
+  filter: DateFilter,
+  offset = 0,
+  ahora: Date = new Date()
+): boolean {
   if (filter === 'all') return true;
 
   const ms = Number.isFinite(pedido.fechaMs) ? pedido.fechaMs : parseFechaFirestore(pedido.fecha).ms;
-  return estaEnPeriodo(ms, filter, ahora);
+  return estaEnPeriodo(ms, filter, offset, ahora);
 }

@@ -20,7 +20,8 @@ const ESTADO_BADGE_CLASS: Record<EstadoPedido, string> = {
 };
 
 export const PedidosRecientes: React.FC = () => {
-  const { pedidos, loadingPedidos, errorPedidos, updatePedidoEstado } = useFinance();
+  const { pedidos, pedidosDelPeriodo, labelPeriodo, loadingPedidos, errorPedidos, updatePedidoEstado } =
+    useFinance();
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -41,8 +42,9 @@ export const PedidosRecientes: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(val || 0);
 
-  // Los pedidos ya vienen ordenados por fecha descendente desde el hook
-  const recientes = pedidos.slice(0, MAX_PEDIDOS);
+  // Los pedidos ya vienen ordenados por fecha descendente desde el hook;
+  // pedidosDelPeriodo respeta el periodo activo (día/semana/mes/trimestre/año).
+  const recientes = pedidosDelPeriodo.slice(0, MAX_PEDIDOS);
 
   const handleChange = async (pedido: Pedido, nuevoEstado: EstadoPedido) => {
     setOpenId(null);
@@ -81,13 +83,14 @@ export const PedidosRecientes: React.FC = () => {
                 </h3>
               </div>
               <p className="text-[14px] text-[#7a7a7a] mt-0.5">
-                Últimos {Math.min(MAX_PEDIDOS, recientes.length) || MAX_PEDIDOS} pedidos de la
-                colección 'pedidos'. Cambia el estado directamente desde aquí.
+                {labelPeriodo} · {Math.min(MAX_PEDIDOS, recientes.length) || 0} pedido
+                {(Math.min(MAX_PEDIDOS, recientes.length) || 0) === 1 ? '' : 's'} de la colección
+                'pedidos'. Cambia el estado directamente desde aquí.
               </p>
             </div>
 
             <span className="text-[13px] text-[#7a7a7a] bg-[#f5f5f7] rounded-full px-3 py-1.5 self-start sm:self-auto whitespace-nowrap">
-              {pedidos.length} pedido{pedidos.length === 1 ? '' : 's'} en total
+              {pedidosDelPeriodo.length} en el periodo · {pedidos.length} en total
             </span>
           </div>
 
@@ -106,7 +109,9 @@ export const PedidosRecientes: React.FC = () => {
             </div>
           ) : recientes.length === 0 ? (
             <div className="py-14 text-center px-4">
-              <p className="text-[17px] font-semibold text-[#1d1d1f]">Aún no hay pedidos web</p>
+              <p className="text-[17px] font-semibold text-[#1d1d1f]">
+                {pedidos.length === 0 ? 'Aún no hay pedidos web' : `Sin pedidos en ${labelPeriodo}`}
+              </p>
               <p className="text-[14px] text-[#7a7a7a] mt-1 max-w-[420px] mx-auto">
                 Cuando tu página de hamburguesas registre un pedido en la colección 'pedidos',
                 aparecerá aquí automáticamente.
