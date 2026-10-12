@@ -6,9 +6,14 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Runtime de Vercel: ESM de Node (los imports llevan extensión .ts) */
-    "module": "nodenext",
-    "allowImportingTsExtensions": true,
+    /*
+     * Resolución "de bundler": Vercel compila estas funciones con esbuild y
+     * espera imports SIN extensión (`from './menu'`). No usamos
+     * `allowImportingTsExtensions`, así el type-check funciona igual en
+     * cualquier versión de TypeScript (incluida la 7.x).
+     */
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,

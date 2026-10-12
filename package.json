@@ -10,8 +10,8 @@
     "test:permisos": "node scripts/test-permisos.mjs",
     "test:insumos": "node scripts/test-insumos.mjs",
     "test:fechas": "node scripts/test-fechas.mjs",
-    "test:bot": "node scripts/test-bot.mjs",
-    "bot:smoke": "node scripts/smoke-webhook.mjs",
+    "test:bot": "node --import ./scripts/resolver-ts.mjs scripts/test-bot.mjs",
+    "bot:smoke": "node --import ./scripts/resolver-ts.mjs scripts/smoke-webhook.mjs",
     "bot:webhook": "node scripts/set-webhook.mjs",
     "preview": "vite preview"
   },

@@ -8,12 +8,12 @@
  * para poder probar el webhook con dependencias falsas (`npm run test:bot`).
  */
 
-import { crearBot } from './_lib/bot.ts';
-import type { BotTelegram } from './_lib/bot.ts';
-import { crearAlmacen } from './_lib/firestore.ts';
-import type { AlmacenBot, ConfiguracionFirestore } from './_lib/firestore.ts';
-import { interpretarMensaje } from './_lib/gemini.ts';
-import { crearClienteTelegram, esChatAutorizado, verificarSecret } from './_lib/telegram.ts';
+import { crearBot } from './_lib/bot';
+import type { BotTelegram } from './_lib/bot';
+import { crearAlmacen } from './_lib/firestore';
+import type { AlmacenBot, ConfiguracionFirestore } from './_lib/firestore';
+import { interpretarMensaje } from './_lib/gemini';
+import { crearClienteTelegram, esChatAutorizado, verificarSecret } from './_lib/telegram';
 
 export interface PeticionMinima {
   method?: string;
@@ -35,9 +35,18 @@ export interface ConfigBot {
   geminiModelo?: string;
 }
 
-export type ResultadoEnv =
-  | { ok: true; config: ConfigBot }
-  | { ok: false; faltantes: string[] };
+/**
+ * Resultado de leer el entorno.
+ *
+ * `config` y `faltantes` son opcionales a propósito: así el tipo no depende de
+ * que TypeScript pueda discriminar la unión (el narrowing cambia entre versiones
+ * de TS y Vercel puede compilar con otra distinta a la local).
+ */
+export interface ResultadoEnv {
+  ok: boolean;
+  config?: ConfigBot;
+  faltantes?: string[];
+}
 
 /** Lee y valida las variables de entorno (sin exponer sus valores). */
 export function leerEnv(env: Record<string, string | undefined> = process.env): ResultadoEnv {
@@ -157,8 +166,8 @@ function handlerPeresozo(): ReturnType<typeof crearHandler> {
   if (cacheHandler) return cacheHandler;
 
   const resultado = leerEnv();
-  if (!resultado.ok) {
-    throw new Error(`Faltan variables de entorno: ${resultado.faltantes.join(', ')}`);
+  if (!resultado.ok || !resultado.config) {
+    throw new Error(`Faltan variables de entorno: ${(resultado.faltantes ?? []).join(', ')}`);
   }
   const config: ConfigBot = resultado.config;
   const firestore: ConfiguracionFirestore = { serviceAccountJson: config.serviceAccountJson };

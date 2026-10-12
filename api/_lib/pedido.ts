@@ -5,8 +5,8 @@
  * los precios y el total NUNCA se toman de lo que responda Gemini.
  */
 
-import { CARGO_ENVIO, admitePapas, buscarProducto, normalizarTexto, precioProducto } from './menu.ts';
-import type { CategoriaMenu } from './menu.ts';
+import { CARGO_ENVIO, admitePapas, buscarProducto, normalizarTexto, precioProducto } from './menu';
+import type { CategoriaMenu } from './menu';
 
 export type TipoOperacion = 'pedido' | 'gasto';
 export type Modalidad = 'delivery' | 'pickup' | 'ambiguo';

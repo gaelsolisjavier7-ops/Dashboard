@@ -24,7 +24,14 @@ las colecciones `pedidos` y `transacciones` que ya usa el dashboard.
 | `scripts/test-bot.mjs` | 66 tests (puros + flujo completo con dependencias falsas) |
 | `scripts/smoke-webhook.mjs` | Smoke test HTTP del webhook con un mensaje simulado |
 | `scripts/set-webhook.mjs` | Registra / consulta / borra el webhook en Telegram |
-| `tsconfig.api.json` | Type-check de `api/` dentro de `npm run build` |
+| `scripts/resolver-ts.mjs` | Hook de Node para que los tests importen `api/` (que usa imports sin extensión) |
+| `tsconfig.api.json` | Type-check de `api/` dentro de `npm run build` (`moduleResolution: bundler`, imports sin extensión) |
+
+> **Build en Vercel:** los imports dentro de `api/` van **sin extensión** (`from './menu'`),
+> como espera el bundler de Vercel. El type-check local usa `tsconfig.api.json` con
+> `moduleResolution: "bundler"`, y los tests locales añaden la extensión con
+> `scripts/resolver-ts.mjs` (`node --import ./scripts/resolver-ts.mjs …`). Verificado con
+> TypeScript 6.0.3 y 7.0.2.
 | `.env.example` | Todas las variables (las del bot y las de Firebase web) |
 
 ---
