@@ -4,17 +4,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/telegram.ts": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 60,
-      "memory": 512
-    }
+    "api/telegram.ts": { "maxDuration": 60, "memory": 512 }
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "headers": [
-    {
-      "source": "/api/telegram",
-      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
-    }
+    { "source": "/api/telegram", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]
 }
