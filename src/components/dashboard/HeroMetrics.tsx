@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { isPedidoCancelado } from '../../lib/pedidos';
+import { esPedidoDelBot } from '../../lib/ingresos';
 import { formatMXN, promediosRecetas } from '../../lib/costeo';
+import { parseFechaFirestore, rangoDePeriodo } from '../../lib/fechas';
+import { ingresoPedidosWeb } from '../../lib/ingresos';
 import { precioVentaProducto } from '../../lib/products';
 import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag, ClipboardList } from 'lucide-react';
 
@@ -17,6 +20,8 @@ export const HeroMetrics: React.FC = () => {
     loadingTransactions,
     insumos,
     recetas,
+    transactions,
+    pedidos,
   } = useFinance();
 
   const formatCurrency = (val: number) => {
@@ -27,8 +32,11 @@ export const HeroMetrics: React.FC = () => {
     }).format(val || 0);
   };
 
-  // Pedidos web del periodo (los cancelados no cuentan como ingreso)
-  const pedidosWebActivos = pedidosDelPeriodo.filter((p) => !isPedidoCancelado(p));
+  // Pedidos web del periodo: sin cancelados y sin los del bot, que ya entran
+  // por sus propias transacciones (misma regla que webOrdersIncome).
+  const pedidosWebActivos = pedidosDelPeriodo.filter(
+    (p) => !isPedidoCancelado(p) && !esPedidoDelBot(p)
+  );
   const totalPedidosMonto = webOrdersIncome;
 
   // Los pedidos web se integran al Consolidado y a Hamburguesas
@@ -56,6 +64,42 @@ export const HeroMetrics: React.FC = () => {
   );
 
   const mostrarRecetas = includeWebOrders && promedioRecetas.conReceta > 0;
+
+  // Ventas de hoy y de ayer para el hero. Sólo lee datos que ya expone el
+  // contexto y usa helpers puros de fechas (no toca lógica ni servicios).
+  // Se excluyen los pedidos con origen 'whatsapp' porque el bot ya crea su
+  // propia transacción de ingreso: contarlos aquí los duplicaría.
+  const ventasPorDia = useMemo(() => {
+    const calcular = (offset: number) => {
+      const [inicio, fin] = rangoDePeriodo('day', offset);
+      let total = 0;
+
+      transactions.forEach((tx) => {
+        const negocio = tx.negocio || tx.entity || 'personal';
+        if (selectedEntity !== 'all' && negocio !== selectedEntity) return;
+        const ms = parseFechaFirestore(tx.fecha || tx.date || '').ms;
+        if (!Number.isFinite(ms) || ms < inicio || ms > fin) return;
+        const tipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
+        if (tipo === 'ingreso' || tipo === 'income') total += Number(tx.monto ?? tx.amount ?? 0);
+      });
+
+      if (selectedEntity === 'all' || selectedEntity === 'hamburguesas') {
+        total += ingresoPedidosWeb(pedidos, inicio, fin);
+      }
+
+      return total;
+    };
+
+    return { hoy: calcular(0), ayer: calcular(-1) };
+  }, [transactions, pedidos, selectedEntity]);
+
+  const ventasHoy = ventasPorDia.hoy;
+  const ventasAyer = ventasPorDia.ayer;
+  const tendenciaDia = useMemo(() => {
+    if (ventasAyer <= 0 || ventasHoy === 0) return null;
+    const delta = ventasHoy - ventasAyer;
+    return { subio: delta >= 0, pct: (delta / ventasAyer) * 100 };
+  }, [ventasHoy, ventasAyer]);
 
   // Comparación del dinero libre contra el mismo periodo con offset -1
   const comparacion = useMemo(() => {
@@ -113,16 +157,29 @@ export const HeroMetrics: React.FC = () => {
               )}
             </div>
 
-            <h1 className="num-hero text-[34px] sm:text-[48px] lg:text-[56px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white break-words">
-              {formatCurrency(metrics.netFreeCash)}
+            {/* Hero metric: VENTAS HOY (mono 60px + tendencia vs ayer) */}
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8e8e93] mt-5">
+              Ventas hoy
+            </span>
+            <h1 className="num-hero text-[44px] sm:text-[56px] lg:text-[60px] font-semibold tracking-[-0.03em] leading-[1.02] mt-1 text-white break-words">
+              {formatCurrency(ventasHoy)}
             </h1>
-            <p className="text-[16px] sm:text-[19px] text-[#cccccc] font-normal leading-relaxed mt-2 max-w-[550px]">
-              {metrics.netFreeCash === 0 && metrics.totalIncome === 0
-                ? 'Sin movimientos registrados en Firestore. Todas las métricas en $0.'
-                : isPositiveCashFlow
-                ? 'Dinero libre generado tras deducir todos los costos operativos y gastos.'
-                : 'Déficit operativo: los gastos superan los ingresos en el periodo seleccionado.'}
-            </p>
+            {tendenciaDia ? (
+              <p
+                className="text-[13px] font-medium mt-1.5"
+                style={{ color: tendenciaDia.subio ? 'var(--positive)' : 'var(--negative)' }}
+              >
+                {tendenciaDia.subio ? '↑' : '↓'} {tendenciaDia.subio ? '+' : '−'}
+                {Math.abs(tendenciaDia.pct).toFixed(1)}% vs ayer
+                <span className="text-[#8e8e93] font-normal"> · ayer {formatCurrency(ventasAyer)}</span>
+              </p>
+            ) : (
+              <p className="text-[13px] text-[#8e8e93] mt-1.5">
+                {ventasHoy === 0
+                  ? 'Sin ventas registradas hoy'
+                  : `Ayer ${formatCurrency(ventasAyer)} · sin base para comparar`}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row md:flex-wrap gap-3 sm:gap-4 w-full md:w-auto">
@@ -247,87 +304,88 @@ export const HeroMetrics: React.FC = () => {
 
       {/* Grid of Key Financial Cards: Light Parchment Surface (#f5f5f7) */}
       <div className="w-full bg-[#f5f5f7] py-8 px-4 sm:py-12 sm:px-12 border-b border-[#e0e0e0]">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Card 1: Ingresos Brutos */}
-          <div className="apple-card bg-white flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-[#7a7a7a]">
-                <span className="text-[13px] font-semibold tracking-wide uppercase">
-                  Ingresos Brutos
-                </span>
-                <div className="w-8 h-8 rounded-full bg-[#f5f5f7] flex items-center justify-center text-[#0066cc]">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="num-metric text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
-                {formatCurrency(metrics.totalIncome)}
-              </div>
+        <div className="max-w-[1200px] mx-auto grid grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {/* Ingresos */}
+          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#7a7a7a]">
+                Ingresos
+              </span>
+              <TrendingUp className="w-5 h-5 text-[#34c759] flex-shrink-0" />
             </div>
-            <p className="text-[13px] text-[#7a7a7a] mt-4 border-t border-[#f0f0f0] pt-3">
+            <div className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[#1d1d1f] mt-2">
+              {formatCurrency(metrics.totalIncome)}
+            </div>
+            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
               {fuentesDeIngreso}
             </p>
           </div>
 
-          {/* Card 2: Gastos Totales */}
-          <div className="apple-card bg-white flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-[#7a7a7a]">
-                <span className="text-[13px] font-semibold tracking-wide uppercase">
-                  Gastos Totales
-                </span>
-                <div className="w-8 h-8 rounded-full bg-[#f5f5f7] flex items-center justify-center text-[#ff3b30]">
-                  <TrendingDown className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="num-metric text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
-                {formatCurrency(metrics.totalExpenses)}
-              </div>
+          {/* Gastos */}
+          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#7a7a7a]">
+                Gastos
+              </span>
+              <TrendingDown className="w-5 h-5 text-[#ff3b30] flex-shrink-0" />
             </div>
-            <p className="text-[13px] text-[#7a7a7a] mt-4 border-t border-[#f0f0f0] pt-3">
+            <div className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[#1d1d1f] mt-2">
+              {formatCurrency(metrics.totalExpenses)}
+            </div>
+            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
               Insumos, compras & costos fijos
             </p>
           </div>
 
-          {/* Card 3: Efectivo Libre */}
-          <div className="apple-card bg-white flex flex-col justify-between border-2 border-[#0066cc]/20">
-            <div>
-              <div className="flex items-center justify-between text-[#7a7a7a]">
-                <span className="text-[13px] font-semibold tracking-wide uppercase text-[#0066cc]">
-                  Utilidad / Flujo Libre
-                </span>
-                <div className="w-8 h-8 rounded-full bg-[#0066cc]/10 flex items-center justify-center text-[#0066cc]">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-              <div
-                className={`num-metric text-[28px] font-semibold tracking-tight mt-3 ${
-                  isPositiveCashFlow ? 'text-[#1d1d1f]' : 'text-[#ff3b30]'
-                }`}
-              >
-                {formatCurrency(metrics.netFreeCash)}
-              </div>
+          {/* Utilidad */}
+          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between border-2 border-[#0066cc]/20">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#0066cc]">
+                Utilidad
+              </span>
+              <DollarSign className="w-5 h-5 text-[#0066cc] flex-shrink-0" />
             </div>
-            <p className="text-[13px] text-[#7a7a7a] mt-4 border-t border-[#f0f0f0] pt-3">
+            <div
+              className={`num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight mt-2 ${
+                isPositiveCashFlow ? 'text-[#34c759]' : 'text-[#ff3b30]'
+              }`}
+            >
+              {formatCurrency(metrics.netFreeCash)}
+            </div>
+            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
               Disponible para retiro o reinversión
             </p>
           </div>
 
-          {/* Card 4: Retorno / Margen Operativo */}
-          <div className="apple-card bg-white flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-[#7a7a7a]">
-                <span className="text-[13px] font-semibold tracking-wide uppercase">
-                  Eficiencia / Margen
-                </span>
-                <div className="w-8 h-8 rounded-full bg-[#f5f5f7] flex items-center justify-center text-[#1d1d1f]">
-                  <Percent className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="num-metric text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
-                {metrics.savingsOrProfitMargin}%
-              </div>
+          {/* Margen (ocupa la fila completa en móvil) */}
+          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between col-span-3 lg:col-span-1">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#7a7a7a]">
+                Margen
+              </span>
+              <Percent className="w-5 h-5 text-[#1d1d1f] flex-shrink-0" />
             </div>
-            <p className="text-[13px] text-[#7a7a7a] mt-4 border-t border-[#f0f0f0] pt-3">
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[#1d1d1f]">
+                {metrics.savingsOrProfitMargin}%
+              </span>
+              <span
+                className={`text-[12px] px-2 py-0.5 rounded-full border ${
+                  metrics.savingsOrProfitMargin >= 50
+                    ? 'border-[#34c759]/30 text-[#34c759] bg-[#34c759]/10'
+                    : metrics.savingsOrProfitMargin >= 30
+                    ? 'border-[#ff9500]/30 text-[#ff9500] bg-[#ff9500]/10'
+                    : 'border-[#ff3b30]/30 text-[#ff3b30] bg-[#ff3b30]/10'
+                }`}
+              >
+                {metrics.savingsOrProfitMargin >= 50
+                  ? 'Saludable'
+                  : metrics.savingsOrProfitMargin >= 30
+                  ? 'Atención'
+                  : 'Bajo'}
+              </span>
+            </div>
+            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
               Porcentaje neto de retención
             </p>
           </div>

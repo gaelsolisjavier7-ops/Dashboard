@@ -21,8 +21,11 @@ const TRANSACCIONES = [
   { id: 't6', fecha: '2026-10-09', tipo: 'gasto', categoria: 'Gas & Servicios Local', monto: 480, descripcion: 'Gas', negocio: 'hamburguesas' },
 ];
 const PEDIDOS = [
-  { id: 'p1', fecha: '2026-10-12T14:10:00', fechaMs: Date.parse('2026-10-12T14:10:00'), tieneHora: true, total: 395, productos: [], cliente: 'Cliente WhatsApp', clienteDireccion: 'Calle Hidalgo 123', estado: 'Pendiente', modalidad: 'delivery', origen: 'whatsapp' },
-  { id: 'p2', fecha: '2026-10-12T13:05:00', fechaMs: Date.parse('2026-10-12T13:05:00'), tieneHora: true, total: 250, productos: [], cliente: 'Ana', clienteDireccion: null, estado: 'Entregado', modalidad: 'pickup', origen: 'web' },
+  { id: 'p1', fecha: '2026-10-12T14:10:00', fechaMs: Date.now() - 5 * 60000, tieneHora: true, total: 395, productos: [], cliente: 'Cliente WhatsApp', clienteDireccion: 'Calle Hidalgo 123', estado: 'Pendiente', modalidad: 'delivery', origen: 'whatsapp' },
+  { id: 'p2', fecha: '2026-10-12T13:58:00', fechaMs: Date.now() - 18 * 60000, tieneHora: true, total: 250, productos: [], cliente: 'Cliente WhatsApp', clienteDireccion: 'Av. Juárez 45', estado: 'pendiente', modalidad: 'pickup', origen: 'whatsapp' },
+  { id: 'p3', fecha: '2026-10-12T13:40:00', fechaMs: Date.now() - 35 * 60000, tieneHora: true, total: 480, productos: [], cliente: 'Cliente WhatsApp', clienteDireccion: 'Calle Zaragoza 8', estado: 'Pendiente', modalidad: 'delivery', origen: 'whatsapp' },
+  { id: 'p4', fecha: '2026-10-12T13:05:00', fechaMs: Date.now() - 70 * 60000, tieneHora: true, total: 150, productos: [], cliente: 'Ana', clienteDireccion: null, estado: 'Entregado', modalidad: 'pickup', origen: 'web' },
+  { id: 'p5', fecha: '2026-10-12T12:30:00', fechaMs: Date.now() - 105 * 60000, tieneHora: true, total: 320, productos: [], cliente: 'Beto', clienteDireccion: 'Calle 5 de Mayo 22', estado: 'Entregado', modalidad: 'delivery', origen: 'web' },
 ];
 const MOVIMIENTOS = [
   { id: 'a1', tipo: 'venta', cantidad: 1, precio_unitario: 4200, total: 4200, fecha: '2026-10-10T12:00:00', fechaMs: Date.parse('2026-10-10T12:00:00'), tieneHora: true, notas: null, cliente: null, createdAtMs: null },
@@ -75,8 +78,12 @@ class CDP {
     const c = new CDP(ws);
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
-      if (m.id && c.pending.has(m.id)) { const p = c.pending.get(m.id); c.pending.delete(m.id); m.error ? p.reject(new Error(JSON.stringify(m.error))) : p.resolve(m.result); }
-      else if (m.method && c.onEvent) c.onEvent(m);
+      if (m.id && c.pending.has(m.id)) {
+        const p = c.pending.get(m.id);
+        c.pending.delete(m.id);
+        if (m.error) p.reject(new Error(JSON.stringify(m.error)));
+        else p.resolve(m.result);
+      } else if (m.method && c.onEvent) c.onEvent(m);
     };
     return c;
   }
@@ -93,7 +100,15 @@ class CDP {
 const cdp = await CDP.connect((await getTarget()).webSocketDebuggerUrl);
 await cdp.send('Page.enable');
 await cdp.send('Runtime.enable');
+const erroresConsola = [];
 cdp.onEvent = async (msg) => {
+  if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') {
+    const texto = (msg.params.args || [])
+      .map((a) => a.value ?? a.description ?? '')
+      .join(' ')
+      .slice(0, 160);
+    erroresConsola.push(texto);
+  }
   if (msg.method !== 'Fetch.requestPaused') return;
   const { requestId, request } = msg.params;
   const clave = Object.keys(MODULOS).find((k) => request.url.includes(`${k}.ts`));
@@ -126,7 +141,7 @@ for (const vista of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'escritorio',
     const fuente = getComputedStyle(document.body).fontFamily;
     const card = document.querySelector('.apple-card');
     const fab = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label')||'').includes('Nuevo'));
-    const hero = [...document.querySelectorAll('h1,div,span')].find(e => e.textContent && e.textContent.trim().startsWith('$') && parseFloat(e.getComputedStyle ? 1 : 1));
+    const hero = document.querySelector('.num-hero');
     return {
       fondoBody: fondo,
       fuenteBody: fuente.slice(0, 40),
@@ -135,10 +150,32 @@ for (const vista of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'escritorio',
       fab: fab ? { ancho: Math.round(fab.getBoundingClientRect().width), fondo: getComputedStyle(fab).backgroundColor, sombra: getComputedStyle(fab).boxShadow.slice(0, 40) } : null,
       heroFuente: hero ? getComputedStyle(hero).fontFamily.slice(0, 30) : null,
       overflow: document.documentElement.scrollWidth - window.innerWidth,
+      // FIX 1: el card "Pedidos Web" debe excluir los pedidos del bot
+      pedidosWebCard: (document.body.innerText.match(/PEDIDOS WEB[\\s\\S]{0,40}?(\\d+)\\s*(\\$[\\d,.]+)/) || []).slice(1),
+      ventasHoy: (document.body.innerText.match(/VENTAS HOY[\\s\\S]{0,40}?(\\$[\\d,.]+)/i) || [])[1] ?? null,
     };
   })()`);
   console.log('  ', JSON.stringify(info));
   await capturar(`rediseno-${etiqueta}-hero-${vista.n}`);
+
+  /* ── Alerta del bot: al tocarla hace scroll y resalta las pendientes ── */
+  const alerta = await ev(`(() => {
+    const boton = [...document.querySelectorAll('button')].find(b => (b.textContent || '').includes('pedidos nuevos del bot'));
+    if (!boton) return 'sin alerta';
+    const antes = window.scrollY;
+    boton.click();
+    return JSON.stringify({ antes });
+  })()`);
+  await sleep(1200);
+  const trasAlerta = await ev(`(() => ({
+    scrollY: Math.round(window.scrollY),
+    resaltada: !!document.querySelector('#pedidos-recientes.alerta-pendientes'),
+    filasPendientes: document.querySelectorAll('#pedidos-recientes [data-pendiente="true"]').length,
+  }))()`);
+  console.log('   alerta:', alerta, '→', JSON.stringify(trasAlerta));
+  await capturar(`rediseno-${etiqueta}-alerta-${vista.n}`);
+  await ev(`window.scrollTo(0, 0)`);
+  await sleep(400);
   await ev(`window.scrollTo(0, document.body.scrollHeight * 0.42)`);
   await capturar(`rediseno-${etiqueta}-cards-${vista.n}`);
   await ev(`window.scrollTo(0, 0)`);
@@ -159,6 +196,68 @@ for (const vista of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'escritorio',
   })()`);
   console.log(`   FAB: ${abierto} → ${modal}`);
   await capturar(`rediseno-${etiqueta}-modal-${vista.n}`);
+
+  /* ── FASE 2: quick products → 2× Sencilla + 1× Papas = $250 ── */
+  const tapProducto = (texto) => `(() => {
+    const boton = [...document.querySelectorAll('button')].find(b => b.textContent.trim().includes(${JSON.stringify(texto)}));
+    if (!boton) return 'NO';
+    boton.click();
+    return 'ok';
+  })()`;
+  const estadoModal = () => ev(`(() => {
+    const numero = document.querySelector('input[type="number"]');
+    const texto = [...document.querySelectorAll('input[type="text"]')].find(i => i.placeholder && i.placeholder.includes('Sencilla'));
+    const guardar = [...document.querySelectorAll('button[type="submit"]')].pop();
+    const toggles = [...document.querySelectorAll('button')]
+      .filter(b => /Pedido|Gasto/.test(b.textContent || '') && b.className.includes('min-h-[48px]'))
+      .map(b => ({ texto: b.textContent.trim(), fondo: getComputedStyle(b).backgroundColor }));
+    return {
+      monto: numero ? numero.value : null,
+      descripcion: texto ? texto.value : null,
+      boton: guardar ? guardar.textContent.trim() : null,
+      deshabilitado: guardar ? guardar.disabled : null,
+      alerta: (document.body.innerText.match(/(\\d+) pedidos? nuevos? del bot/) || [])[0] ?? null,
+      tipoActivo: (toggles.find(t => t.fondo === 'rgb(34, 197, 94)') || {}).texto ?? null,
+      categoriaSelect: (() => {
+        // El select del modal es el último del DOM (el primero es el del SubNav)
+        const select = [...document.querySelectorAll('select')].pop();
+        return select
+          ? { valor: select.value, opciones: [...select.options].map(o => o.textContent.trim()) }
+          : null;
+      })(),
+      toggles,
+    };
+  })()`);
+
+  const vacio = await estadoModal();
+  console.log('   modal vacío:', JSON.stringify(vacio));
+  const listadoBotones = await ev(`[...document.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean).slice(0, 28)`);
+  console.log('   botones:', JSON.stringify(listadoBotones));
+  const tap = async (texto) => {
+    const resultado = await ev(tapProducto(texto));
+    console.log(`   tap "${texto}" → ${resultado}`);
+  };
+  await tap('Sencilla');
+  await tap('Sencilla');
+  await tap('Papas');
+  await sleep(500);
+  const lleno = await estadoModal();
+  console.log('   modal con productos:', JSON.stringify(lleno));
+  await capturar(`rediseno-${etiqueta}-modal-lleno-${vista.n}`);
+
+  /* ── Flujo de guardar: el submit debe llegar al mismo handler (addTransaction) ── */
+  erroresConsola.length = 0;
+  await ev(`(() => { const b = [...document.querySelectorAll('button[type="submit"]')].pop(); if (b) b.click(); return 1; })()`);
+  await sleep(1500);
+  const trasGuardar = await ev(`(() => {
+    const guardar = [...document.querySelectorAll('button[type="submit"]')].pop();
+    return { modalSigueAbierto: !!guardar, boton: guardar ? guardar.textContent.trim() : null };
+  })()`);
+  console.log('   guardar →', JSON.stringify(trasGuardar), '| errores consola:', JSON.stringify(erroresConsola.slice(0, 2)));
+
+  // Cerrar el modal para la comprobación de light mode
+  await ev(`(() => { const x = document.querySelector('button[aria-label="Cerrar"]'); if (x) x.click(); return 1; })()`);
+  await sleep(400);
 
   // Light mode opcional: debe seguir funcionando (data-theme="light" en <html>)
   await ev(`document.querySelectorAll('input[type="number"]').forEach(() => {});

@@ -5,6 +5,7 @@ import { GlobalNav } from './components/common/GlobalNav';
 import { SubNav } from './components/common/SubNav';
 import { BottomNav } from './components/common/BottomNav';
 import { FAB } from './components/common/FAB';
+import { AlertaPedidosBot } from './components/dashboard/AlertaPedidosBot';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
 import { AirPodsModule } from './components/dashboard/AirPodsModule';
@@ -93,6 +94,9 @@ function FinanceApp({ rol }: { rol: Rol }) {
             />
           ) : (
             <div>
+              {/* Alerta de pedidos nuevos del bot de Telegram (si hay pendientes) */}
+              <AlertaPedidosBot />
+
               {/* 1. Hero Tiles (Alternating dark and parchment) */}
               <HeroMetrics />
 

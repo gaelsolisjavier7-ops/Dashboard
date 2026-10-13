@@ -580,6 +580,31 @@
   box-shadow: none;
 }
 
+/* Input numérico grande del modal: sin flechas de spinner */
+.num-input::-webkit-outer-spin-button,
+.num-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.num-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ══════════ Resalte temporal de pedidos pendientes (alerta del bot) ══════════
+   La alerta añade `.alerta-pendientes` a la sección de pedidos durante 2.6 s.
+   Usa outline (no sombra: el FAB es la única sombra del sistema). */
+.alerta-pendientes {
+  outline: 2px solid var(--pending);
+  outline-offset: -2px;
+  border-radius: 16px;
+  transition: outline-color 0.3s ease;
+}
+.alerta-pendientes [data-pendiente='true'] {
+  background-color: color-mix(in srgb, var(--pending) 10%, transparent);
+  border-radius: 12px;
+}
+
 /* Custom scrollbar (dark) */
 ::-webkit-scrollbar {
   width: 8px;
