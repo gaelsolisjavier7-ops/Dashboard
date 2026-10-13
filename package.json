@@ -10,6 +10,7 @@
     "test:permisos": "node scripts/test-permisos.mjs",
     "test:insumos": "node scripts/test-insumos.mjs",
     "test:fechas": "node scripts/test-fechas.mjs",
+    "test:dashboard": "node scripts/test-dashboard.mjs",
     "test:bot": "node --import ./scripts/resolver-ts.mjs scripts/test-bot.mjs",
     "test:runtime": "node scripts/test-runtime-api.mjs",
     "bot:smoke": "node --import ./scripts/resolver-ts.mjs scripts/smoke-webhook.mjs",

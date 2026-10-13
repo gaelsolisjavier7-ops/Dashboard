@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { negocioDeSeccion } from '../../lib/roles';
+import { useAuth } from '../../context/AuthContext';
+import { negocioDeSeccion, puedeVerNegocio } from '../../lib/roles';
+import { MENU_DATA } from '../../lib/products';
 import type { Transaction, EntityType, TransactionType, PaymentMethod } from '../../types/finance';
 import { X } from 'lucide-react';
 
@@ -10,27 +12,78 @@ interface TransactionModalProps {
   editingTransaction?: Transaction | null;
 }
 
+/** Atajos de monto: lo más importante para registrar en un toque. */
+const MONTOS_RAPIDOS = [100, 150, 200, 250, 300, 400];
+
+/** Nombre corto para los botones de producto: "Burger Especial" → "Especial". */
+const nombreCorto = (nombre: string) =>
+  nombre.replace(/^Burger\s+/i, '').replace(/^Hot Dog\s+/i, '');
+
+/**
+ * Suma un producto a la descripción llevando el conteo:
+ * "1× Sencilla" → "2× Sencilla" → "2× Sencilla, 1× Papas".
+ * Es sólo texto en el campo existente (sin campos nuevos en Firestore).
+ */
+function agregarItem(texto: string, nombre: string): string {
+  const partes = texto
+    .split(',')
+    .map((parte) => parte.trim())
+    .filter(Boolean);
+  const indice = partes.findIndex(
+    (parte) => parte.replace(/^\d+\s*×\s*/, '').trim().toLowerCase() === nombre.toLowerCase()
+  );
+
+  if (indice >= 0) {
+    const cantidad = Number(/^(\d+)/.exec(partes[indice])?.[1] ?? 1) + 1;
+    partes[indice] = `${cantidad}× ${nombre}`;
+  } else {
+    partes.push(`1× ${nombre}`);
+  }
+  return partes.join(', ');
+}
+
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
   editingTransaction,
 }) => {
   const { categories, addTransaction, updateTransaction, selectedEntity } = useFinance();
+  const { rol } = useAuth();
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
-  const [type, setType] = useState<TransactionType>('gasto');
+  // Por defecto "Pedido" (ingreso): el 90% de los registros manuales son ventas
+  const [type, setType] = useState<TransactionType>('ingreso');
   const [entity, setEntity] = useState<EntityType>('hamburguesas');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('transferencia');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [hotDogsAbiertos, setHotDogsAbiertos] = useState(false);
 
   // Available categories for selected entity and type
   const availableCategories = categories.filter(
     (c) => (c.entity === entity || c.entity === 'all') && c.type === type
   );
+
+  // Chips de negocio filtrados por rol (usa el helper de permisos existente)
+  const negociosDisponibles = useMemo(
+    () =>
+      [
+        { id: 'hamburguesas' as EntityType, label: 'Hamburguesas' },
+        { id: 'airpods' as EntityType, label: 'AirPods' },
+        { id: 'personal' as EntityType, label: 'Personal' },
+      ].filter((negocio) => puedeVerNegocio(rol, negocio.id)),
+    [rol]
+  );
+
+  // Productos rápidos del menú (sólo para hamburguesas)
+  const productosPrincipales = useMemo(
+    () => MENU_DATA.filter((p) => p.categoria === 'burgers' || p.categoria === 'extras'),
+    []
+  );
+  const hotDogs = useMemo(() => MENU_DATA.filter((p) => p.categoria === 'hotdogs'), []);
 
   // Initialize form when editing or opening
   useEffect(() => {
@@ -46,7 +99,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     } else {
       setTitle('');
       setAmount('');
-      setType('gasto');
+      setType('ingreso');
       // La sección activa puede ser Insumos/Recetas/Consolidado: en ese caso el
       // movimiento se registra por defecto en hamburguesas.
       const defaultEnt: EntityType = negocioDeSeccion(selectedEntity) ?? 'hamburguesas';
@@ -55,6 +108,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setPaymentMethod('transferencia');
       setNotes('');
     }
+    setHotDogsAbiertos(false);
   }, [editingTransaction, isOpen, selectedEntity]);
 
   // Update category when available categories change
@@ -105,110 +159,110 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
+  const montoNumero = Number(amount) || 0;
+  const montoTexto = new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(montoNumero);
+  // Mismo criterio que handleSubmit (descripción + monto > 0)
+  const puedeGuardar = title.trim() !== '' && montoNumero > 0 && !submitting;
+
+  const agregarProducto = (nombre: string, precio: number) => {
+    setAmount(montoNumero + precio);
+    setTitle((previo) => agregarItem(previo, nombreCorto(nombre)));
+  };
+
+  const inputClase =
+    'w-full text-[15px] min-h-[48px] px-3.5 rounded-[12px] bg-[var(--surface-inset)] border border-[var(--border)] text-[var(--text)] focus:border-[var(--accent)] outline-none transition-colors';
+  const labelClase =
+    'block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] mb-2';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-[#ffffff] rounded-[24px] max-w-[540px] w-full px-5 pt-5 pb-0 sm:p-8 border border-[#e0e0e0] shadow-2xl relative max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#f0f0f0]">
-          <div>
-            <h3 className="text-[20px] sm:text-[22px] font-semibold text-[#1d1d1f] tracking-[-0.28px]">
-              {editingTransaction ? 'Editar Movimiento' : 'Registrar Ingreso o Gasto'}
-            </h3>
-            <p className="text-[13px] text-[#7a7a7a] mt-0.5">
-              Personal, Hamburguesas o reventa de AirPods
-            </p>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4">
+      <div className="w-full sm:max-w-[520px] h-full sm:h-auto sm:max-h-[92vh] bg-[var(--surface)] sm:rounded-[24px] border-0 sm:border sm:border-[var(--border)] flex flex-col overflow-hidden">
+        {/* Header (sticky en móvil: va fijo arriba del panel flex) */}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--border)] flex-shrink-0">
+          <h3 className="text-[20px] font-semibold tracking-[-0.28px] text-[var(--text)]">
+            {editingTransaction ? 'Editar Registro' : 'Nuevo Registro'}
+          </h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-[#e0e0e0] flex items-center justify-center text-[#1d1d1f] transition-colors"
+            aria-label="Cerrar"
+            className="w-9 h-9 rounded-full bg-[var(--surface-elevated)] hover:bg-[var(--border)] flex items-center justify-center text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 sm:mt-6 space-y-4 sm:space-y-5">
-          {/* 1. Type Switcher: Income vs Expense (Apple style segment) */}
-          <div>
-            <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-2">
-              Tipo de Movimiento
-            </label>
-            <div className="grid grid-cols-2 gap-2 bg-[#f5f5f7] p-1 rounded-full border border-[#e0e0e0]">
-              <button
-                type="button"
-                onClick={() => setType('gasto')}
-                className={`py-2 text-[13px] sm:text-[14px] rounded-full font-medium transition-all cursor-pointer ${
-                  type === 'gasto'
-                    ? 'bg-[#ffffff] text-[#ff3b30] shadow-sm font-semibold'
-                    : 'text-[#7a7a7a] hover:text-[#1d1d1f]'
-                }`}
-              >
-                Gasto / Salida
-              </button>
-              <button
-                type="button"
-                onClick={() => setType('ingreso')}
-                className={`py-2 text-[13px] sm:text-[14px] rounded-full font-medium transition-all cursor-pointer ${
-                  type === 'ingreso'
-                    ? 'bg-[#ffffff] text-[#0066cc] shadow-sm font-semibold'
-                    : 'text-[#7a7a7a] hover:text-[#1d1d1f]'
-                }`}
-              >
-                Ingreso / Entrada
-              </button>
-            </div>
-          </div>
-
-          {/* 2. Entity Selector */}
-          <div>
-            <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-2">
-              Cuenta o Negocio
-            </label>
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+            {/* 1. Tipo: Pedido (ingreso) vs Gasto */}
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'hamburguesas', label: 'Hamburguesas' },
-                { id: 'airpods', label: 'AirPods' },
-                { id: 'personal', label: 'Personal' },
-              ].map((ent) => (
-                <button
-                  key={ent.id}
-                  type="button"
-                  onClick={() => setEntity(ent.id as EntityType)}
-                  className={`py-2 px-1.5 sm:px-3 text-[12px] sm:text-[13px] rounded-full border text-center transition-all ${
-                    entity === ent.id
-                      ? 'border-[#0071e3] bg-[#0066cc]/5 text-[#0066cc] font-semibold'
-                      : 'border-[#e0e0e0] bg-white text-[#1d1d1f] hover:bg-[#f5f5f7]'
-                  }`}
-                >
-                  {ent.label}
-                </button>
-              ))}
+                { id: 'ingreso' as TransactionType, label: '🛒 Pedido' },
+                { id: 'gasto' as TransactionType, label: '💸 Gasto' },
+              ].map((opcion) => {
+                const activo = type === opcion.id;
+                return (
+                  <button
+                    key={opcion.id}
+                    type="button"
+                    onClick={() => setType(opcion.id)}
+                    style={
+                      activo
+                        ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
+                        : undefined
+                    }
+                    className={`min-h-[48px] rounded-[12px] text-[15px] font-semibold transition-colors cursor-pointer border ${
+                      activo
+                        ? 'border-transparent'
+                        : 'bg-[var(--surface-elevated)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    {opcion.label}
+                  </button>
+                );
+              })}
             </div>
-          </div>
 
-          {/* 3. Title / Concept */}
-          <div>
-            <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
-              Concepto / Descripción
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej. Compra de carne molida, Venta 2 AirPods Pro..."
-              className="w-full text-[15px] px-4 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all"
-            />
-          </div>
+            {/* 2. Unidad de negocio (filtrada por rol) */}
+            <div>
+              <label className={labelClase}>Unidad de negocio</label>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                {negociosDisponibles.map((negocio) => {
+                  const activo = entity === negocio.id;
+                  return (
+                    <button
+                      key={negocio.id}
+                      type="button"
+                      onClick={() => setEntity(negocio.id)}
+                      style={
+                        activo
+                          ? {
+                              borderColor: 'var(--accent)',
+                              color: 'var(--accent)',
+                              backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                            }
+                          : undefined
+                      }
+                      className={`flex-1 min-w-[104px] min-h-[48px] px-3 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
+                        activo
+                          ? 'font-semibold'
+                          : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      {negocio.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          {/* 4. Amount ($ MXN) */}
-          <div>
-            <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
-              Monto ($ MXN)
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-[#7a7a7a] font-semibold">
-                $
-              </span>
+            {/* 3. Monto grande */}
+            <div>
+              <label className={`${labelClase} text-center`}>Monto total</label>
               <input
                 type="number"
                 step="any"
@@ -216,104 +270,187 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="0.00"
-                className="w-full text-[18px] sm:text-[20px] font-semibold pl-9 pr-4 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all"
+                placeholder="$0.00"
+                className="num-input num-hero w-full bg-transparent text-center text-[44px] leading-tight text-[var(--text)] outline-none border-0 border-b border-[var(--border)] focus:border-[var(--accent)] pb-2 transition-colors"
               />
             </div>
-          </div>
 
-          {/* 5. Category (Contextual) & Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* 4. Montos rápidos */}
+            <div className="grid grid-cols-3 gap-2">
+              {MONTOS_RAPIDOS.map((monto) => (
+                <button
+                  key={monto}
+                  type="button"
+                  onClick={() => setAmount(monto)}
+                  style={
+                    montoNumero === monto
+                      ? {
+                          borderColor: 'var(--accent)',
+                          color: 'var(--accent)',
+                          backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                        }
+                      : undefined
+                  }
+                  className={`num-list min-h-[44px] rounded-[12px] border text-[16px] font-medium transition-colors cursor-pointer ${
+                    montoNumero === monto
+                      ? 'font-semibold'
+                      : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text)] hover:border-[var(--accent)]'
+                  }`}
+                >
+                  ${monto}
+                </button>
+              ))}
+            </div>
+
+            {/* 5. Productos rápidos (sólo hamburguesas) */}
+            {entity === 'hamburguesas' && (
+              <div>
+                <label className={labelClase}>Productos rápidos</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {productosPrincipales.map((producto) => (
+                    <button
+                      key={producto.id}
+                      type="button"
+                      onClick={() => agregarProducto(producto.nombre, producto.precio)}
+                      className="min-h-[44px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
+                    >
+                      <span className="truncate">
+                        {producto.categoria === 'extras' ? '🍟' : '🍔'} {nombreCorto(producto.nombre)}
+                      </span>
+                      <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
+                        ${producto.precio}
+                      </span>
+                    </button>
+                  ))}
+
+                  {/* Hot dogs: un toque despliega la lista */}
+                  <button
+                    type="button"
+                    onClick={() => setHotDogsAbiertos((previo) => !previo)}
+                    aria-expanded={hotDogsAbiertos}
+                    className="min-h-[44px] px-3 col-span-2 rounded-[12px] border border-dashed border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                  >
+                    🌭 Hot Dogs {hotDogsAbiertos ? '▴' : '▾'}
+                  </button>
+
+                  {hotDogsAbiertos &&
+                    hotDogs.map((producto) => (
+                      <button
+                        key={producto.id}
+                        type="button"
+                        onClick={() => agregarProducto(producto.nombre, producto.precio)}
+                        className="min-h-[44px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate">🌭 {nombreCorto(producto.nombre)}</span>
+                        <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
+                          ${producto.precio}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                  Tocar un producto suma su precio al monto y lo agrega a la descripción.
+                </p>
+              </div>
+            )}
+
+            {/* 6. Descripción / items */}
             <div>
-              <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
-                Categoría
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full text-[14px] px-3.5 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all cursor-pointer"
-              >
+              <label className={labelClase}>Descripción / items</label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: 2× Sencilla + Papas"
+                className={inputClase}
+              />
+            </div>
+
+            {/* 7. Categoría */}
+            <div>
+              <label className={labelClase}>Categoría</label>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className={`${inputClase} cursor-pointer`}>
                 {availableCategories.map((c) => (
                   <option key={c.id} value={c.name}>
                     {c.name}
                   </option>
                 ))}
-                {availableCategories.length === 0 && (
-                  <option value="General">General</option>
-                )}
+                {availableCategories.length === 0 && <option value="General">General</option>}
               </select>
             </div>
 
+            {/* 8. Método de pago */}
             <div>
-              <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
-                Fecha
-              </label>
+              <label className={labelClase}>Método de pago</label>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                {[
+                  { id: 'transferencia' as PaymentMethod, label: 'Transferencia' },
+                  { id: 'efectivo' as PaymentMethod, label: 'Efectivo' },
+                  { id: 'tarjeta' as PaymentMethod, label: 'Tarjeta' },
+                ].map((metodo) => {
+                  const activo = paymentMethod === metodo.id;
+                  return (
+                    <button
+                      key={metodo.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(metodo.id)}
+                      style={
+                        activo
+                          ? {
+                              borderColor: 'var(--accent)',
+                              color: 'var(--accent)',
+                              backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                            }
+                          : undefined
+                      }
+                      className={`flex-1 min-w-[104px] min-h-[48px] px-3 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
+                        activo
+                          ? 'font-semibold'
+                          : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      {metodo.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 9. Fecha */}
+            <div>
+              <label className={labelClase}>Fecha</label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full text-[14px] px-3.5 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all"
+                className={`${inputClase} cursor-pointer`}
+              />
+            </div>
+
+            {/* 10. Notas (campo existente, se mantiene) */}
+            <div>
+              <label className={labelClase}>Notas (opcional)</label>
+              <textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Cliente, proveedor, factura o referencia..."
+                className={`${inputClase} resize-none py-3`}
               />
             </div>
           </div>
 
-          {/* 6. Payment Method */}
-          <div>
-            <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
-              Método de Pago
-            </label>
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-              {[
-                { id: 'transferencia', label: 'Transferencia' },
-                { id: 'efectivo', label: 'Efectivo' },
-                { id: 'tarjeta', label: 'Tarjeta' },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(m.id as PaymentMethod)}
-                  className={`py-2 px-1.5 sm:px-3 text-[12px] sm:text-[13px] rounded-full border text-center transition-all ${
-                    paymentMethod === m.id
-                      ? 'border-[#1d1d1f] bg-[#1d1d1f] text-white font-medium'
-                      : 'border-[#e0e0e0] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e0e0e0]'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 7. Notes (Optional) */}
-          <div>
-            <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-1.5">
-              Notas adicionales (opcional)
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Detalles de cliente, proveedor, factura o referencia..."
-              className="w-full text-[14px] px-3.5 py-2.5 rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none transition-all resize-none"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="sticky bottom-0 -mx-5 sm:static sm:mx-0 bg-white pt-4 flex flex-col gap-3 pb-5 sm:gap-0 sm:pb-0 sm:flex-row sm:items-center sm:justify-end sm:space-x-3 border-t border-[#f0f0f0]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-full text-[15px] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors"
-            >
-              Cancelar
-            </button>
+          {/* Footer sticky con el botón Guardar */}
+          <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4">
             <button
               type="submit"
-              disabled={submitting}
-              className="apple-btn-primary w-full sm:w-auto px-7 py-2.5 text-[15px] disabled:opacity-50"
+              disabled={!puedeGuardar}
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }}
+              className="w-full h-14 rounded-full text-[16px] font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting ? 'Guardando...' : editingTransaction ? 'Guardar Cambios' : 'Registrar Movimiento'}
+              {submitting ? 'Guardando...' : `Guardar ${montoTexto}`}
             </button>
           </div>
         </form>

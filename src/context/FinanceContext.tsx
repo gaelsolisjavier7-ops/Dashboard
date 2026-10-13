@@ -14,7 +14,8 @@ import type {
   DateRange,
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../lib/initialData';
-import { isPedidoCancelado, pedidoEnPeriodo } from '../lib/pedidos';
+import { pedidoEnPeriodo } from '../lib/pedidos';
+import { ingresoPedidosWeb } from '../lib/ingresos';
 import {
   DATE_FILTERS,
   estaEnPeriodo,
@@ -197,15 +198,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [pedidos, dateRange]
   );
 
-  // Ingreso real generado por la web: excluye pedidos cancelados
-  const webOrdersIncome = useMemo(
-    () =>
-      pedidosDelPeriodo.reduce(
-        (acc, pedido) => (isPedidoCancelado(pedido) ? acc : acc + (Number(pedido.total) || 0)),
-        0
-      ),
-    [pedidosDelPeriodo]
-  );
+  // Ingreso real generado por los pedidos de la web.
+  //
+  // OJO (fix del doble conteo): los pedidos del bot de Telegram escriben su
+  // documento en 'pedidos' **y** sus transacciones de ingreso en
+  // 'transacciones'. Como el dashboard suma las dos fuentes, aquí se excluyen
+  // los pedidos con origen 'whatsapp' (junto con los cancelados) para no
+  // contar el mismo dinero dos veces.
+  const webOrdersIncome = useMemo(() => {
+    const [inicio, fin] = rangoDePeriodo(dateRange.filter, dateRange.offset);
+    return ingresoPedidosWeb(pedidos, inicio, fin);
+  }, [pedidos, dateRange]);
 
   // Los pedidos web pertenecen al negocio de hamburguesas: se suman al
   // Consolidado y al tab de Hamburguesas, nunca a Personal ni AirPods.
@@ -250,9 +253,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     if (selectedEntity === 'all' || selectedEntity === 'hamburguesas') {
-      ingresos += pedidos
-        .filter((p) => !isPedidoCancelado(p) && p.fechaMs >= inicio && p.fechaMs <= fin)
-        .reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+      // Misma regla que el periodo actual: sin los pedidos del bot
+      ingresos += ingresoPedidosWeb(pedidos, inicio, fin);
     }
 
     if (selectedEntity === 'all' || selectedEntity === 'airpods') {
