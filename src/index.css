@@ -1,42 +1,117 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEMA · FASE 1 del rediseño (dark por defecto)
+   ---------------------------------------------------------------------------
+   La paleta vive en variables CSS. El dark es el default; el light se activa
+   con <html data-theme="light"> (no hay toggle en la UI todavía, pero los
+   valores originales quedan intactos para que siga funcionando).
+
+   Los componentes tienen hex literales en utilidades de Tailwind
+   (bg-white, text-[#1d1d1f]…). Para no tocarlos uno por uno, más abajo hay una
+   capa de remapeo con selectores de atributo ([class~="bg-white"]) que vive
+   FUERA de @layer: así gana a las utilidades de Tailwind (que sí van en @layer)
+   sin necesidad de !important. Es una capa TRANSITORIA: en FASE 2/3 los
+   componentes usan los tokens directamente y esta capa se puede borrar.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    --apple-primary: #0066cc;
-    --apple-primary-focus: #0071e3;
-    --apple-primary-on-dark: #2997ff;
-    --apple-ink: #1d1d1f;
-    --apple-body: #1d1d1f;
-    --apple-body-on-dark: #ffffff;
-    --apple-body-muted: #cccccc;
-    --apple-ink-muted-80: #333333;
-    --apple-ink-muted-48: #7a7a7a;
-    --apple-divider-soft: #f0f0f0;
-    --apple-hairline: #e0e0e0;
-    --apple-canvas: #ffffff;
-    --apple-canvas-parchment: #f5f5f7;
-    --apple-surface-pearl: #fafafc;
-    --apple-surface-tile-1: #272729;
-    --apple-surface-tile-2: #2a2a2c;
-    --apple-surface-tile-3: #252527;
+    /* ── Superficies ── */
+    --bg: #0a0a0a;
+    --surface: #171717;
+    --surface-elevated: #1f1f1f;
+    --surface-inset: #0f0f0f;
+    --border: #262626;
+    --border-soft: #1a1a1a;
+    --control: #3f3f46;
+
+    /* ── Semánticos ── */
+    --positive: #22c55e;
+    --negative: #ef4444;
+    --pending: #f59e0b;
+    --accent: #22c55e;
+    --accent-hover: #16a34a;
+    --accent-ink: #05210f;
+
+    /* ── Texto ── */
+    --text: #ffffff;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --text-on-dark: #ffffff;
+
+    /* ── Tipografía ── */
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* ── Superficies compuestas ── */
+    --frost: rgba(10, 10, 10, 0.82);
+
+    /* Compatibilidad con los tokens Apple previos (ya no se usan en componentes) */
+    --apple-primary: var(--accent);
+    --apple-primary-focus: var(--accent-hover);
+    --apple-primary-on-dark: var(--accent);
+    --apple-ink: var(--text);
+    --apple-body: var(--text);
+    --apple-body-on-dark: var(--text-on-dark);
+    --apple-body-muted: var(--text-secondary);
+    --apple-ink-muted-80: var(--text-secondary);
+    --apple-ink-muted-48: var(--text-muted);
+    --apple-divider-soft: var(--border-soft);
+    --apple-hairline: var(--border);
+    --apple-canvas: var(--bg);
+    --apple-canvas-parchment: var(--bg);
+    --apple-surface-pearl: var(--surface-elevated);
+    --apple-surface-tile-1: #111111;
+    --apple-surface-tile-2: var(--surface-elevated);
+    --apple-surface-tile-3: var(--surface);
     --apple-surface-black: #000000;
-    --apple-surface-chip-translucent: #d2d2d7;
+    --apple-surface-chip-translucent: var(--control);
+
+    color-scheme: dark;
   }
 
-  html, body {
+  /* Light mode opcional: mismos valores que antes del rediseño */
+  html[data-theme="light"] {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-elevated: #fafafc;
+    --surface-inset: #f5f5f7;
+    --border: #e0e0e0;
+    --border-soft: #f0f0f0;
+    --control: #d2d2d7;
+    --accent: #0066cc;
+    --accent-hover: #0071e3;
+    --accent-ink: #ffffff;
+    --text: #1d1d1f;
+    --text-secondary: #7a7a7a;
+    --text-muted: #8e8e93;
+    --text-on-dark: #ffffff;
+    --frost: rgba(245, 245, 247, 0.82);
+    color-scheme: light;
+  }
+
+  /* OJO: 17px es la base de la que dependen TODAS las utilidades rem de
+     Tailwind (y el breakpoint sm sigue siendo 640px). No cambiar. */
+  html,
+  body {
     margin: 0;
     padding: 0;
     width: 100%;
     min-height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
-    background-color: #ffffff;
-    color: #1d1d1f;
+    font-family: var(--font-sans);
+    background-color: var(--bg);
+    color: var(--text);
     font-size: 17px;
     line-height: 1.47;
-    letter-spacing: -0.374px;
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "ss03";
+  }
+
+  html {
+    background-color: var(--bg);
   }
 
   #root {
@@ -46,12 +121,61 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    background-color: var(--bg);
   }
 }
 
-/* Apple Specific Typography Helpers */
+/* ═════════════════════════ Tipografía numérica (mono) ═════════════════════════
+   Los números van en monoespaciada con dígitos tabulares para que las cifras
+   no bailen al actualizarse. Las utilidades de tamaño (.num-size-*) quedan
+   listas para FASE 2; en FASE 1 se aplican .num-* sin cambiar tamaños, así el
+   layout responsive actual no se altera.
+   ─────────────────────────────────────────────────────────────────────────── */
+.num-hero,
+.num-metric,
+.num-list,
+.num-size-hero,
+.num-size-metric,
+.num-size-list {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.num-hero {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.num-metric {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.num-list {
+  font-weight: 500;
+}
+
+/* Tamaños exactos del diseño objetivo (60 / 28 / 20 px) */
+.num-size-hero {
+  font-size: clamp(40px, 11vw, 60px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+.num-size-metric {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.num-size-list {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* Apple Specific Typography Helpers (se mantienen por compatibilidad) */
 .font-apple-display {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: -0.28px;
 }
 
@@ -118,9 +242,9 @@
   letter-spacing: -0.12px;
 }
 
-/* The ONLY drop shadow in the Apple design system: strictly for product renders resting on a surface */
+/* Rediseño: sin sombras salvo el FAB */
 .apple-product-shadow {
-  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+  box-shadow: none;
 }
 
 /* Micro-interaction: active scale transform 0.95 */
@@ -131,18 +255,18 @@
   transform: scale(0.95);
 }
 
-/* Apple Buttons */
+/* ══════════════════════════════ Botones ══════════════════════════════ */
 .apple-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #0066cc;
-  color: #ffffff;
+  background-color: var(--accent);
+  color: var(--accent-ink);
   border-radius: 9999px;
   padding: 11px 22px;
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1;
   text-decoration: none;
   border: none;
@@ -150,13 +274,13 @@
   transition: transform 0.12s ease, background-color 0.12s ease;
 }
 .apple-btn-primary:hover {
-  background-color: #0071e3;
+  background-color: var(--accent-hover);
 }
 .apple-btn-primary:active {
   transform: scale(0.95);
 }
 .apple-btn-primary:focus-visible {
-  outline: 2px solid #0071e3;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -165,19 +289,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #ffffff;
-  color: #0066cc;
-  border: 1px solid #0066cc;
+  background-color: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 11px 22px;
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1;
   cursor: pointer;
   transition: transform 0.12s ease, background-color 0.12s ease;
 }
 .apple-btn-secondary:hover {
-  background-color: #f5f5f7;
+  background-color: var(--surface-elevated);
 }
 .apple-btn-secondary:active {
   transform: scale(0.95);
@@ -188,15 +312,15 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background-color: #1d1d1f;
-  color: #ffffff;
+  background-color: var(--surface-elevated);
+  color: var(--text);
   border-radius: 8px;
   padding: 8px 15px;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.29;
   letter-spacing: -0.224px;
-  border: none;
+  border: 1px solid var(--border);
   cursor: pointer;
   transition: transform 0.12s ease, opacity 0.12s ease;
 }
@@ -209,13 +333,13 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background-color: #fafafc;
-  color: #333333;
-  border: 3px solid #f0f0f0;
+  background-color: var(--surface-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 11px;
   padding: 8px 14px;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 500;
   cursor: pointer;
   transition: transform 0.12s ease;
 }
@@ -223,47 +347,257 @@
   transform: scale(0.95);
 }
 
-/* Apple Cards: hairline border, no shadow */
+/* ══════════════════════════════ Cards ══════════════════════════════
+   Radio 16px y borde de 1px: sin sombra, el relieve lo da la superficie. */
 .apple-card {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 18px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   padding: 24px;
 }
 
-/* Frosted glass */
+/* Frosted glass (nav) */
 .apple-frosted {
-  background-color: rgba(245, 245, 247, 0.82);
+  background-color: var(--frost);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 .apple-frosted-dark {
-  background-color: rgba(39, 39, 41, 0.82);
+  background-color: rgba(23, 23, 23, 0.82);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-/* Custom scrollbar matching sleek Apple UI */
+/* ══════════════════════ Botón flotante "+" (FAB) ══════════════════════ */
+.fab {
+  position: fixed;
+  bottom: 5rem; /* bottom-20 en móvil: libra la BottomNav */
+  right: 1rem;
+  z-index: 40;
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background-color: var(--accent);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 40px rgba(34, 197, 94, 0.3);
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.fab:hover {
+  background-color: var(--accent-hover);
+}
+.fab:active {
+  transform: scale(0.95);
+}
+.fab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (min-width: 640px) {
+  .fab {
+    bottom: 2rem;
+    right: 2rem;
+  }
+}
+
+/* ══════════════ Capa de remapeo de la paleta Apple (dark) ══════════════
+   TRANSITORIA. Elimina los hex de la paleta vieja sin tocar los componentes.
+   Cada bloque es un rol: superficies, bordes, texto y semánticos. */
+
+/* ── Superficies ──
+   OJO: en este código `bg-white` se usa en cards/modales y `bg-[#ffffff]` en
+   contenedores de página (body, raíz de App) y controles del SubNav: por eso
+   cada uno va a una capa distinta (superficie vs fondo). */
+:root:not([data-theme="light"]) [class~="bg-white"] {
+  background-color: var(--surface);
+}
+:root:not([data-theme="light"]) [class~="bg-[#ffffff]"] {
+  background-color: var(--bg);
+}
+:root:not([data-theme="light"]) [class~="bg-[#f5f5f7]"] {
+  background-color: var(--bg);
+}
+:root:not([data-theme="light"]) [class~="bg-[#fafafc]"] {
+  background-color: var(--surface-elevated);
+}
+:root:not([data-theme="light"]) [class~="bg-[#000000]"],
+:root:not([data-theme="light"]) [class~="bg-black"] {
+  background-color: var(--bg);
+}
+:root:not([data-theme="light"]) [class~="bg-[#1d1d1f]"],
+:root:not([data-theme="light"]) [class~="bg-[#1f1f21]"] {
+  background-color: var(--surface);
+}
+:root:not([data-theme="light"]) [class~="bg-[#272729]"] {
+  background-color: #111111;
+}
+:root:not([data-theme="light"]) [class~="bg-[#e0e0e0]"],
+:root:not([data-theme="light"]) [class~="bg-[#f0f0f0]"],
+:root:not([data-theme="light"]) [class~="bg-[#eaeaea]"] {
+  background-color: var(--border);
+}
+:root:not([data-theme="light"]) [class~="bg-[#d2d2d7]"] {
+  background-color: var(--control);
+}
+
+/* ── Bordes y separadores ── */
+:root:not([data-theme="light"]) [class~="border-[#e0e0e0]"],
+:root:not([data-theme="light"]) [class~="border-[#f0f0f0]"],
+:root:not([data-theme="light"]) [class~="border-[#eaeaea]"],
+:root:not([data-theme="light"]) [class~="border-[#f5f5f7]"],
+:root:not([data-theme="light"]) [class~="border-[#d2d2d7]"],
+:root:not([data-theme="light"]) [class~="border-[#b0b0b5]"],
+:root:not([data-theme="light"]) [class~="border-[#cccccc]"],
+:root:not([data-theme="light"]) [class~="border-[#333333]"],
+:root:not([data-theme="light"]) [class~="border-[#333]"],
+:root:not([data-theme="light"]) [class~="border-[#3a3a3c]"] {
+  border-color: var(--border);
+}
+:root:not([data-theme="light"]) [class~="border-[#1d1d1f]"] {
+  border-color: var(--control);
+}
+/* Bordes de acento (antes azul Apple) → verde del acento */
+:root:not([data-theme="light"]) [class~="border-[#0066cc]"],
+:root:not([data-theme="light"]) [class~="border-[#0071e3]"],
+:root:not([data-theme="light"]) [class~="border-[#2997ff]"] {
+  border-color: var(--accent);
+}
+:root:not([data-theme="light"]) [class~="divide-[#f5f5f7]"] > * + *,
+:root:not([data-theme="light"]) [class~="divide-[#f0f0f0]"] > * + * {
+  border-color: var(--border-soft);
+}
+
+/* ── Texto ── */
+:root:not([data-theme="light"]) [class~="text-[#1d1d1f]"] {
+  color: var(--text);
+}
+:root:not([data-theme="light"]) [class~="text-[#7a7a7a]"],
+:root:not([data-theme="light"]) [class~="text-[#8e8e93]"] {
+  color: var(--text-secondary);
+}
+:root:not([data-theme="light"]) [class~="text-[#555555]"],
+:root:not([data-theme="light"]) [class~="text-[#b0b0b5]"] {
+  color: var(--text-muted);
+}
+:root:not([data-theme="light"]) [class~="text-[#333333]"],
+:root:not([data-theme="light"]) [class~="text-[#cccccc]"] {
+  color: #d4d4d8;
+}
+:root:not([data-theme="light"]) [class~="text-[#0066cc]"],
+:root:not([data-theme="light"]) [class~="text-[#0071e3]"],
+:root:not([data-theme="light"]) [class~="text-[#2997ff]"] {
+  color: var(--accent);
+}
+:root:not([data-theme="light"]) [class~="text-[#ff3b30]"],
+:root:not([data-theme="light"]) [class~="text-[#ff453a]"] {
+  color: var(--negative);
+}
+:root:not([data-theme="light"]) [class~="text-[#34c759]"],
+:root:not([data-theme="light"]) [class~="text-[#30d158]"] {
+  color: var(--positive);
+}
+:root:not([data-theme="light"]) [class~="text-[#ff9500]"],
+:root:not([data-theme="light"]) [class~="text-[#ff9f0a]"] {
+  color: var(--pending);
+}
+
+/* ── Rellenos semánticos con alfa (bg-[#color]/10, /20…) ── */
+:root:not([data-theme="light"]) [class*="bg-[#34c759]/"],
+:root:not([data-theme="light"]) [class*="bg-[#30d158]/"],
+:root:not([data-theme="light"]) [class*="bg-[#0066cc]/"],
+:root:not([data-theme="light"]) [class*="bg-[#2997ff]/"] {
+  background-color: color-mix(in srgb, var(--positive) 14%, transparent);
+}
+:root:not([data-theme="light"]) [class*="bg-[#ff3b30]/"],
+:root:not([data-theme="light"]) [class*="bg-[#ff453a]/"],
+:root:not([data-theme="light"]) [class~="bg-[#fff0f0]"] {
+  background-color: color-mix(in srgb, var(--negative) 14%, transparent);
+}
+:root:not([data-theme="light"]) [class*="bg-[#ff9500]/"],
+:root:not([data-theme="light"]) [class*="bg-[#ff9f0a]/"] {
+  background-color: color-mix(in srgb, var(--pending) 14%, transparent);
+}
+
+/* ── Rellenos semánticos sólidos ── */
+:root:not([data-theme="light"]) [class~="bg-[#34c759]"],
+:root:not([data-theme="light"]) [class~="bg-[#30d158]"] {
+  background-color: var(--positive);
+}
+:root:not([data-theme="light"]) [class~="bg-[#ff3b30]"],
+:root:not([data-theme="light"]) [class~="bg-[#ff453a]"] {
+  background-color: var(--negative);
+}
+:root:not([data-theme="light"]) [class~="bg-[#ff9500]"] {
+  background-color: var(--pending);
+}
+:root:not([data-theme="light"]) [class~="bg-[#0066cc]"],
+:root:not([data-theme="light"]) [class~="bg-[#0071e3]"],
+:root:not([data-theme="light"]) [class~="bg-[#2997ff]"] {
+  background-color: var(--accent);
+}
+
+/* ── Hovers de la paleta vieja ── */
+:root:not([data-theme="light"]) [class~="hover:bg-[#0071e3]"]:hover {
+  background-color: var(--accent-hover);
+}
+:root:not([data-theme="light"]) [class~="hover:bg-[#f5f5f7]"]:hover,
+:root:not([data-theme="light"]) [class~="hover:bg-[#fafafc]"]:hover {
+  background-color: var(--surface-elevated);
+}
+:root:not([data-theme="light"]) [class~="hover:bg-[#1d1d1f]"]:hover,
+:root:not([data-theme="light"]) [class~="hover:bg-[#272729]"]:hover {
+  background-color: var(--surface-elevated);
+}
+:root:not([data-theme="light"]) [class~="hover:bg-[#fff0f0]"]:hover {
+  background-color: color-mix(in srgb, var(--negative) 16%, transparent);
+}
+
+/* ── Focos y placeholders ── */
+:root:not([data-theme="light"]) [class~="focus:border-[#0071e3]"]:focus,
+:root:not([data-theme="light"]) [class~="focus:border-[#0066cc]"]:focus {
+  border-color: var(--accent);
+}
+:root:not([data-theme="light"]) [class~="focus:bg-white"]:focus {
+  background-color: var(--surface-inset);
+}
+:root:not([data-theme="light"]) [class~="placeholder:text-[#8e8e93]"]::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Sin sombras (solo el FAB las lleva) ── */
+:root:not([data-theme="light"]) [class~="shadow"],
+:root:not([data-theme="light"]) [class~="shadow-sm"],
+:root:not([data-theme="light"]) [class~="shadow-md"],
+:root:not([data-theme="light"]) [class~="shadow-lg"],
+:root:not([data-theme="light"]) [class~="shadow-xl"],
+:root:not([data-theme="light"]) [class~="shadow-2xl"],
+:root:not([data-theme="light"]) [class*="shadow-["] {
+  box-shadow: none;
+}
+
+/* Custom scrollbar (dark) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f5f5f7;
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #d2d2d7;
+  background: var(--border);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #7a7a7a;
+  background: var(--control);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE MÓVIL (<640px = breakpoint `sm`)
-   Todo lo de este bloque es exclusivo de móvil: el diseño de escritorio no
-   se ve afectado porque vive dentro de @media (max-width: 639.98px).
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Carrusel horizontal de pills (SubNav) sin barra de scroll visible */
@@ -293,5 +627,13 @@
     padding: 18px;
     border-radius: 16px;
   }
-}
 
+  /* Altura táctil mínima de 48px en móvil (inputs y selects).
+     Se excluyen checkbox/radio y los botones (los compactos de icono, como los
+     de las filas de recetas o los steppers, se romperían). */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    min-height: 48px;
+  }
+}

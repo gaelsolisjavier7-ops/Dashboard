@@ -4,6 +4,7 @@ import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { GlobalNav } from './components/common/GlobalNav';
 import { SubNav } from './components/common/SubNav';
 import { BottomNav } from './components/common/BottomNav';
+import { FAB } from './components/common/FAB';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
 import { AirPodsModule } from './components/dashboard/AirPodsModule';
@@ -24,7 +25,7 @@ import { Footer } from './components/common/Footer';
 import type { Transaction } from './types/finance';
 import { puedeVerSeccion, puedeVerTab, seccionInicial, tabsDisponibles } from './lib/roles';
 import type { Rol, SeccionId, TabId } from './lib/roles';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 function FinanceApp({ rol }: { rol: Rol }) {
   const { selectedEntity } = useFinance();
@@ -167,18 +168,10 @@ function FinanceApp({ rol }: { rol: Rol }) {
         onClose={() => setIsFirebaseConfigModalOpen(false)}
       />
 
-      {/* Móvil: FAB de nuevo registro.
-          Va en la raíz (no dentro del SubNav) porque el backdrop-filter del
-          SubNav convertiría a este elemento en `fixed` respecto a él y no al viewport. */}
-      <button
-        type="button"
-        onClick={handleOpenNewTransaction}
-        aria-label="Nuevo Registro"
-        title="Nuevo Registro"
-        className="sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-[#0066cc] text-white shadow-2xl flex items-center justify-center apple-pressable cursor-pointer hover:bg-[#0071e3]"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {/* FAB de nuevo registro (en la raíz: el backdrop-filter del SubNav lo
+          convertiría en `fixed` respecto al nav y no al viewport).
+          En móvil reemplaza al botón del SubNav; en desktop conviven los dos. */}
+      <FAB onClick={handleOpenNewTransaction} />
 
       {/* Móvil: navegación inferior estilo app nativa (pestañas según rol) */}
       <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} />

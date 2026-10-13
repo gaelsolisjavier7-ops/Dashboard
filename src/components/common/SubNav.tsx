@@ -78,7 +78,7 @@ export const SubNav: React.FC<SubNavProps> = ({
     }));
 
   return (
-    <div className="sticky top-[44px] z-40 w-full apple-frosted border-b border-[rgba(0,0,0,0.08)] select-none">
+    <div className="sticky top-[44px] z-40 w-full apple-frosted border-b border-[rgba(255,255,255,0.08)] select-none">
       <div className="mx-auto flex h-auto sm:min-h-[52px] max-w-[1440px] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 sm:px-8 py-2 sm:py-1.5">
         {/* Left: Section Title */}
         <div className="flex items-center space-x-3 sm:space-x-6 min-w-0 flex-1 sm:flex-none">
@@ -200,7 +200,7 @@ export const SubNav: React.FC<SubNavProps> = ({
 
       {/* Móvil/tablet: navegación de periodo en su propia fila (no cabe en la primera) */}
       {dateRange.filter !== 'all' && (
-        <div className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border-t border-[rgba(0,0,0,0.06)] overflow-x-auto no-scrollbar">
+        <div className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border-t border-[rgba(255,255,255,0.06)] overflow-x-auto no-scrollbar">
           <div className="flex items-center bg-[#f5f5f7] border border-[#e0e0e0] rounded-full flex-shrink-0">
             <button
               type="button"
@@ -240,7 +240,7 @@ export const SubNav: React.FC<SubNavProps> = ({
 
       {/* Mobile/Tablet Sub-row for Entity Selector: carrusel con snap + scroll táctil */}
       <div className="relative lg:hidden">
-        <div className="flex items-center justify-start gap-2 overflow-x-auto px-4 py-2 pr-8 bg-[#f5f5f7] border-t border-[rgba(0,0,0,0.04)] no-scrollbar snap-x snap-mandatory">
+        <div className="flex items-center justify-start gap-2 overflow-x-auto px-4 py-2 pr-8 bg-[#f5f5f7] border-t border-[rgba(255,255,255,0.06)] no-scrollbar snap-x snap-mandatory">
           {entities.map((item) => {
             const isSelected = selectedEntity === item.id;
             return (
@@ -261,7 +261,7 @@ export const SubNav: React.FC<SubNavProps> = ({
         </div>
 
         {/* Gradiente que insinúa que hay más pills hacia la derecha (no captura clicks) */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#f5f5f7] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[var(--bg)] to-transparent" />
       </div>
     </div>
   );

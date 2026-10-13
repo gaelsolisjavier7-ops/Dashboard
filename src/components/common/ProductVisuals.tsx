@@ -119,7 +119,7 @@ export const BurgerVisual: React.FC<{ className?: string }> = ({ className = 'w-
 export const AppleCardVisual: React.FC<{ className?: string }> = ({ className = 'w-64 h-40' }) => {
   return (
     <div className={`relative select-none ${className}`}>
-      <div className="w-full h-full rounded-[14px] bg-gradient-to-tr from-[#f5f5f7] via-[#ffffff] to-[#e5e5ea] border border-[#d2d2d7] p-5 flex flex-col justify-between apple-product-shadow text-[#1d1d1f]">
+      <div className="w-full h-full rounded-[14px] bg-gradient-to-tr from-[var(--surface-elevated)] via-[var(--surface)] to-[var(--bg)] border border-[#262626] p-5 flex flex-col justify-between apple-product-shadow text-white">
         <div className="flex justify-between items-start">
           <span className="text-[24px] leading-none"></span>
           {/* Card Chip */}

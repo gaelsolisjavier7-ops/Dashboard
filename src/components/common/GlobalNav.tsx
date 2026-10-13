@@ -56,7 +56,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#000000] text-white select-none">
+    <header className="sticky top-0 z-50 w-full bg-[#0a0a0a] text-white select-none">
       <div className="mx-auto flex h-[44px] max-w-[1440px] items-center justify-between px-4 sm:px-8 text-[12px] font-normal tracking-[-0.12px]">
         {/* Left: ENTRE 3 logo & Brand */}
         <div className="flex items-center space-x-4 sm:space-x-6">
@@ -121,9 +121,9 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
 
               {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 top-10 w-56 bg-[#1d1d1f] border border-[#333] rounded-[14px] shadow-2xl p-2 animate-fade-in z-50">
+                <div className="absolute right-0 top-10 w-56 bg-[#171717] border border-[#262626] rounded-[14px] p-2 animate-fade-in z-50">
                   {/* User info */}
-                  <div className="px-3 py-2 border-b border-[#333]">
+                  <div className="px-3 py-2 border-b border-[#262626]">
                     <p className="text-[13px] font-semibold text-white truncate">
                       {user.displayName || 'Usuario'}
                     </p>

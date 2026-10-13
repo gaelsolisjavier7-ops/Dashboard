@@ -113,7 +113,7 @@ export const HeroMetrics: React.FC = () => {
               )}
             </div>
 
-            <h1 className="text-[34px] sm:text-[48px] lg:text-[56px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white break-words">
+            <h1 className="num-hero text-[34px] sm:text-[48px] lg:text-[56px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white break-words">
               {formatCurrency(metrics.netFreeCash)}
             </h1>
             <p className="text-[16px] sm:text-[19px] text-[#cccccc] font-normal leading-relaxed mt-2 max-w-[550px]">
@@ -132,7 +132,7 @@ export const HeroMetrics: React.FC = () => {
                 Margen Libre
               </span>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="text-[28px] font-semibold text-white tracking-tight">
+                <span className="num-metric text-[28px] font-semibold text-white tracking-tight">
                   {metrics.savingsOrProfitMargin}%
                 </span>
                 <span
@@ -163,7 +163,7 @@ export const HeroMetrics: React.FC = () => {
                 <ShoppingBag className="w-3.5 h-3.5 text-[#2997ff]" />
               </span>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="text-[28px] font-semibold text-white tracking-tight">
+                <span className="num-metric text-[28px] font-semibold text-white tracking-tight">
                   {pedidosWebActivos.length}
                 </span>
                 <span className="text-[14px] text-[#34c759] font-medium">
@@ -183,7 +183,7 @@ export const HeroMetrics: React.FC = () => {
                   <ClipboardList className="w-3.5 h-3.5 text-[#34c759]" />
                 </span>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-[28px] font-semibold text-white tracking-tight">
+                  <span className="num-metric text-[28px] font-semibold text-white tracking-tight">
                     {formatMXN(promedioRecetas.costoPromedio)}
                   </span>
                   <span
@@ -259,7 +259,7 @@ export const HeroMetrics: React.FC = () => {
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
+              <div className="num-metric text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
                 {formatCurrency(metrics.totalIncome)}
               </div>
             </div>
@@ -279,7 +279,7 @@ export const HeroMetrics: React.FC = () => {
                   <TrendingDown className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
+              <div className="num-metric text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
                 {formatCurrency(metrics.totalExpenses)}
               </div>
             </div>
@@ -300,7 +300,7 @@ export const HeroMetrics: React.FC = () => {
                 </div>
               </div>
               <div
-                className={`text-[28px] font-semibold tracking-tight mt-3 ${
+                className={`num-metric text-[28px] font-semibold tracking-tight mt-3 ${
                   isPositiveCashFlow ? 'text-[#1d1d1f]' : 'text-[#ff3b30]'
                 }`}
               >
@@ -323,7 +323,7 @@ export const HeroMetrics: React.FC = () => {
                   <Percent className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
+              <div className="num-metric text-[28px] font-semibold tracking-tight text-[#1d1d1f] mt-3">
                 {metrics.savingsOrProfitMargin}%
               </div>
             </div>
