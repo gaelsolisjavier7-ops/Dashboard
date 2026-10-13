@@ -12,6 +12,12 @@ const salida = path.join(process.cwd(), 'rediseno-audit');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(salida, { recursive: true });
 
+const ROL = (process.argv.find((a) => a.startsWith('--rol=')) ?? '--rol=super_admin').replace('--rol=', '');
+const ES_SOCIO = ROL === 'admin_hamburguesas';
+const EMAIL = ES_SOCIO ? 'jcmissdj@gmail.com' : 'gaelsolisjavier7@gmail.com';
+const NOMBRE = ES_SOCIO ? 'Socio' : 'Gael';
+console.log('rol de la corrida:', ROL);
+
 const TRANSACCIONES = [
   { id: 't1', fecha: '2026-10-12', tipo: 'ingreso', categoria: 'Ventas Mostrador', monto: 3850, descripcion: 'Ventas del día', negocio: 'hamburguesas' },
   { id: 't2', fecha: '2026-10-12', tipo: 'gasto', categoria: 'Carne & Pan', monto: 1240, descripcion: 'Compra de carne', negocio: 'hamburguesas' },
@@ -33,9 +39,9 @@ const MOVIMIENTOS = [
 
 const MODULOS = {
   useUsuario: `export function useUsuario() {
-  return { usuarioAuth: { email: 'gaelsolisjavier7@gmail.com', displayName: 'Gael', photoURL: null },
-    usuarioPerfil: { id: 'gaelsolisjavier7@gmail.com', email: 'gaelsolisjavier7@gmail.com', nombre: 'Gael', rol: 'super_admin', datos: { rol: 'super_admin' } },
-    rol: 'super_admin', loading: false, error: null };
+  return { usuarioAuth: { email: '${EMAIL}', displayName: '${NOMBRE}', photoURL: null },
+    usuarioPerfil: { id: '${EMAIL}', email: '${EMAIL}', nombre: '${NOMBRE}', rol: '${ROL}', datos: { rol: '${ROL}' } },
+    rol: '${ROL}', loading: false, error: null };
 }
 `,
   useTransactions: `const transacciones = ${JSON.stringify(TRANSACCIONES)};
@@ -122,7 +128,13 @@ cdp.onEvent = async (msg) => {
 };
 await cdp.send('Fetch.enable', { patterns: Object.keys(MODULOS).map((k) => ({ urlPattern: `*${k}*` })) });
 
-const ev = async (expresion) => (await cdp.send('Runtime.evaluate', { expression: expresion, returnByValue: true, awaitPromise: true })).result.value;
+const ev = async (expresion) => {
+  const r = await cdp.send('Runtime.evaluate', { expression: expresion, returnByValue: true, awaitPromise: true });
+  if (r.exceptionDetails) {
+    console.log('   ⚠ excepción en el DOM:', (r.exceptionDetails.exception || {}).description || r.exceptionDetails.text);
+  }
+  return r.result.value;
+};
 const capturar = async (nombre) => {
   await sleep(450);
   const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' });
@@ -130,7 +142,11 @@ const capturar = async (nombre) => {
   console.log('  ✓', `${nombre}.png`);
 };
 
-for (const vista of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'escritorio', w: 1440, h: 900, m: false }]) {
+for (const vista of [
+  { n: 'movil', w: 390, h: 844, m: true },
+  { n: 'tablet', w: 768, h: 1024, m: false },
+  { n: 'escritorio', w: 1440, h: 900, m: false },
+]) {
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: vista.w, height: vista.h, deviceScaleFactor: 2, mobile: vista.m });
   await cdp.send('Page.navigate', { url: URL_APP });
   await sleep(5200);
@@ -156,6 +172,26 @@ for (const vista of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'escritorio',
     };
   })()`);
   console.log('  ', JSON.stringify(info));
+
+  // Sidebar (sólo lg) y BottomNav (sólo móvil)
+  const navegacion = await ev(`(() => {
+    const aside = document.querySelector('aside');
+    const bottom = document.querySelector('nav[class*="bottom-0"]');
+    const texto = aside ? aside.textContent : '';
+    const items = aside
+      ? [...aside.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean)
+      : [];
+    const criticos = items.filter(t => t.includes(' de '));
+    return JSON.stringify({
+      sidebarItems: items,
+      sidebarAncho: aside ? Math.round(aside.getBoundingClientRect().width) : 0,
+      sidebarVisible: aside ? getComputedStyle(aside).display !== 'none' : false,
+      bottomNavVisible: bottom ? getComputedStyle(bottom).display !== 'none' : false,
+      insumosCriticos: criticos.slice(0, 6),
+      footerNombre: texto.includes('Gael') ? 'Gael' : (texto.includes('Socio') ? 'Socio' : null),
+    });
+  })()`);
+  console.log('   navegación:', navegacion);
   await capturar(`rediseno-${etiqueta}-hero-${vista.n}`);
 
   /* ── Alerta del bot: al tocarla hace scroll y resalta las pendientes ── */
@@ -178,6 +214,41 @@ for (const vista of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'escritorio',
   await sleep(400);
   await ev(`window.scrollTo(0, document.body.scrollHeight * 0.42)`);
   await capturar(`rediseno-${etiqueta}-cards-${vista.n}`);
+
+  /* ── FASE 3: página de Transacciones (sidebar en lg, header en tablet) ── */
+  const irATransacciones = await ev(`(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Transacciones');
+    if (!b) return 'NO';
+    b.click();
+    return 'ok';
+  })()`);
+  await sleep(1400);
+  const pagina = await ev(`(() => {
+    const texto = document.body.innerText;
+    const botones = [...document.querySelectorAll('button')].map(b => b.textContent.trim());
+    const lineas = texto.split(String.fromCharCode(10)).map(l => l.trim());
+    const dias = lineas.filter(t => t.startsWith('HOY') || t.startsWith('AYER'));
+    return JSON.stringify({
+      titulo: texto.includes('Transacciones') ? 'ok' : 'NO',
+      chipsPeriodo: botones.filter(t => ['Hoy', 'Ayer', 'Esta semana', 'Este mes', 'Todo el tiempo'].includes(t)),
+      chipsNegocio: botones.filter(t => ['Todos', 'Hamburguesas', 'AirPods', 'Personal'].includes(t)),
+      gruposDia: dias.slice(0, 4),
+      totalPeriodo: lineas.some(t => t.includes('Total del período')),
+      ctaDesktop: [...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Nuevo Registro' && b.getBoundingClientRect().width > 0),
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+    });
+  })()`);
+  console.log('   transacciones:', irATransacciones, JSON.stringify(pagina));
+  await ev(`window.scrollTo(0, 0)`);
+  await sleep(400);
+  await capturar(`rediseno-${etiqueta}-transacciones-${vista.n}`);
+  await ev(`window.scrollTo(0, document.body.scrollHeight * 0.35)`);
+  await sleep(400);
+  await capturar(`rediseno-${etiqueta}-transacciones-lista-${vista.n}`);
+  await ev(`window.scrollTo(0, 0)`);
+  await sleep(300);
+  await ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Dashboard'); if (b) b.click(); return 1; })()`);
+  await sleep(900);
   await ev(`window.scrollTo(0, 0)`);
   await sleep(300);
 

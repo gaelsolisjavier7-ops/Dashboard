@@ -1,24 +1,29 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
+import { useAuth } from '../../context/AuthContext';
+import { puedeVerNegocio } from '../../lib/roles';
+import { formatFechaRelativa, parseFechaFirestore } from '../../lib/fechas';
 import type { Transaction, EntityType, TransactionType } from '../../types/finance';
 import {
-  Search,
-  Plus,
-  Trash2,
-  Edit2,
-  Download,
-  Upload,
-  Utensils,
-  Headphones,
-  User,
-  ArrowUpRight,
   ArrowDownRight,
+  ArrowUpRight,
+  Download,
+  Edit2,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
 } from 'lucide-react';
 
 interface TransactionListProps {
   onOpenNewTransaction: () => void;
   onEditTransaction: (tx: Transaction) => void;
 }
+
+const MESES_CORTOS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+/** Filtros de período → chips. Se apoyan en el dateRange del contexto. */
+type ChipPeriodo = 'hoy' | 'ayer' | 'semana' | 'mes' | 'todo';
 
 export const TransactionList: React.FC<TransactionListProps> = ({
   onOpenNewTransaction,
@@ -30,42 +35,71 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     loadingTransactions,
     exportDataJSON,
     importDataJSON,
+    selectedEntity,
+    setSelectedEntity,
+    dateRange,
+    setFilter,
+    setOffset,
+    irAHoy,
+    labelPeriodo,
   } = useFinance();
+  const { rol } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<TransactionType | 'all'>('all');
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-MX', {
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
       maximumFractionDigits: 0,
-    }).format(val);
-  };
+    }).format(val || 0);
 
-  const entityIcon = (ent: EntityType) => {
-    switch (ent) {
-      case 'hamburguesas':
-        return <Utensils className="w-3.5 h-3.5 text-[#ff9500]" />;
-      case 'airpods':
-        return <Headphones className="w-3.5 h-3.5 text-[#0066cc]" />;
-      case 'personal':
-        return <User className="w-3.5 h-3.5 text-[#34c759]" />;
+  const negociosDisponibles = useMemo(
+    () =>
+      [
+        { id: 'all' as const, label: 'Todos' },
+        { id: 'hamburguesas' as EntityType, label: 'Hamburguesas' },
+        { id: 'airpods' as EntityType, label: 'AirPods' },
+        { id: 'personal' as EntityType, label: 'Personal' },
+      ].filter((negocio) => negocio.id === 'all' || puedeVerNegocio(rol, negocio.id)),
+    [rol]
+  );
+
+  const chipPeriodoActivo: ChipPeriodo =
+    dateRange.filter === 'all'
+      ? 'todo'
+      : dateRange.filter === 'week'
+      ? 'semana'
+      : dateRange.filter === 'month'
+      ? 'mes'
+      : dateRange.offset === -1
+      ? 'ayer'
+      : 'hoy';
+
+  const irAPeriodo = (chip: ChipPeriodo) => {
+    if (chip === 'hoy') {
+      irAHoy();
+      return;
     }
-  };
-
-  const entityLabel = (ent: EntityType) => {
-    switch (ent) {
-      case 'hamburguesas':
-        return 'Hamburguesas';
-      case 'airpods':
-        return 'AirPods';
-      case 'personal':
-        return 'Personal';
+    if (chip === 'ayer') {
+      setFilter('day');
+      setOffset(-1);
+      return;
     }
+    if (chip === 'semana') {
+      setFilter('week');
+      return;
+    }
+    if (chip === 'mes') {
+      setFilter('month');
+      return;
+    }
+    setFilter('all');
   };
 
-  // Filtrado de transacciones
+  // Filtrado local (búsqueda + tipo). El período y el negocio ya vienen
+  // filtrados desde el contexto.
   const displayedTransactions = useMemo(() => {
     return filteredTransactions.filter((tx) => {
       const tipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
@@ -86,6 +120,54 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       return true;
     });
   }, [filteredTransactions, filterType, searchQuery]);
+
+  /** Agrupa por día (más reciente primero) con su subtotal. */
+  const grupos = useMemo(() => {
+    const mapa = new Map<number, Transaction[]>();
+
+    displayedTransactions.forEach((tx) => {
+      const ms = parseFechaFirestore(tx.fecha || tx.date).ms;
+      const clave = new Date(ms).setHours(0, 0, 0, 0);
+      const lista = mapa.get(clave) ?? [];
+      lista.push(tx);
+      mapa.set(clave, lista);
+    });
+
+    return Array.from(mapa.entries())
+      .sort((a, b) => b[0] - a[0])
+      .map(([clave, items]) => {
+        const neto = items.reduce((acc, tx) => {
+          const tipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
+          const esIngreso = tipo === 'ingreso' || tipo === 'income';
+          const monto = Number(tx.monto ?? tx.amount ?? 0);
+          return esIngreso ? acc + monto : acc - monto;
+        }, 0);
+        return { clave, items, neto };
+      });
+  }, [displayedTransactions]);
+
+  const totalesPeriodo = useMemo(() => {
+    return filteredTransactions.reduce(
+      (acc, tx) => {
+        const tipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
+        const esIngreso = tipo === 'ingreso' || tipo === 'income';
+        const monto = Number(tx.monto ?? tx.amount ?? 0);
+        if (esIngreso) acc.ingresos += monto;
+        else acc.gastos += monto;
+        return acc;
+      },
+      { ingresos: 0, gastos: 0 }
+    );
+  }, [filteredTransactions]);
+
+  const etiquetaDia = (clave: number) => {
+    const fecha = new Date(clave);
+    const dia = `${fecha.getDate()} ${MESES_CORTOS[fecha.getMonth()]}`;
+    const relativo = formatFechaRelativa(clave, false);
+    if (relativo === 'hoy') return `HOY · ${dia}`;
+    if (relativo === 'ayer') return `AYER · ${dia}`;
+    return dia;
+  };
 
   const handleExport = () => {
     const dataStr = exportDataJSON();
@@ -114,195 +196,291 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     reader.readAsText(file);
   };
 
+  const chipClase = (activo: boolean) =>
+    `px-3.5 min-h-[36px] rounded-full border text-[13px] transition-colors cursor-pointer whitespace-nowrap ${
+      activo
+        ? 'font-semibold'
+        : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+    }`;
+  const chipEstilo = (activo: boolean) =>
+    activo
+      ? {
+          backgroundColor: 'var(--accent)',
+          borderColor: 'var(--accent)',
+          color: 'var(--accent-ink)',
+        }
+      : undefined;
+
   return (
-    <div className="w-full py-10 px-6 sm:px-12 bg-[#ffffff]">
+    <div className="w-full py-6 px-4 sm:py-10 sm:px-12 bg-[#ffffff]">
       <div className="max-w-[1200px] mx-auto">
-        {/* Controls & Search Toolbar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 pb-6 border-b border-[#f0f0f0]">
-          {/* Apple Search Input */}
-          <div className="relative flex-1 max-w-[480px]">
+        {/* Header: título + CTA (en móvil manda el FAB) */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-[28px] sm:text-[36px] font-semibold tracking-[-0.02em] text-[var(--text)]">
+              Transacciones
+            </h1>
+            <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+              {labelPeriodo} · {filteredTransactions.length} movimiento
+              {filteredTransactions.length === 1 ? '' : 's'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenNewTransaction}
+            className="apple-btn-primary hidden lg:inline-flex min-h-[44px] text-[15px] cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Registro</span>
+          </button>
+        </div>
+
+        {/* Filtros de período */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mt-5">
+          {(
+            [
+              ['hoy', 'Hoy'],
+              ['ayer', 'Ayer'],
+              ['semana', 'Esta semana'],
+              ['mes', 'Este mes'],
+              ['todo', 'Todo el tiempo'],
+            ] as [ChipPeriodo, string][]
+          ).map(([chip, label]) => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => irAPeriodo(chip)}
+              style={chipEstilo(chipPeriodoActivo === chip)}
+              className={chipClase(chipPeriodoActivo === chip)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filtros de negocio */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mt-2.5">
+          {negociosDisponibles.map((negocio) => {
+            const activo = selectedEntity === negocio.id;
+            return (
+              <button
+                key={negocio.id}
+                type="button"
+                onClick={() => setSelectedEntity(negocio.id)}
+                style={chipEstilo(activo)}
+                className={chipClase(activo)}
+              >
+                {negocio.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Búsqueda + tipo */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pb-5 border-b border-[#f0f0f0]">
+          <div className="relative flex-1 max-w-[420px]">
             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#7a7a7a]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por concepto, categoría o notas..."
-              className="w-full h-[44px] pl-11 pr-4 rounded-full bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none text-[15px] transition-all"
+              className="w-full min-h-[44px] pl-11 pr-4 rounded-full bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none text-[15px] transition-all"
             />
           </div>
 
-          {/* Type Filter Buttons & Actions */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center bg-[#f5f5f7] p-1 rounded-full border border-[#e0e0e0]">
+          <div className="flex items-center bg-[#f5f5f7] p-1 rounded-full border border-[#e0e0e0] self-start">
+            {(
+              [
+                ['all', `Todos (${filteredTransactions.length})`],
+                ['ingreso', 'Ingresos'],
+                ['gasto', 'Gastos'],
+              ] as [TransactionType | 'all', string][]
+            ).map(([tipo, label]) => (
               <button
-                onClick={() => setFilterType('all')}
-                className={`px-3 py-1 rounded-full text-[13px] transition-all apple-pressable cursor-pointer ${
-                  filterType === 'all'
+                key={tipo}
+                type="button"
+                onClick={() => setFilterType(tipo)}
+                className={`px-3 py-1.5 rounded-full text-[13px] transition-all apple-pressable cursor-pointer ${
+                  filterType === tipo
                     ? 'bg-[#1d1d1f] text-white font-medium'
                     : 'text-[#1d1d1f] hover:bg-[#eaeaea]'
                 }`}
               >
-                Todos ({filteredTransactions.length})
+                {label}
               </button>
-              <button
-                onClick={() => setFilterType('ingreso')}
-                className={`px-3 py-1 rounded-full text-[13px] transition-all apple-pressable cursor-pointer ${
-                  filterType === 'ingreso'
-                    ? 'bg-[#0066cc] text-white font-medium'
-                    : 'text-[#1d1d1f] hover:bg-[#eaeaea]'
-                }`}
-              >
-                Ingresos
-              </button>
-              <button
-                onClick={() => setFilterType('gasto')}
-                className={`px-3 py-1 rounded-full text-[13px] transition-all apple-pressable cursor-pointer ${
-                  filterType === 'gasto'
-                    ? 'bg-[#ff3b30] text-white font-medium'
-                    : 'text-[#1d1d1f] hover:bg-[#eaeaea]'
-                }`}
-              >
-                Gastos
-              </button>
-            </div>
-
-            {/* Quick Add CTA */}
-            <button
-              onClick={onOpenNewTransaction}
-              className="apple-btn-primary h-[38px] px-4 text-[14px] cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Registrar</span>
-            </button>
+            ))}
           </div>
         </div>
 
-        {/* Transactions Table / Card Stack */}
-        <div className="mt-6">
-          {loadingTransactions ? (
-            <div className="apple-card bg-[#fafafc] text-center py-16 px-4">
-              <span className="w-6 h-6 border-2 border-[#0066cc] border-t-transparent rounded-full animate-spin inline-block mb-3" />
-              <p className="text-[15px] text-[#7a7a7a]">Cargando transacciones desde Firestore...</p>
-            </div>
-          ) : displayedTransactions.length === 0 ? (
-            <div className="apple-card bg-[#fafafc] text-center py-16 px-4">
-              <p className="text-[17px] text-[#1d1d1f] font-semibold">
-                No hay movimientos registrados
-              </p>
-              <p className="text-[14px] text-[#7a7a7a] mt-1 max-w-[380px] mx-auto">
-                Tu base de datos en Firestore está vacía. Registra tu primera transacción con el botón azul para comenzar.
-              </p>
-              <button
-                onClick={onOpenNewTransaction}
-                className="apple-btn-primary mt-5 text-[14px] py-2 px-5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                <span>Crear Primera Transacción</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {displayedTransactions.map((tx) => {
-                const rawTipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
-                const isIncome = rawTipo === 'ingreso' || rawTipo === 'income';
-                const titulo = tx.descripcion || tx.title || 'Sin concepto';
-                const monto = Number(tx.monto ?? tx.amount ?? 0);
-                const entidad = (tx.negocio || tx.entity || 'personal') as EntityType;
-                const categoria = tx.categoria || tx.category || 'General';
-                const fecha = tx.fecha || tx.date || '';
-
-                return (
-                  <div
-                    key={tx.id}
-                    className="apple-card bg-white p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-[#b0b0b5] transition-all"
+        {/* Lista agrupada por día */}
+        {loadingTransactions ? (
+          <div className="apple-card bg-[#fafafc] text-center py-16 px-4 mt-6">
+            <span className="w-6 h-6 border-2 border-[#0066cc] border-t-transparent rounded-full animate-spin inline-block mb-3" />
+            <p className="text-[15px] text-[#7a7a7a]">Cargando transacciones desde Firestore...</p>
+          </div>
+        ) : displayedTransactions.length === 0 ? (
+          <div className="apple-card bg-[#fafafc] text-center py-16 px-4 mt-6">
+            <p className="text-[17px] font-semibold text-[#1d1d1f]">
+              Sin movimientos en este período
+            </p>
+            <p className="text-[14px] text-[#7a7a7a] mt-1 max-w-[420px] mx-auto">
+              Prueba con otro rango de fechas o registra un movimiento: también puedes escribirlo
+              por Telegram y aparecerá aquí solo.
+            </p>
+            <button
+              type="button"
+              onClick={onOpenNewTransaction}
+              className="apple-btn-primary mt-5 text-[14px] py-2 px-5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Registrar movimiento</span>
+            </button>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-6">
+            {grupos.map((grupo) => (
+              <section key={grupo.clave}>
+                {/* Encabezado del día: pegajoso en escritorio */}
+                <div className="sticky max-lg:static top-[96px] z-10 flex items-center justify-between gap-3 py-2 px-1 bg-[#f5f5f7] border-b border-[var(--border)]">
+                  <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    {etiquetaDia(grupo.clave)}
+                  </span>
+                  <span
+                    className={`num-list text-[14px] font-medium ${
+                      grupo.neto >= 0 ? 'text-[#34c759]' : 'text-[#ff3b30]'
+                    }`}
                   >
-                    {/* Left: Icon & Description */}
-                    <div className="flex items-start sm:items-center space-x-3.5 min-w-0">
+                    {grupo.neto >= 0 ? '+' : '−'}
+                    {formatCurrency(Math.abs(grupo.neto))}
+                  </span>
+                </div>
+
+                <div className="space-y-2 mt-2">
+                  {grupo.items.map((tx) => {
+                    const rawTipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
+                    const isIncome = rawTipo === 'ingreso' || rawTipo === 'income';
+                    const titulo = tx.descripcion || tx.title || 'Sin concepto';
+                    const monto = Number(tx.monto ?? tx.amount ?? 0);
+                    const categoria = tx.categoria || tx.category || 'General';
+                    const metodo = tx.paymentMethod || '';
+                    const ms = parseFechaFirestore(tx.fecha || tx.date).ms;
+                    const cuando = formatFechaRelativa(ms, true);
+
+                    return (
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isIncome
-                            ? 'bg-[#34c759]/10 text-[#34c759]'
-                            : 'bg-[#ff3b30]/10 text-[#ff3b30]'
-                        }`}
+                        key={tx.id}
+                        className="group apple-card bg-white flex items-center gap-3 px-3 py-3 sm:px-4 hover:border-[var(--control)] transition-colors"
                       >
-                        {isIncome ? (
-                          <ArrowUpRight className="w-5 h-5" />
-                        ) : (
-                          <ArrowDownRight className="w-5 h-5" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-[16px] font-semibold text-[#1d1d1f] truncate">
-                            {titulo}
-                          </h4>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-1 text-[12px] text-[#7a7a7a]">
-                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-[#f5f5f7] text-[#1d1d1f] font-medium">
-                            {entityIcon(entidad)}
-                            <span>{entityLabel(entidad)}</span>
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-[#f5f5f7]">
-                            {categoria}
-                          </span>
-                          {fecha && <span>• {fecha}</span>}
-                          {tx.paymentMethod && <span className="capitalize">• {tx.paymentMethod}</span>}
-                        </div>
-                        {tx.notes && (
-                          <p className="text-[13px] text-[#8e8e93] mt-1 italic truncate max-w-[420px]">
-                            {tx.notes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right: Amount & Actions */}
-                    <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-[#f0f0f0]">
-                      <div className="text-left sm:text-right">
+                        {/* Dirección */}
                         <span
-                          className={`text-[19px] sm:text-[21px] font-semibold tracking-tight ${
-                            isIncome ? 'text-[#0066cc]' : 'text-[#1d1d1f]'
-                          }`}
+                          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{
+                            backgroundColor: isIncome
+                              ? 'color-mix(in srgb, var(--positive) 12%, transparent)'
+                              : 'color-mix(in srgb, var(--negative) 12%, transparent)',
+                            color: isIncome ? 'var(--positive)' : 'var(--negative)',
+                          }}
                         >
-                          {isIncome ? '+' : '-'}
+                          {isIncome ? (
+                            <ArrowUpRight className="w-4 h-4" />
+                          ) : (
+                            <ArrowDownRight className="w-4 h-4" />
+                          )}
+                        </span>
+
+                        {/* Descripción + metadata */}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[15px] font-semibold text-[var(--text)] truncate">
+                            {titulo}
+                          </p>
+                          <p className="text-[13px] text-[var(--text-secondary)] truncate">
+                            {categoria}
+                            {metodo ? ` · ${metodo}` : ''} · {cuando}
+                          </p>
+                        </div>
+
+                        {/* Monto */}
+                        <span
+                          className="num-list text-[20px] font-medium flex-shrink-0"
+                          style={{ color: isIncome ? 'var(--positive)' : 'var(--negative)' }}
+                        >
+                          {isIncome ? '+' : '−'}
                           {formatCurrency(monto)}
                         </span>
-                        <span className="text-[11px] text-[#7a7a7a] block uppercase font-medium">
-                          {isIncome ? 'Ingreso' : 'Gasto'}
+
+                        {/* Acciones: al hover en escritorio, siempre visibles en táctil */}
+                        <span className="flex items-center gap-0.5 flex-shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => onEditTransaction(tx)}
+                            title="Editar"
+                            aria-label={`Editar ${titulo}`}
+                            className="p-2.5 rounded-full text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`¿Eliminar "${titulo}"?`)) {
+                                deleteTransaction(tx.id);
+                              }
+                            }}
+                            title="Eliminar"
+                            aria-label={`Eliminar ${titulo}`}
+                            className="p-2.5 rounded-full text-[var(--text-secondary)] hover:bg-[#fff0f0] hover:text-[#ff3b30] transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </span>
                       </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
 
-                      {/* Action buttons */}
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => onEditTransaction(tx)}
-                          title="Editar"
-                          className="p-2 rounded-full hover:bg-[#f5f5f7] text-[#7a7a7a] hover:text-[#1d1d1f] transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`¿Eliminar "${titulo}"?`)) {
-                              deleteTransaction(tx.id);
-                            }
-                          }}
-                          title="Eliminar"
-                          className="p-2 rounded-full hover:bg-[#fff0f0] text-[#7a7a7a] hover:text-[#ff3b30] transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Total del período */}
+            <div className="apple-card bg-white">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Total del período
+              </span>
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                <div>
+                  <span className="block text-[12px] text-[var(--text-secondary)]">Ingresos</span>
+                  <span className="num-list text-[20px] font-medium text-[#34c759]">
+                    {formatCurrency(totalesPeriodo.ingresos)}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[12px] text-[var(--text-secondary)]">Gastos</span>
+                  <span className="num-list text-[20px] font-medium text-[#ff3b30]">
+                    {formatCurrency(totalesPeriodo.gastos)}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[12px] text-[var(--text-secondary)]">Neto</span>
+                  <span
+                    className={`num-list text-[20px] font-semibold ${
+                      totalesPeriodo.ingresos - totalesPeriodo.gastos >= 0
+                        ? 'text-[#34c759]'
+                        : 'text-[#ff3b30]'
+                    }`}
+                  >
+                    {formatCurrency(totalesPeriodo.ingresos - totalesPeriodo.gastos)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[12px] text-[var(--text-secondary)] mt-3">
+                {labelPeriodo} · {filteredTransactions.length} movimiento
+                {filteredTransactions.length === 1 ? '' : 's'}
+              </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Bottom Utility Bar: Backup, Export (Apple fine-print style) */}
+        {/* Utilidades: exportar / importar */}
         <div className="mt-12 pt-6 border-t border-[#f0f0f0] flex flex-wrap items-center justify-between gap-4 text-[13px] text-[#7a7a7a]">
           <div className="flex items-center space-x-4">
             <button
@@ -316,12 +494,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             <label className="flex items-center space-x-1 hover:text-[#1d1d1f] transition-colors cursor-pointer">
               <Upload className="w-3.5 h-3.5" />
               <span>Importar a Firestore</span>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
+              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
           </div>
 

@@ -5,6 +5,7 @@ import { GlobalNav } from './components/common/GlobalNav';
 import { SubNav } from './components/common/SubNav';
 import { BottomNav } from './components/common/BottomNav';
 import { FAB } from './components/common/FAB';
+import { Sidebar } from './components/common/Sidebar';
 import { AlertaPedidosBot } from './components/dashboard/AlertaPedidosBot';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
@@ -29,7 +30,7 @@ import type { Rol, SeccionId, TabId } from './lib/roles';
 import { ArrowRight } from 'lucide-react';
 
 function FinanceApp({ rol }: { rol: Rol }) {
-  const { selectedEntity } = useFinance();
+  const { selectedEntity, setSelectedEntity } = useFinance();
   const [currentTabSolicitado, setCurrentTab] = useState<TabId>('dashboard');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -64,7 +65,16 @@ function FinanceApp({ rol }: { rol: Rol }) {
   const esSeccionCosteo = seccion === 'insumos' || seccion === 'recetas';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1d1d1f]">
+    <div className="min-h-screen flex bg-[#ffffff] text-[#1d1d1f]">
+      {/* Sidebar de escritorio (lg+): reemplaza al menú del header y a la BottomNav */}
+      <Sidebar
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        seccion={seccion}
+        setSeccion={setSelectedEntity}
+      />
+
+      <div className="flex-1 min-w-0 flex flex-col">
       {/* 44px Apple Global Navigation */}
       <GlobalNav
         currentTab={currentTab}
@@ -179,6 +189,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
 
       {/* Móvil: navegación inferior estilo app nativa (pestañas según rol) */}
       <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      </div>
     </div>
   );
 }

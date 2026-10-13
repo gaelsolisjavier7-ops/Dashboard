@@ -80,7 +80,8 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           </div>
 
           {/* Navigation Links (filtradas por rol) */}
-          <nav className="hidden md:flex items-center space-x-6 text-[#cccccc]">
+          {/* En lg+ la navegación vive en el Sidebar, así que este menú se oculta */}
+          <nav className="hidden md:flex lg:hidden items-center space-x-6 text-[#cccccc]">
             {tabsVisibles.map((tab) => (
               <button
                 key={tab}
