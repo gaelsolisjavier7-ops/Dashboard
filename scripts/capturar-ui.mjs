@@ -103,10 +103,53 @@ class CDP {
   }
 }
 
+/**
+ * El escáner pide un ID token real (auth.currentUser.getIdToken). En el harness
+ * no hay sesión de Firebase, así que se sirve el módulo REAL ya transformado por
+ * Vite (imports reescritos) con un currentUser falso: db/app quedan intactos.
+ * Se descarga ANTES de activar Fetch para no interceptar nuestra propia petición.
+ */
+let fuenteFirebaseConSesion = null;
+
+async function prepararFuenteFirebase() {
+  const respuesta = await fetch(URL_APP + 'src/services/firebase.ts');
+  const codigo = await respuesta.text();
+  fuenteFirebaseConSesion = codigo
+    .replace('const auth = getAuth(app);', 'const authReal = getAuth(app);')
+    .replace(
+      'export { db, auth };',
+      [
+        'export { db };',
+        'export const auth = new Proxy(authReal, {',
+        "  get: (o, p) => (p === 'currentUser'",
+        "    ? { uid: 'demo', email: 'demo@demo.com', getIdToken: async () => 'token-de-prueba' }",
+        '    : o[p]),',
+        '});',
+      ].join('\n')
+    );
+  return fuenteFirebaseConSesion;
+}
+
 const cdp = await CDP.connect((await getTarget()).webSocketDebuggerUrl);
 await cdp.send('Page.enable');
 await cdp.send('Runtime.enable');
 const erroresConsola = [];
+const peticionesTicket = [];
+const RESPUESTA_TICKET = {
+  ok: true,
+  ticket: {
+    proveedor: 'Carnemart',
+    fecha: '2026-10-12',
+    total: 450.5,
+    productos: [
+      { nombre: 'Carne molida', cantidad: 3, precioUnitario: 120 },
+      { nombre: 'Pan brioche', cantidad: 2, precioUnitario: 45.25 },
+    ],
+    categoria: 'Insumos',
+    confianza: 'media',
+    descripcion: 'Carnemart · 3× Carne molida, 2× Pan brioche',
+  },
+};
 cdp.onEvent = async (msg) => {
   if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') {
     const texto = (msg.params.args || [])
@@ -119,14 +162,41 @@ cdp.onEvent = async (msg) => {
   const { requestId, request } = msg.params;
   const clave = Object.keys(MODULOS).find((k) => request.url.includes(`${k}.ts`));
   try {
-    if (clave) {
+    if (request.url.includes('/api/ticket-scan')) {
+      const datos = request.postData ? JSON.parse(request.postData) : {};
+      peticionesTicket.push({
+        autorizacion: (request.headers?.Authorization ?? request.headers?.authorization ?? '').slice(0, 24),
+        kb: Math.round(String(datos.image ?? '').length / 1024),
+        mime: datos.mimeType ?? null,
+      });
+      await cdp.send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+        body: Buffer.from(JSON.stringify(RESPUESTA_TICKET), 'utf8').toString('base64'),
+      });
+    } else if (request.url.includes('services/firebase.ts')) {
+      await cdp.send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'Content-Type', value: 'application/javascript' }],
+        body: Buffer.from(fuenteFirebaseConSesion ?? '', 'utf8').toString('base64'),
+      });
+    } else if (clave) {
       await cdp.send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/javascript' }], body: Buffer.from(MODULOS[clave], 'utf8').toString('base64') });
     } else {
       await cdp.send('Fetch.continueRequest', { requestId });
     }
   } catch {}
 };
-await cdp.send('Fetch.enable', { patterns: Object.keys(MODULOS).map((k) => ({ urlPattern: `*${k}*` })) });
+await prepararFuenteFirebase();
+await cdp.send('Fetch.enable', {
+  patterns: [
+    ...Object.keys(MODULOS).map((k) => ({ urlPattern: `*${k}*` })),
+    { urlPattern: '*api/ticket-scan*' },
+    { urlPattern: '*services/firebase*' },
+  ],
+});
 
 const ev = async (expresion) => {
   const r = await cdp.send('Runtime.evaluate', { expression: expresion, returnByValue: true, awaitPromise: true });
@@ -325,6 +395,78 @@ for (const vista of [
     return { modalSigueAbierto: !!guardar, boton: guardar ? guardar.textContent.trim() : null };
   })()`);
   console.log('   guardar →', JSON.stringify(trasGuardar), '| errores consola:', JSON.stringify(erroresConsola.slice(0, 2)));
+
+  /* ── FASE 4: escáner de tickets (foto → /api/ticket-scan → campos del modal) ── */
+  await ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Gasto')); if (b) b.click(); return 1; })()`);
+  await sleep(400);
+  const botonTicket = await ev(`(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Subir ticket'));
+    return b ? JSON.stringify({ texto: b.textContent.trim(), alto: Math.round(b.getBoundingClientRect().height) }) : null;
+  })()`);
+  console.log('   botón de ticket:', botonTicket);
+  await capturar(`rediseno-${etiqueta}-ticket-idle-${vista.n}`);
+
+  const inyectarFoto = `(async () => {
+    const input = document.querySelector('input[type=file]');
+    if (!input) return 'sin input';
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 1600; lienzo.height = 1100;
+    const ctx = lienzo.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 1600, 1100);
+    ctx.fillStyle = '#111111'; ctx.font = 'bold 56px sans-serif'; ctx.fillText('CARNEMART', 60, 130);
+    ctx.font = '34px monospace';
+    ctx.fillText('3 x CARNE MOLIDA    360.00', 60, 280);
+    ctx.fillText('2 x PAN BRIOCHE      90.50', 60, 340);
+    ctx.fillStyle = '#000000'; ctx.font = 'bold 40px monospace';
+    ctx.fillText('TOTAL               450.50', 60, 460);
+    const blob = await new Promise((r) => lienzo.toBlob(r, 'image/png'));
+    const archivo = new File([blob], 'ticket.png', { type: 'image/png' });
+    const dt = new DataTransfer();
+    dt.items.add(archivo);
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return Math.round(blob.size / 1024) + 'KB de foto';
+  })()`;
+
+  peticionesTicket.length = 0;
+  const foto = await ev(inyectarFoto);
+  await sleep(2600);
+  const trasEscanear = await ev(`(() => {
+    const texto = document.body.innerText;
+    const botones = [...document.querySelectorAll('button')].map(b => b.textContent.trim());
+    return JSON.stringify({
+      cabecera: texto.includes('Carnemart'),
+      usaDatos: botones.includes('Usar estos datos'),
+      avisoBaja: texto.includes('Verifica antes de guardar'),
+      error: texto.includes('No se pudo') || texto.includes('no disponible'),
+    });
+  })()`);
+  const peticion = peticionesTicket[0] ?? {};
+  console.log('   escaneo:', foto, '→', trasEscanear, '| POST:', JSON.stringify({ autorizacion: peticion.autorizacion, kb: peticion.kb, mime: peticion.mime }));
+  await capturar(`rediseno-${etiqueta}-ticket-escaneado-${vista.n}`);
+
+  await ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Usar estos datos'); if (b) b.click(); return 1; })()`);
+  await sleep(600);
+  const aplicado = await estadoModal();
+  const extra = await ev(`(() => {
+    const fecha = document.querySelector('input[type=date]');
+    const botones = [...document.querySelectorAll('button')].map(b => ({ t: b.textContent.trim(), f: getComputedStyle(b).backgroundColor }));
+    return JSON.stringify({
+      fecha: fecha ? fecha.value : null,
+      efectivoActivo: (botones.find(b => b.t === 'Efectivo') || {}).f ?? null,
+      aplicados: document.body.innerText.includes('Datos aplicados'),
+    });
+  })()`);
+  console.log('   ticket aplicado:', JSON.stringify({ monto: aplicado.monto, descripcion: aplicado.descripcion, boton: aplicado.boton, categoria: aplicado.categoriaSelect, extra }));
+  await capturar(`rediseno-${etiqueta}-ticket-aplicado-${vista.n}`);
+
+  RESPUESTA_TICKET.ticket.confianza = 'baja';
+  await ev(inyectarFoto);
+  await sleep(2400);
+  const avisoBaja = await ev(`document.body.innerText.includes('Verifica antes de guardar')`);
+  console.log('   confianza baja → aviso ámbar:', avisoBaja);
+  await capturar(`rediseno-${etiqueta}-ticket-baja-${vista.n}`);
+  RESPUESTA_TICKET.ticket.confianza = 'media';
 
   // Cerrar el modal para la comprobación de light mode
   await ev(`(() => { const x = document.querySelector('button[aria-label="Cerrar"]'); if (x) x.click(); return 1; })()`);

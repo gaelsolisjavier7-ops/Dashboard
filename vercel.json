@@ -4,7 +4,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/telegram.ts": { "maxDuration": 60, "memory": 512 }
+    "api/telegram.ts": { "maxDuration": 60, "memory": 512 },
+    "api/ticket-scan.ts": { "maxDuration": 30, "memory": 512 }
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "headers": [

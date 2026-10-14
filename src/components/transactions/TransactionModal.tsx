@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { useAuth } from '../../context/AuthContext';
 import { negocioDeSeccion, puedeVerNegocio } from '../../lib/roles';
 import { MENU_DATA } from '../../lib/products';
 import type { Transaction, EntityType, TransactionType, PaymentMethod } from '../../types/finance';
-import { X } from 'lucide-react';
+import { AlertCircle, Camera, Loader2, RotateCcw, X } from 'lucide-react';
+import { useTicketScan } from '../../hooks/useTicketScan';
+import { etiquetaConfianza, resolverCategoria } from '../../lib/ticket';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -61,6 +63,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hotDogsAbiertos, setHotDogsAbiertos] = useState(false);
+  const [ticketAplicado, setTicketAplicado] = useState(false);
+  const inputTicketRef = useRef<HTMLInputElement>(null);
+  const {
+    scanning: escaneando,
+    error: errorTicket,
+    resultado: ticket,
+    escanear,
+    reset: resetTicket,
+  } = useTicketScan();
 
   // Available categories for selected entity and type
   const availableCategories = categories.filter(
@@ -109,7 +120,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setNotes('');
     }
     setHotDogsAbiertos(false);
-  }, [editingTransaction, isOpen, selectedEntity]);
+    setTicketAplicado(false);
+    resetTicket();
+  }, [editingTransaction, isOpen, selectedEntity, resetTicket]);
 
   // Update category when available categories change
   useEffect(() => {
@@ -169,6 +182,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Mismo criterio que handleSubmit (descripción + monto > 0)
   const puedeGuardar = title.trim() !== '' && montoNumero > 0 && !submitting;
 
+  const abrirSelectorTicket = () => inputTicketRef.current?.click();
+
+  /** Vuelca lo leído por Gemini en los campos del modal (el usuario revisa). */
+  const usarDatosDelTicket = () => {
+    if (!ticket) return;
+
+    if (ticket.total > 0) setAmount(ticket.total);
+    const descripcion = String(ticket.descripcion ?? ticket.proveedor ?? '').trim();
+    if (descripcion) setTitle(descripcion);
+
+    const opciones = categories
+      .filter((c) => (c.entity === 'hamburguesas' || c.entity === 'all') && c.type === 'gasto')
+      .map((c) => c.name);
+    setEntity('hamburguesas');
+    setCategory(resolverCategoria(ticket.categoria, opciones));
+    setPaymentMethod('efectivo');
+    if (ticket.fecha) setDate(ticket.fecha);
+    setTicketAplicado(true);
+  };
+
   const agregarProducto = (nombre: string, precio: number) => {
     setAmount(montoNumero + precio);
     setTitle((previo) => agregarItem(previo, nombreCorto(nombre)));
@@ -226,6 +259,169 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 );
               })}
             </div>
+
+            {/* Escáner de tickets (sólo gastos): foto → Gemini → datos editables */}
+            {type === 'gasto' && (
+              <div>
+                <input
+                  ref={inputTicketRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const archivo = e.target.files?.[0];
+                    e.target.value = '';
+                    if (archivo) {
+                      setTicketAplicado(false);
+                      void escanear(archivo);
+                    }
+                  }}
+                />
+
+                {!ticket && (
+                  <button
+                    type="button"
+                    onClick={abrirSelectorTicket}
+                    disabled={escaneando}
+                    className="w-full min-h-[48px] rounded-[12px] border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] text-[14px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                  >
+                    {escaneando ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Analizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4" />
+                        <span>📷 Subir ticket</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {errorTicket && !escaneando && (
+                  <div
+                    className="mt-2 flex items-start gap-2.5 p-3 rounded-[12px] border"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--negative) 10%, transparent)',
+                      borderColor: 'color-mix(in srgb, var(--negative) 35%, transparent)',
+                    }}
+                  >
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--negative)' }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px]" style={{ color: 'var(--negative)' }}>
+                        {errorTicket}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={abrirSelectorTicket}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text)] hover:underline cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Reintentar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {ticket && (
+                  <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
+                    {ticket.confianza === 'baja' && (
+                      <div
+                        className="mb-2.5 flex items-center gap-2 px-2.5 py-2 rounded-[10px] border"
+                        style={{
+                          backgroundColor: 'color-mix(in srgb, var(--pending) 12%, transparent)',
+                          borderColor: 'color-mix(in srgb, var(--pending) 40%, transparent)',
+                        }}
+                      >
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--pending)' }} />
+                        <span className="text-[12px] font-medium" style={{ color: 'var(--pending)' }}>
+                          Verifica antes de guardar
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <img
+                        src={ticket.preview}
+                        alt="Ticket escaneado"
+                        className="w-16 h-16 rounded-[10px] object-cover border border-[var(--border)] flex-shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[14px] font-semibold text-[var(--text)] truncate">
+                            {ticket.proveedor}
+                          </span>
+                          <span
+                            className="text-[11px] px-2 py-0.5 rounded-full border font-medium"
+                            style={{
+                              backgroundColor:
+                                ticket.confianza === 'alta'
+                                  ? 'color-mix(in srgb, var(--positive) 12%, transparent)'
+                                  : ticket.confianza === 'media'
+                                  ? 'color-mix(in srgb, var(--pending) 12%, transparent)'
+                                  : 'color-mix(in srgb, var(--negative) 12%, transparent)',
+                              borderColor:
+                                ticket.confianza === 'alta'
+                                  ? 'color-mix(in srgb, var(--positive) 40%, transparent)'
+                                  : ticket.confianza === 'media'
+                                  ? 'color-mix(in srgb, var(--pending) 40%, transparent)'
+                                  : 'color-mix(in srgb, var(--negative) 40%, transparent)',
+                              color:
+                                ticket.confianza === 'alta'
+                                  ? 'var(--positive)'
+                                  : ticket.confianza === 'media'
+                                  ? 'var(--pending)'
+                                  : 'var(--negative)',
+                            }}
+                          >
+                            {etiquetaConfianza(ticket.confianza)}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 truncate">
+                          {ticket.fecha || 'Sin fecha'} · {ticket.categoria} ·{' '}
+                          {ticket.productos.length} producto{ticket.productos.length === 1 ? '' : 's'}
+                        </p>
+                        <p className="text-[12px] text-[var(--text-secondary)] truncate">
+                          {ticket.productos.length > 0
+                            ? ticket.productos
+                                .slice(0, 2)
+                                .map((p) => p.nombre)
+                                .join(', ')
+                            : 'Sin productos legibles'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={usarDatosDelTicket}
+                        className="flex-1 min-h-[44px] rounded-full text-[14px] font-semibold cursor-pointer"
+                        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }}
+                      >
+                        {ticketAplicado ? 'Datos aplicados ✓' : 'Usar estos datos'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTicketAplicado(false);
+                          resetTicket();
+                        }}
+                        className="min-h-[44px] px-3 rounded-full border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                      >
+                        Descartar
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                      {ticket.pesoKb} KB enviados · nada se guarda hasta que confirmes
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 2. Unidad de negocio (filtrada por rol) */}
             <div>
