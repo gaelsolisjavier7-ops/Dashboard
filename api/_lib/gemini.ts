@@ -3,7 +3,8 @@
  *
  * Usamos `fetch` nativo y `responseSchema` en vez del SDK
  * `@google/generative-ai` (deprecado): menos dependencias y el JSON ya viene
- * forzado por la API. Si Gemini falla, el bot responde TEXTO_NO_ENTENDIDO.
+ * forzado por la API. Si la llamada falla, se lanza `GeminiError` con el status
+ * HTTP para que el bot explique el motivo (cuota, saturado, etc.).
  */
 
 import { MENU_TEXTO, NOMBRES_CANONICOS } from './menu.js';
@@ -115,12 +116,31 @@ export function extraerJSON(texto: unknown): unknown | null {
   return null;
 }
 
-export type FetchLike = (url: string, init?: Record<string, unknown>) => Promise<{
+/** Respuesta mínima de `fetch` que usa el parser (se inyecta un mock en tests). */
+export interface RespuestaGemini {
   ok: boolean;
   status: number;
   json: () => Promise<unknown>;
   text: () => Promise<string>;
-}>;
+}
+
+export type FetchLike = (url: string, init?: Record<string, unknown>) => Promise<RespuestaGemini>;
+
+/**
+ * Error tipado de Gemini: conserva el status HTTP para que el bot decida qué
+ * contestarle al usuario (429 = sin cuota, 503 = saturado, 400 = mensaje raro).
+ */
+export class GeminiError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = 'GeminiError';
+    this.status = status;
+    this.code = code;
+  }
+}
 
 export interface OpcionesGemini {
   texto: string;
@@ -130,51 +150,128 @@ export interface OpcionesGemini {
   timeoutMs?: number;
 }
 
-/** Llama a Gemini y devuelve el JSON crudo del modelo (o null si falla). */
+/**
+ * Intentos: 1 llamada + 1 reintento, y SÓLO cuando el fallo es de red
+ * (timeout, ECONNRESET, connection reset…).
+ *
+ * Los HTTP 429 (cuota agotada) y 503 (saturado) NO se reintentan: con ~20 RPD
+ * del tier gratuito, reintentar agota la cuota diaria en un par de pedidos.
+ */
+const INTENTOS_MAX = 2;
+
+/** true si el error es de red/timeout: lo único que vale la pena reintentar. */
+function esFalloDeRed(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const { name, code, message } = error as { name?: string; code?: string; message?: string };
+  if (name === 'AbortError' || name === 'TimeoutError') return true;
+  if (code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || code === 'EAI_AGAIN') {
+    return true;
+  }
+  const texto = String(message ?? '').toLowerCase();
+  return (
+    texto.includes('timeout') ||
+    texto.includes('connection reset') ||
+    texto.includes('econnreset') ||
+    texto.includes('socket hang up') ||
+    texto.includes('fetch failed') ||
+    texto.includes('network')
+  );
+}
+
+/** Clasifica el fallo de red para el `code` del `GeminiError`. */
+function codigoDeRed(error: unknown): 'timeout' | 'network' | 'unknown' {
+  const name = (error as { name?: string } | null)?.name;
+  if (name === 'AbortError' || name === 'TimeoutError') return 'timeout';
+  return esFalloDeRed(error) ? 'network' : 'unknown';
+}
+
+/** Convierte una respuesta HTTP no-ok de Gemini en un `GeminiError`. */
+async function errorHttp(respuesta: RespuestaGemini): Promise<GeminiError> {
+  const crudo = await respuesta.text().catch(() => '');
+  let code = `http_${respuesta.status}`;
+  let message = crudo.slice(0, 300) || `HTTP ${respuesta.status}`;
+  try {
+    const cuerpo = JSON.parse(crudo) as { error?: { status?: string; message?: string } };
+    if (cuerpo?.error?.status) code = cuerpo.error.status;
+    if (cuerpo?.error?.message) message = cuerpo.error.message;
+  } catch {
+    // El cuerpo no era JSON: se conserva el texto crudo como mensaje.
+  }
+  return new GeminiError(respuesta.status, code, message);
+}
+
+/**
+ * Llama a Gemini y devuelve el JSON crudo del modelo.
+ *
+ * Devuelve `null` si no hay API key o si el modelo no devolvió JSON parseable;
+ * lanza `GeminiError` si la llamada falló (así el bot puede explicar el motivo).
+ */
 export async function interpretarMensaje(opciones: OpcionesGemini): Promise<unknown | null> {
   const { texto, apiKey } = opciones;
   const modelo = opciones.modelo?.trim() || MODELO_DEFECTO;
   const hacerFetch = opciones.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
+  const timeoutMs = opciones.timeoutMs ?? TIMEOUT_MS;
 
   if (!apiKey) {
     console.error('[gemini] falta GEMINI_API_KEY');
     return null;
   }
 
-  const controlador = new AbortController();
-  const temporizador = setTimeout(() => controlador.abort(), opciones.timeoutMs ?? TIMEOUT_MS);
+  for (let intento = 1; intento <= INTENTOS_MAX; intento += 1) {
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), timeoutMs);
 
-  try {
-    const respuesta = await hacerFetch(`${URL_BASE}/${modelo}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controlador.signal,
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: PROMPT_SISTEMA }] },
-        contents: [{ role: 'user', parts: [{ text: construirPrompt(texto) }] }],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-          responseSchema: ESQUEMA_RESPUESTA,
-        },
-      }),
-    });
+    try {
+      const respuesta = await hacerFetch(`${URL_BASE}/${modelo}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controlador.signal,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: PROMPT_SISTEMA }] },
+          contents: [{ role: 'user', parts: [{ text: construirPrompt(texto) }] }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+            responseSchema: ESQUEMA_RESPUESTA,
+          },
+        }),
+      });
 
-    if (!respuesta.ok) {
-      const detalle = await respuesta.text().catch(() => '');
-      console.error('[gemini] error HTTP', respuesta.status, detalle.slice(0, 300));
-      return null;
+      if (!respuesta.ok) {
+        // 429 (cuota) y 503 (saturado) se propagan SIN reintentar.
+        const error = await errorHttp(respuesta);
+        console.error('[gemini] error HTTP:', {
+          status: error.status,
+          code: error.code,
+          message: error.message,
+        });
+        throw error;
+      }
+
+      const cuerpo = (await respuesta.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const contenido = cuerpo?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      return extraerJSON(contenido);
+    } catch (error) {
+      // Los fallos HTTP (GeminiError) nunca se reintentan.
+      if (error instanceof GeminiError) throw error;
+
+      const codigo = codigoDeRed(error);
+      if (codigo !== 'unknown' && intento < INTENTOS_MAX) {
+        console.warn(
+          `[gemini] fallo de red (${codigo}, intento ${intento}/${INTENTOS_MAX}), reintentando`
+        );
+        continue;
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[gemini] falló la llamada:', { status: 0, code: codigo, message });
+      throw new GeminiError(0, codigo, message);
+    } finally {
+      clearTimeout(temporizador);
     }
-
-    const cuerpo = (await respuesta.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-    };
-    const contenido = cuerpo?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    return extraerJSON(contenido);
-  } catch (error) {
-    console.error('[gemini] fallo la llamada:', error);
-    return null;
-  } finally {
-    clearTimeout(temporizador);
   }
+
+  return null;
 }

@@ -40,8 +40,32 @@ import type {
   RegistroPlano,
   ResumenDia,
 } from './pedido.js';
+import { GeminiError } from './gemini.js';
 import { esChatAutorizado, tecladoConfirmacion, tecladoModalidad, tecladoPendientes } from './telegram.js';
 import type { ClienteTelegram } from './telegram.js';
+
+/**
+ * Respuestas al usuario según el fallo de Gemini. Importa porque el tier
+ * gratuito tiene ~20 RPD: si el bot reintentara en 429/503 los agotaría.
+ */
+const TEXTO_GEMINI_LIMITE = '⏱️ Gemini alcanzó su límite por hoy. Intenta mañana o usa la web.';
+const TEXTO_GEMINI_SATURADO = '🔄 Gemini está saturado. Intenta en 1 minuto.';
+const TEXTO_GEMINI_INVALIDO = '❌ No pude procesar el mensaje. Reformúlalo.';
+const TEXTO_GEMINI_TEMPORAL = '⚠️ Error temporal. Intenta de nuevo.';
+
+/** Traduce el status del `GeminiError` al mensaje que ve el usuario. */
+function textoDeErrorGemini(error: GeminiError): string {
+  switch (error.status) {
+    case 429:
+      return TEXTO_GEMINI_LIMITE;
+    case 503:
+      return TEXTO_GEMINI_SATURADO;
+    case 400:
+      return TEXTO_GEMINI_INVALIDO;
+    default:
+      return TEXTO_GEMINI_TEMPORAL;
+  }
+}
 
 export interface Almacen {
   /** Crea el pedido y sus transacciones en un solo lote. Devuelve el id del pedido. */
@@ -243,6 +267,11 @@ export function crearBot(deps: DepsBot): BotTelegram {
     try {
       crudo = await deps.interpretar(texto);
     } catch (error) {
+      if (error instanceof GeminiError) {
+        console.error('[bot] Gemini falló:', error.status, error.code, error.message);
+        await enviar(chatId, textoDeErrorGemini(error));
+        return;
+      }
       console.error('[bot] el intérprete falló:', error);
     }
     if (crudo == null) {

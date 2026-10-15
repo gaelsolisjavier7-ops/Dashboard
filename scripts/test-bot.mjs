@@ -38,7 +38,7 @@ import {
   sanitizarTexto,
 } from '../api/_lib/pedido.ts';
 import { esChatAutorizado, tecladoConfirmacion, verificarSecret } from '../api/_lib/telegram.ts';
-import { construirPrompt, extraerJSON, interpretarMensaje } from '../api/_lib/gemini.ts';
+import { GeminiError, construirPrompt, extraerJSON, interpretarMensaje } from '../api/_lib/gemini.ts';
 import { crearBot } from '../api/_lib/bot.ts';
 import { crearHandler, leerEnv } from '../api/telegram.ts';
 
@@ -506,9 +506,17 @@ await ta('interpretarMensaje manda el esquema y devuelve el JSON', async () => {
   assert.ok(cuerpo.systemInstruction.parts[0].text.includes('HAMBURGUESAS: Sencilla $100'));
 });
 
-await ta('interpretarMensaje devuelve null si Gemini falla', async () => {
-  const fetchFalso = async () => ({ ok: false, status: 429, json: async () => ({}), text: async () => 'cuota' });
-  assert.equal(await interpretarMensaje({ texto: 'hola', apiKey: 'k', fetchImpl: fetchFalso }), null);
+await ta('interpretarMensaje lanza GeminiError en HTTP y NO reintenta', async () => {
+  let llamadas = 0;
+  const fetchFalso = async () => {
+    llamadas += 1;
+    return { ok: false, status: 429, json: async () => ({}), text: async () => 'cuota' };
+  };
+  await assert.rejects(
+    () => interpretarMensaje({ texto: 'hola', apiKey: 'k', fetchImpl: fetchFalso }),
+    (error) => error instanceof GeminiError && error.status === 429 && error.code === 'http_429'
+  );
+  assert.equal(llamadas, 1, '429 no debe reintentarse');
   assert.equal(await interpretarMensaje({ texto: 'hola', apiKey: '', fetchImpl: fetchFalso }), null);
 });
 
@@ -764,6 +772,68 @@ await ta('Gemini ilegible → mensaje de ayuda', async () => {
   const { estado, bot } = crearEntorno({ respuestaGemini: null });
   await bot.manejarUpdate({ update_id: 13, message: { message_id: 17, text: 'asdkjhasd', chat: { id: CHAT } } });
   assert.ok(estado.enviados[0].texto.includes('No pude entender el mensaje'), estado.enviados[0].texto);
+});
+
+/** fetch falso que siempre responde con el mismo status (mock de Gemini caído). */
+function fetchConStatus(status, cuerpo = '{}') {
+  const contador = { llamadas: 0 };
+  const impl = async () => {
+    contador.llamadas += 1;
+    return { ok: false, status, json: async () => ({}), text: async () => cuerpo };
+  };
+  return { impl, contador };
+}
+
+await ta('Gemini 503 → NO reintenta y avisa que está saturado', async () => {
+  const { impl, contador } = fetchConStatus(
+    503,
+    JSON.stringify({ error: { status: 'UNAVAILABLE', message: 'overloaded' } })
+  );
+  const { estado, bot } = crearEntorno({
+    respuestaGemini: (texto) => interpretarMensaje({ texto, apiKey: 'k', fetchImpl: impl }),
+  });
+  await bot.manejarUpdate({ update_id: 30, message: { message_id: 30, text: '2 especiales', chat: { id: CHAT } } });
+
+  assert.equal(contador.llamadas, 1, 'no debe reintentar en 503');
+  assert.equal(estado.enviados.length, 1);
+  assert.equal(estado.enviados[0].texto, '🔄 Gemini está saturado. Intenta en 1 minuto.');
+  assert.equal(estado.borradores.size, 0, 'no debe dejar borrador');
+});
+
+await ta('Gemini 429 → NO reintenta y avisa del límite por hoy', async () => {
+  const { impl, contador } = fetchConStatus(
+    429,
+    JSON.stringify({ error: { status: 'RESOURCE_EXHAUSTED', message: 'quota' } })
+  );
+  const { estado, bot } = crearEntorno({
+    respuestaGemini: (texto) => interpretarMensaje({ texto, apiKey: 'k', fetchImpl: impl }),
+  });
+  await bot.manejarUpdate({ update_id: 31, message: { message_id: 31, text: '2 especiales', chat: { id: CHAT } } });
+
+  assert.equal(contador.llamadas, 1, 'no debe reintentar en 429');
+  assert.equal(
+    estado.enviados[0].texto,
+    '⏱️ Gemini alcanzó su límite por hoy. Intenta mañana o usa la web.'
+  );
+});
+
+await ta('timeout de Gemini → SÍ reintenta 1 vez y lanza GeminiError', async () => {
+  let llamadas = 0;
+  const fetchLento = (_url, init) =>
+    new Promise((_resolver, rechazar) => {
+      llamadas += 1;
+      init.signal.addEventListener('abort', () => {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        rechazar(error);
+      });
+    });
+
+  await assert.rejects(
+    () => interpretarMensaje({ texto: 'hola', apiKey: 'k', fetchImpl: fetchLento, timeoutMs: 20 }),
+    (error) => error instanceof GeminiError && error.status === 0 && error.code === 'timeout'
+  );
+  assert.equal(llamadas, 2, 'un intento + un reintento por timeout');
 });
 
 await ta('si Firestore falla al confirmar → error controlado', async () => {
