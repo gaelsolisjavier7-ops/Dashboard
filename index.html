@@ -5,10 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Apple Finance — Finanzas & Negocios</title>
-    <!-- Google Fonts: Inter as high-fidelity SF Pro alternative -->
+    <!-- Google Fonts: Inter (alternativa a SF Pro) + JetBrains Mono (cifras tabulares).
+         Van aquí y no con @import en el CSS: dentro del bundle el @import queda
+         después de las reglas y el navegador lo ignora. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body class="bg-[#ffffff] text-[#1d1d1f] antialiased selection:bg-[#0066cc] selection:text-white">
     <div id="root"></div>

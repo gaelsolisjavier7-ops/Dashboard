@@ -1,5 +1,8 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+/* OJO: las fuentes se cargan con <link> en index.html. Un @import aquí se
+   emitiría DESPUÉS de las reglas de Tailwind en el bundle y el navegador lo
+   ignoraría (Inter/JetBrains Mono nunca se descargaban), por eso se quitó. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TEMA · FASE 1 del rediseño (dark por defecto)
@@ -17,36 +20,40 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
+  /* ═══ Paleta "Cupertino Midnight" (Apple dark mode) ═══ */
   :root {
     /* ── Superficies ── */
-    --bg: #0a0a0a;
-    --surface: #171717;
-    --surface-elevated: #1f1f1f;
-    --surface-inset: #0f0f0f;
-    --border: #262626;
-    --border-soft: #1a1a1a;
-    --control: #3f3f46;
+    --bg: #1c1c1e;               /* iOS Dark Gray 6 · gris, nunca negro puro */
+    --surface: #2c2c2e;          /* iOS Dark Gray 5 · hace "flotar" las cards */
+    --surface-elevated: #3a3a3c; /* iOS Dark Gray 4 */
+    --surface-inset: #1c1c1e;    /* campos hundidos dentro de una card */
+    --border: #38383a;
+    --border-soft: #2c2c2e;
+    --control: #48484a;
 
     /* ── Semánticos ── */
-    --positive: #22c55e;
-    --negative: #ef4444;
-    --pending: #f59e0b;
-    --accent: #22c55e;
-    --accent-hover: #16a34a;
-    --accent-ink: #05210f;
+    --positive: #2dd058; /* ingreso */
+    --negative: #ff453a; /* gasto */
+    --pending: #ff9f0a;  /* pendiente */
+
+    /* ── Acento (Apple Blue dark) ── */
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --accent-ink: #ffffff;
 
     /* ── Texto ── */
     --text: #ffffff;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
+    --text-secondary: #8e8e93; /* iOS Secondary Label */
+    --text-tertiary: #636366;
+    --text-muted: var(--text-tertiary); /* alias: lo usan la capa de remapeo y el modal */
     --text-on-dark: #ffffff;
 
     /* ── Tipografía ── */
-    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
     /* ── Superficies compuestas ── */
-    --frost: rgba(10, 10, 10, 0.82);
+    --frost: rgba(28, 28, 30, 0.82);
 
     /* Compatibilidad con los tokens Apple previos (ya no se usan en componentes) */
     --apple-primary: var(--accent);
@@ -57,16 +64,16 @@
     --apple-body-on-dark: var(--text-on-dark);
     --apple-body-muted: var(--text-secondary);
     --apple-ink-muted-80: var(--text-secondary);
-    --apple-ink-muted-48: var(--text-muted);
+    --apple-ink-muted-48: var(--text-tertiary);
     --apple-divider-soft: var(--border-soft);
     --apple-hairline: var(--border);
     --apple-canvas: var(--bg);
     --apple-canvas-parchment: var(--bg);
     --apple-surface-pearl: var(--surface-elevated);
-    --apple-surface-tile-1: #111111;
+    --apple-surface-tile-1: var(--bg);
     --apple-surface-tile-2: var(--surface-elevated);
     --apple-surface-tile-3: var(--surface);
-    --apple-surface-black: #000000;
+    --apple-surface-black: var(--bg);
     --apple-surface-chip-translucent: var(--control);
 
     color-scheme: dark;
@@ -86,7 +93,8 @@
     --accent-ink: #ffffff;
     --text: #1d1d1f;
     --text-secondary: #7a7a7a;
-    --text-muted: #8e8e93;
+    --text-tertiary: #8e8e93;
+    --text-muted: var(--text-tertiary);
     --text-on-dark: #ffffff;
     --frost: rgba(245, 245, 247, 0.82);
     color-scheme: light;
