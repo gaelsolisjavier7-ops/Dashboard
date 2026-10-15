@@ -207,6 +207,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setTitle((previo) => agregarItem(previo, nombreCorto(nombre)));
   };
 
+  /**
+   * Hot dog: 2 botones (con/sin papas). Se usa el nombre completo (sin
+   * `nombreCorto`) para que la descripción quede "1× Hot Dog Sencillo c/papas".
+   */
+  const agregarHotDog = (nombre: string, precio: number, conPapas: boolean) => {
+    setAmount(montoNumero + precio);
+    setTitle((previo) => agregarItem(previo, conPapas ? `${nombre} c/papas` : nombre));
+  };
+
   const inputClase =
     'w-full text-[15px] min-h-[48px] px-3.5 rounded-[12px] bg-[var(--surface-inset)] border border-[var(--border)] text-[var(--text)] focus:border-[var(--accent)] outline-none transition-colors';
   const labelClase =
@@ -531,17 +540,34 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
                   {hotDogsAbiertos &&
                     hotDogs.map((producto) => (
-                      <button
-                        key={producto.id}
-                        type="button"
-                        onClick={() => agregarProducto(producto.nombre, producto.precio)}
-                        className="min-h-[44px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
-                      >
-                        <span className="truncate">🌭 {nombreCorto(producto.nombre)}</span>
-                        <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
-                          ${producto.precio}
-                        </span>
-                      </button>
+                      <React.Fragment key={producto.id}>
+                        <button
+                          type="button"
+                          onClick={() => agregarHotDog(producto.nombre, producto.precio, false)}
+                          className="min-h-[40px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">🌭 {nombreCorto(producto.nombre)}</span>
+                          <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
+                            ${producto.precio}
+                          </span>
+                        </button>
+                        {producto.precioConPapas != null && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              agregarHotDog(producto.nombre, producto.precioConPapas!, true)
+                            }
+                            className="min-h-[40px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
+                          >
+                            <span className="truncate">
+                              {nombreCorto(producto.nombre)} c/papas
+                            </span>
+                            <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
+                              ${producto.precioConPapas}
+                            </span>
+                          </button>
+                        )}
+                      </React.Fragment>
                     ))}
                 </div>
                 <p className="text-[11px] text-[var(--text-muted)] mt-2">

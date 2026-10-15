@@ -299,13 +299,14 @@ t('formatCostoUnitario da 4 decimales a los costos por gramo', () => {
 /* ─────────── menú ─────────── */
 grupo('7. MENÚ_DATA');
 
-t('tiene los 10 productos con sus ids exactos', () => {
-  assert.equal(MENU_DATA.length, 10);
+t('tiene los 11 productos con sus ids exactos', () => {
+  assert.equal(MENU_DATA.length, 11);
   for (const id of [
     'burger-sencilla',
     'burger-tocino',
     'burger-hawaiana',
     'burger-especial',
+    'burger-pollo',
     'hotdog-sencillo',
     'hotdog-queso',
     'hotdog-tocino',

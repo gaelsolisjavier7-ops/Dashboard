@@ -107,8 +107,8 @@ t('los precios del bot coinciden con el dashboard (products.ts)', () => {
   }
 });
 
-t('los ids del dashboard existen para los 10 productos', () => {
-  assert.equal(MENU_DATA.length, 10);
+t('los ids del dashboard existen para los 11 productos', () => {
+  assert.equal(MENU_DATA.length, 11);
 });
 
 t('busca productos escritos de mil formas', () => {

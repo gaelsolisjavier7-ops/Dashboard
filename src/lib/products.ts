@@ -30,6 +30,7 @@ export const MENU_DATA: ProductoMenu[] = [
   { id: 'burger-tocino', nombre: 'Burger Tocino', categoria: 'burgers', precio: 110 },
   { id: 'burger-hawaiana', nombre: 'Burger Hawaiana', categoria: 'burgers', precio: 125 },
   { id: 'burger-especial', nombre: 'Burger Especial', categoria: 'burgers', precio: 150 },
+  { id: 'burger-pollo', nombre: 'Burguer de Pollo', categoria: 'burgers', precio: 120 },
 
   // ── Hot dogs (precio sin papas / con papas) ──
   { id: 'hotdog-sencillo', nombre: 'Hot Dog Sencillo', categoria: 'hotdogs', precio: 40, precioConPapas: 50 },
