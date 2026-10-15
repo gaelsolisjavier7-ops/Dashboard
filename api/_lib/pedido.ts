@@ -438,8 +438,13 @@ export function formatearResumenPedido(pedido: PedidoDetectado): string {
   }
 
   lineas.push(`💵 TOTAL: ${formatoMXN(pedido.total)}`);
-  lineas.push('');
-  lineas.push(`📍 Dirección: ${pedido.direccion ?? '(no detectada)'}`);
+
+  // Para recoger no hay dirección ni envío que mostrar.
+  if (pedido.modalidad !== 'pickup') {
+    lineas.push('');
+    lineas.push(`📍 Dirección: ${pedido.direccion ?? '(no detectada)'}`);
+  }
+
   lineas.push(`💳 Pago: ${pedido.metodoPago}`);
 
   // A domicilio sin dirección legible: hay que pedirla antes de confirmar.

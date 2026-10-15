@@ -499,6 +499,21 @@ t('el resumen usa el formato que pidió el negocio', () => {
   assert.ok(texto.includes('💳 Pago: Efectivo'), texto);
 });
 
+t('para recoger (pickup) no muestra la línea de dirección', () => {
+  const operacion = normalizarOperacion(
+    { tipo: 'pedido', productos: [{ nombre: 'Burger Especial', cantidad: 2 }], modalidad: 'pickup' },
+    '2 hamburguesas especiales para recoger efectivo'
+  );
+  const texto = formatearResumenPedido(operacion);
+  assert.equal(operacion.modalidad, 'pickup');
+  assert.ok(texto.includes('🥡 Para recoger (sin envío)'), texto);
+  assert.ok(texto.includes('💵 TOTAL: $300'), texto);
+  assert.ok(texto.includes('💳 Pago: Efectivo'), texto);
+  assert.ok(!texto.includes('📍 Dirección:'), texto);
+  assert.ok(!texto.includes('(no detectada)'), texto);
+  assert.ok(!texto.includes('🛵 Envío:'), texto);
+});
+
 t('resumen del día', () => {
   const texto = formatearResumenDia({ pedidos: 3, ventasProductos: 1250, envios: 60, total: 1310 }, 'Hoy (12 Oct)');
   assert.ok(texto.includes('📅 Hoy (12 Oct)'));
@@ -708,6 +723,29 @@ await ta('pedido con "domicilio en …": el bot extrae la dirección del mensaje
   });
   const enviado = estado.enviados[0];
   assert.ok(enviado.texto.includes('📍 Dirección: Calle Hidalgo'), enviado.texto);
+  assert.ok(!enviado.texto.includes('(no detectada)'), enviado.texto);
+});
+
+await ta('pedido "para recoger": el resumen no trae línea de dirección', async () => {
+  const { estado, bot } = crearEntorno({
+    respuestaGemini: {
+      tipo: 'pedido',
+      productos: [{ nombre: 'Burger Especial', cantidad: 2 }],
+      modalidad: 'pickup',
+      metodoPago: 'Efectivo',
+    },
+  });
+  await bot.manejarUpdate({
+    update_id: 1,
+    message: {
+      message_id: 10,
+      text: '2 hamburguesas especiales para recoger efectivo',
+      chat: { id: CHAT },
+    },
+  });
+  const enviado = estado.enviados[0];
+  assert.ok(enviado.texto.includes('🥡 Para recoger (sin envío)'), enviado.texto);
+  assert.ok(!enviado.texto.includes('📍 Dirección:'), enviado.texto);
   assert.ok(!enviado.texto.includes('(no detectada)'), enviado.texto);
 });
 
