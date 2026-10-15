@@ -1,13 +1,15 @@
 /**
  * Escaneo de tickets de compra: esquema, normalización y flujo HTTP.
  *
- * Sin imports a propósito (igual que `pedido.ts`/`menu.ts`): así el flujo
- * completo se puede probar con Node sin red ni Firebase (`npm run test:ticket`),
- * inyectando las dependencias reales desde `api/ticket-scan.ts`.
+ * Sólo importa el error tipado de `gemini.ts` (sin red ni Firebase): así el flujo
+ * completo se puede probar con Node (`npm run test:ticket`), inyectando las
+ * dependencias reales desde `api/ticket-scan.ts`.
  *
  * Este módulo NO escribe en Firestore: sólo devuelve el ticket normalizado para
  * que el usuario lo revise en el modal antes de guardarlo.
  */
+
+import { GeminiError } from './gemini.js';
 
 export const CATEGORIAS_TICKET = ['Insumos', 'Salsas', 'Papelería', 'Otros'] as const;
 export type CategoriaTicket = (typeof CATEGORIAS_TICKET)[number];
@@ -251,6 +253,33 @@ function leerCuerpo(body: unknown): Record<string, unknown> {
 
 export const MAX_BYTES_TICKET = 8 * 1024 * 1024; // ~8 MB de base64 (≈6 MB de imagen)
 
+/** Traduce el fallo de Gemini al status y mensaje que ve el cliente. */
+export function respuestaErrorGemini(error: GeminiError): RespuestaTicket {
+  switch (error.status) {
+    case 429:
+      return {
+        status: 429,
+        json: { ok: false, error: 'Límite de Gemini alcanzado. Intenta mañana.' },
+      };
+    case 503:
+      return {
+        status: 503,
+        json: { ok: false, error: 'Gemini está saturado. Intenta en 1 minuto.' },
+      };
+    case 400:
+      return {
+        status: 400,
+        json: { ok: false, error: 'No pude procesar la imagen. Reformúlala o intenta otra foto.' },
+      };
+    default:
+      // Incluye timeout/red (status 0) y cualquier 5xx sin mensaje específico.
+      return {
+        status: 502,
+        json: { ok: false, error: 'Error temporal al analizar el ticket.' },
+      };
+  }
+}
+
 /**
  * Flujo completo del endpoint, sin tocar red ni Firebase:
  * método → token → imagen → Gemini → normalización.
@@ -296,6 +325,8 @@ export async function procesarTicket(
     crudo = await deps.analizar({ image, mimeType });
   } catch (error) {
     avisar(error);
+    // Cuota agotada / Gemini saturado / imagen rara: mensaje específico.
+    if (error instanceof GeminiError) return respuestaErrorGemini(error);
     crudo = null;
   }
   if (!crudo) {

@@ -157,10 +157,10 @@ export interface OpcionesGemini {
  * Los HTTP 429 (cuota agotada) y 503 (saturado) NO se reintentan: con ~20 RPD
  * del tier gratuito, reintentar agota la cuota diaria en un par de pedidos.
  */
-const INTENTOS_MAX = 2;
+export const INTENTOS_MAX = 2;
 
 /** true si el error es de red/timeout: lo único que vale la pena reintentar. */
-function esFalloDeRed(error: unknown): boolean {
+export function esFalloDeRed(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const { name, code, message } = error as { name?: string; code?: string; message?: string };
   if (name === 'AbortError' || name === 'TimeoutError') return true;
@@ -179,14 +179,14 @@ function esFalloDeRed(error: unknown): boolean {
 }
 
 /** Clasifica el fallo de red para el `code` del `GeminiError`. */
-function codigoDeRed(error: unknown): 'timeout' | 'network' | 'unknown' {
+export function codigoDeRed(error: unknown): 'timeout' | 'network' | 'unknown' {
   const name = (error as { name?: string } | null)?.name;
   if (name === 'AbortError' || name === 'TimeoutError') return 'timeout';
   return esFalloDeRed(error) ? 'network' : 'unknown';
 }
 
 /** Convierte una respuesta HTTP no-ok de Gemini en un `GeminiError`. */
-async function errorHttp(respuesta: RespuestaGemini): Promise<GeminiError> {
+export async function errorHttp(respuesta: RespuestaGemini): Promise<GeminiError> {
   const crudo = await respuesta.text().catch(() => '');
   let code = `http_${respuesta.status}`;
   let message = crudo.slice(0, 300) || `HTTP ${respuesta.status}`;

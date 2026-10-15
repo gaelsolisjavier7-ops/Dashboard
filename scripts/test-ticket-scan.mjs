@@ -19,6 +19,7 @@ import {
   procesarTicket,
   resumirProductos,
 } from '../api/_lib/ticket.ts';
+import { GeminiError } from '../api/_lib/gemini.ts';
 import { resolverCategoria } from '../src/lib/ticket.ts';
 
 let pass = 0;
@@ -270,6 +271,34 @@ await ta('Gemini lanza (mock 500 de fetch) → 502, no 500', async () => {
   assert.equal(r.status, 502);
 });
 
+await ta('Gemini 503 → 503 con mensaje de "saturado"', async () => {
+  const r = await procesarTicket(
+    peticion({ image: 'abc' }),
+    deps({
+      analizar: async () => {
+        throw new GeminiError(503, 'UNAVAILABLE', 'overloaded');
+      },
+    })
+  );
+  assert.equal(r.status, 503);
+  assert.equal(r.json.ok, false);
+  assert.equal(r.json.error, 'Gemini está saturado. Intenta en 1 minuto.');
+});
+
+await ta('Gemini 429 → 429 con mensaje de límite alcanzado', async () => {
+  const r = await procesarTicket(
+    peticion({ image: 'abc' }),
+    deps({
+      analizar: async () => {
+        throw new GeminiError(429, 'RESOURCE_EXHAUSTED', 'quota');
+      },
+    })
+  );
+  assert.equal(r.status, 429);
+  assert.equal(r.json.ok, false);
+  assert.equal(r.json.error, 'Límite de Gemini alcanzado. Intenta mañana.');
+});
+
 await ta('no es un ticket (todo vacío) → 422', async () => {
   const r = await procesarTicket(
     peticion({ image: 'abc' }),
@@ -378,39 +407,76 @@ await ta('GEMINI_MODEL sobreescribe el modelo por defecto', async () => {
   assert.ok(url.includes('gemini-2.0-flash'));
 });
 
-await ta('HTTP 500 de Gemini → null (y el flujo responde 502)', async () => {
+await ta('HTTP 500 de Gemini → lanza GeminiError (y el flujo responde 502)', async () => {
   const { analizarTicket } = await import('../api/_lib/ticket-gemini.ts');
   const errorOriginal = console.error;
   console.error = () => {};
   try {
-    const crudo = await analizarTicket({
-      image: 'x',
-      mimeType: 'image/jpeg',
-      apiKey: 'llave',
-      fetchImpl: async () => ({ ok: false, status: 500, json: async () => ({}), text: async () => 'boom' }),
-    });
-    assert.equal(crudo, null);
+    await assert.rejects(
+      () =>
+        analizarTicket({
+          image: 'x',
+          mimeType: 'image/jpeg',
+          apiKey: 'llave',
+          fetchImpl: async () => ({
+            ok: false,
+            status: 500,
+            json: async () => ({}),
+            text: async () => 'boom',
+          }),
+        }),
+      (error) => error instanceof GeminiError && error.status === 500 && error.code === 'http_500'
+    );
+
+    const r = await procesarTicket(
+      peticion({ image: 'abc' }),
+      deps({
+        analizar: () =>
+          analizarTicket({
+            image: 'x',
+            mimeType: 'image/jpeg',
+            apiKey: 'llave',
+            fetchImpl: async () => ({
+              ok: false,
+              status: 500,
+              json: async () => ({}),
+              text: async () => 'boom',
+            }),
+          }),
+      })
+    );
+    assert.equal(r.status, 502);
+    assert.equal(r.json.error, 'Error temporal al analizar el ticket.');
   } finally {
     console.error = errorOriginal;
   }
 });
 
-await ta('fetch que lanza (red caída) → null', async () => {
+await ta('fallo de red (ECONNRESET) → reintenta 1 vez y lanza GeminiError', async () => {
   const { analizarTicket } = await import('../api/_lib/ticket-gemini.ts');
+  let llamadas = 0;
   const errorOriginal = console.error;
+  const warnOriginal = console.warn;
   console.error = () => {};
+  console.warn = () => {};
   try {
-    const crudo = await analizarTicket({
-      image: 'x',
-      mimeType: 'image/jpeg',
-      apiKey: 'llave',
-      fetchImpl: async () => {
-        throw new Error('ECONNRESET');
-      },
-    });
-    assert.equal(crudo, null);
+    await assert.rejects(
+      () =>
+        analizarTicket({
+          image: 'x',
+          mimeType: 'image/jpeg',
+          apiKey: 'llave',
+          fetchImpl: async () => {
+            llamadas += 1;
+            throw new Error('ECONNRESET');
+          },
+        }),
+      (error) => error instanceof GeminiError && error.status === 0 && error.code === 'network'
+    );
+    assert.equal(llamadas, 2, 'un intento + un reintento por fallo de red');
   } finally {
     console.error = errorOriginal;
+    console.warn = warnOriginal;
   }
 });
 
