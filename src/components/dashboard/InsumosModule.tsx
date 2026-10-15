@@ -65,7 +65,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
       <div className="w-full bg-[#272729] text-white py-10 sm:py-14 px-4 sm:px-12 border-b border-[#333333]">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-[14px] font-semibold tracking-wider uppercase text-[#2997ff]">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
               Costeo de insumos y recetas
             </span>
             {loading && (

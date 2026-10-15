@@ -77,7 +77,7 @@ export const EntityComparison: React.FC = () => {
       <div className="max-w-[1200px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8">
           <div>
-            <span className="text-[13px] font-semibold text-[#0066cc] uppercase tracking-wider">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
               Ecosistema Financiero
             </span>
             <h2 className="text-[24px] sm:text-[34px] font-semibold text-[#1d1d1f] tracking-[-0.374px] mt-1">

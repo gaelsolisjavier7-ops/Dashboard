@@ -57,24 +57,24 @@ export const AlertaPedidosBot: React.FC = () => {
         type="button"
         onClick={irAPedidos}
         aria-label={`Revisar ${pendientes.length} pedidos nuevos del bot`}
-        className="w-full max-w-[1200px] mx-auto flex items-center gap-3 text-left rounded-[16px] px-4 py-3 border transition-transform apple-pressable cursor-pointer"
+        className="w-full max-w-[1200px] mx-auto flex items-center gap-3 text-left rounded-[12px] px-4 py-3 border-0 border-l-[3px] transition-transform apple-pressable cursor-pointer"
         style={{
-          backgroundColor: 'color-mix(in srgb, var(--pending) 10%, transparent)',
+          backgroundColor: 'color-mix(in srgb, var(--pending) 30%, var(--surface))',
           borderColor: 'var(--pending)',
         }}
       >
         <span
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: 'color-mix(in srgb, var(--pending) 20%, transparent)' }}
+          style={{ backgroundColor: 'color-mix(in srgb, var(--pending) 22%, transparent)' }}
         >
-          <Bell className="w-5 h-5" style={{ color: 'var(--pending)' }} />
+          <Bell className="w-5 h-5" strokeWidth={1.5} style={{ color: 'var(--pending)' }} />
         </span>
 
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold" style={{ color: 'var(--text)' }}>
             {pendientes.length} {pendientes.length === 1 ? 'pedido nuevo' : 'pedidos nuevos'} del bot
           </span>
-          <span className="block text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>
+          <span className="block text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>
             Último: {direccion}
             {formatoMXN(ultimo.total)} · {hace}
           </span>
@@ -82,10 +82,10 @@ export const AlertaPedidosBot: React.FC = () => {
 
         <span
           className="flex items-center gap-1 text-[13px] font-semibold flex-shrink-0"
-          style={{ color: 'var(--pending)' }}
+          style={{ color: 'var(--accent)' }}
         >
           Revisar
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
         </span>
       </button>
     </div>

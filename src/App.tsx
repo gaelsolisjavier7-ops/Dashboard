@@ -65,7 +65,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
   const esSeccionCosteo = seccion === 'insumos' || seccion === 'recetas';
 
   return (
-    <div className="min-h-screen flex bg-[#ffffff] text-[#1d1d1f]">
+    <div className="min-h-screen flex bg-[var(--bg)] text-[var(--text)]">
       {/* Sidebar de escritorio (lg+): reemplaza al menú del header y a la BottomNav */}
       <Sidebar
         currentTab={currentTab}
@@ -91,7 +91,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
       />
 
       {/* Main Content Areas */}
-      <main className="flex-1">
+      <main className="flex-1 bg-[var(--bg)]">
         {currentTab === 'dashboard' &&
           (seccion === 'airpods' ? (
             /* Tab AirPods: módulo de inventario en lugar del resumen general */
@@ -113,8 +113,8 @@ function FinanceApp({ rol }: { rol: Rol }) {
               {/* 2. Pedidos web recientes (justo debajo del contador de pedidos) */}
               <PedidosRecientes />
 
-              {/* 3. Charts & Financial Deep-dive (White Canvas) */}
-              <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[#ffffff] border-b border-[#e0e0e0]">
+              {/* 3. Charts & Financial Deep-dive (mismo --bg) */}
+              <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[var(--bg)] border-b border-[var(--border-soft)]">
                 <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-10">
                   <ExpenseCategoryChart />
                 </div>
@@ -125,13 +125,13 @@ function FinanceApp({ rol }: { rol: Rol }) {
 
               {/* 4. Quick Jump to Cash Flow & Transactions (sólo si el rol puede) */}
               {puedeVerTab(rol, 'cashflow') && (
-                <div className="w-full py-10 px-4 sm:py-14 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
+                <div className="w-full py-10 px-4 sm:py-14 sm:px-12 bg-[var(--bg)] border-b border-[var(--border-soft)]">
                   <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div>
-                      <h3 className="text-[24px] font-semibold text-[#1d1d1f] tracking-tight">
+                      <h3 className="text-[24px] font-semibold text-[var(--text)] tracking-tight">
                         ¿Quieres ver cuánto dinero libre te queda exactamente?
                       </h3>
-                      <p className="text-[15px] text-[#7a7a7a] mt-1">
+                      <p className="text-[15px] text-[var(--text-secondary)] mt-1">
                         Accede a la vista detallada de Flujo de Caja con el desglose paso a paso de cada negocio.
                       </p>
                     </div>

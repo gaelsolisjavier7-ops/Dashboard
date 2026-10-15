@@ -88,10 +88,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const itemClase = (activo: boolean) =>
-    `w-full flex items-center gap-3 min-h-[48px] px-3 border-l-[3px] transition-colors cursor-pointer ${
+    `w-full flex items-center gap-3 min-h-[48px] px-3 rounded-[10px] transition-colors cursor-pointer ${
       activo
-        ? 'bg-[var(--surface)] border-l-[var(--accent)] text-[var(--text)] font-semibold'
-        : 'border-l-transparent text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+        ? 'bg-[var(--surface)] text-[var(--text)] font-semibold [&>span:first-child]:text-[var(--accent)]'
+        : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
     }`;
 
   return (
@@ -109,10 +109,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
         {!colapsado && (
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-semibold tracking-tight text-[var(--text)] truncate">
+            <span className="block text-[15px] font-semibold text-[var(--text)] truncate">
               ENTRE 3
             </span>
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
               Finanzas
             </span>
           </span>
@@ -129,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navegación */}
-      <nav className="flex-1 overflow-y-auto py-3">
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
         {tabs.map((tab) => {
           const activo = currentTab === tab;
           return (
@@ -147,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
 
         {secciones.length > 0 && (
-          <div className="my-2 border-t border-[var(--border)]" role="separator" />
+          <div className="my-2 border-t border-[var(--border-soft)]" role="separator" />
         )}
 
         {secciones.map((item) => {
@@ -208,11 +208,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <img
               src={user.photoURL}
               alt={nombre}
-              className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
             />
           ) : (
             <span
-              className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
               style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }}
             >
               {iniciales}
@@ -220,10 +220,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
           {!colapsado && (
             <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text)] truncate">
+              <span className="block text-[14px] font-semibold text-[var(--text)] truncate">
                 {nombre}
               </span>
-              <span className="block text-[11px] text-[var(--text-secondary)] truncate">
+              <span className="block text-[12px] text-[var(--text-secondary)] truncate">
                 {rol ? ROL_LABEL[rol] : 'Sin rol'}
               </span>
             </span>

@@ -386,7 +386,7 @@ export const AirPodsModule: React.FC = () => {
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-[14px] font-semibold tracking-wider uppercase text-[#2997ff]">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
                 Negocio: Reventa AirPods
               </span>
               {loadingAirPods && (

@@ -140,28 +140,33 @@ export const HeroMetrics: React.FC = () => {
 
   return (
     <div className="w-full">
-      {/* Hero Showcase Banner: Dark Tile (Apple surface-tile-1 #272729) */}
-      <div className="w-full bg-[#272729] text-white py-10 sm:py-20 px-4 sm:px-12 border-b border-[#333333]">
+      {/* Hero Showcase Banner: mismo --bg que el resto del main (Cupertino Midnight) */}
+      <div className="w-full bg-[var(--bg)] text-[var(--text)] py-10 sm:py-20 px-4 sm:px-12 border-b border-[var(--border-soft)]">
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row md:flex-wrap items-start md:items-center justify-between gap-8">
           <div className="w-full min-w-0 md:w-auto">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="text-[14px] font-semibold tracking-wider uppercase text-[#2997ff]">
+              <span className="text-[12px] font-semibold tracking-[0.18em] uppercase text-[var(--text-secondary)]">
                 {getEntityTitle()}
               </span>
-              <span className="text-[12px] text-[#8e8e93]">·</span>
-              <span className="text-[13px] font-medium text-[#cccccc]">{labelPeriodo}</span>
+              <span className="text-[12px] text-[var(--text-tertiary)]">·</span>
+              <span className="text-[12px] font-medium tracking-[0.18em] uppercase text-[var(--text-secondary)]">
+                {labelPeriodo}
+              </span>
               {loadingTransactions && (
-                <span className="text-[12px] text-[#8e8e93] animate-pulse">
+                <span className="text-[12px] text-[var(--text-tertiary)] animate-pulse">
                   • Sincronizando con Firestore...
                 </span>
               )}
             </div>
 
             {/* Hero metric: VENTAS HOY (mono 60px + tendencia vs ayer) */}
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8e8e93] mt-5">
+            <span className="block text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)] mt-5">
               Ventas hoy
             </span>
-            <h1 className="num-hero text-[44px] sm:text-[56px] lg:text-[60px] font-semibold tracking-[-0.03em] leading-[1.02] mt-1 text-white break-words">
+            <h1
+              className="num-hero text-[44px] sm:text-[56px] font-bold tracking-[-0.03em] leading-[1.02] mt-1 text-[var(--text)] break-words"
+              style={{ fontWeight: 700 }}
+            >
               {formatCurrency(ventasHoy)}
             </h1>
             {tendenciaDia ? (
@@ -171,10 +176,10 @@ export const HeroMetrics: React.FC = () => {
               >
                 {tendenciaDia.subio ? '↑' : '↓'} {tendenciaDia.subio ? '+' : '−'}
                 {Math.abs(tendenciaDia.pct).toFixed(1)}% vs ayer
-                <span className="text-[#8e8e93] font-normal"> · ayer {formatCurrency(ventasAyer)}</span>
+                <span className="text-[var(--text-secondary)] font-normal"> · ayer {formatCurrency(ventasAyer)}</span>
               </p>
             ) : (
-              <p className="text-[13px] text-[#8e8e93] mt-1.5">
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1.5">
                 {ventasHoy === 0
                   ? 'Sin ventas registradas hoy'
                   : `Ayer ${formatCurrency(ventasAyer)} · sin base para comparar`}
@@ -184,12 +189,12 @@ export const HeroMetrics: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row md:flex-wrap gap-3 sm:gap-4 w-full md:w-auto">
             {/* Margen Card */}
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
-              <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider block">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+              <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] block">
                 Margen Libre
               </span>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="num-metric text-[28px] font-semibold text-white tracking-tight">
+                <span className="num-metric text-[28px] font-semibold tracking-tight text-[var(--text)]">
                   {metrics.savingsOrProfitMargin}%
                 </span>
                 <span
@@ -208,39 +213,39 @@ export const HeroMetrics: React.FC = () => {
                     : 'Sin datos'}
                 </span>
               </div>
-              <span className="text-[12px] text-[#7a7a7a] mt-1 block">
+              <span className="text-[12px] text-[var(--text-tertiary)] mt-1 block">
                 De cada $100 ingresados
               </span>
             </div>
 
             {/* Pedidos Web en vivo */}
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
-              <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider flex items-center justify-between">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+              <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between">
                 <span>Pedidos Web</span>
-                <ShoppingBag className="w-3.5 h-3.5 text-[#2997ff]" />
+                <ShoppingBag className="w-3.5 h-3.5 text-[var(--text-secondary)]" strokeWidth={1.5} />
               </span>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="num-metric text-[28px] font-semibold text-white tracking-tight">
+                <span className="num-metric text-[28px] font-semibold tracking-tight text-[var(--text)]">
                   {pedidosWebActivos.length}
                 </span>
                 <span className="text-[14px] text-[#34c759] font-medium">
                   {formatCurrency(totalPedidosMonto)}
                 </span>
               </div>
-              <span className="text-[12px] text-[#7a7a7a] mt-1 block">
+              <span className="text-[12px] text-[var(--text-tertiary)] mt-1 block">
                 Colección 'pedidos' · {labelPeriodo}
               </span>
             </div>
 
             {/* Costo y margen promedio según las recetas (sólo si hay recetas) */}
             {mostrarRecetas && (
-              <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
-                <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider flex items-center justify-between">
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+                <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between">
                   <span>Costo por producto</span>
-                  <ClipboardList className="w-3.5 h-3.5 text-[#34c759]" />
+                  <ClipboardList className="w-3.5 h-3.5 text-[var(--text-secondary)]" strokeWidth={1.5} />
                 </span>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className="num-metric text-[28px] font-semibold text-white tracking-tight">
+                  <span className="num-metric text-[28px] font-semibold tracking-tight text-[var(--text)]">
                     {formatMXN(promedioRecetas.costoPromedio)}
                   </span>
                   <span
@@ -255,7 +260,7 @@ export const HeroMetrics: React.FC = () => {
                     {promedioRecetas.margenPromedio}% margen
                   </span>
                 </div>
-                <span className="text-[12px] text-[#7a7a7a] mt-1 block">
+                <span className="text-[12px] text-[var(--text-tertiary)] mt-1 block">
                   Promedio de {promedioRecetas.conReceta} receta
                   {promedioRecetas.conReceta === 1 ? '' : 's'} · ganancia{' '}
                   {formatMXN(promedioRecetas.gananciaPromedio)}
@@ -265,19 +270,19 @@ export const HeroMetrics: React.FC = () => {
 
             {/* Comparación contra el periodo anterior (mismo filtro, offset -1) */}
             {comparacion && (
-              <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
-                <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider block">
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+                <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] block">
                   vs. periodo anterior
                 </span>
 
                 {comparacion.sinDatos ? (
-                  <div className="text-[18px] font-semibold text-[#8e8e93] mt-1">
+                  <div className="text-[18px] font-semibold text-[var(--text-tertiary)] mt-1">
                     Sin datos previos
                   </div>
                 ) : (
                   <div
                     className={`text-[26px] font-semibold tracking-tight mt-1 ${
-                      comparacion.subio ? 'text-[#30d158]' : 'text-[#ff453a]'
+                      comparacion.subio ? 'text-[var(--positive)]' : 'text-[var(--negative)]'
                     }`}
                   >
                     {comparacion.delta >= 0 ? '+' : '−'}
@@ -291,7 +296,7 @@ export const HeroMetrics: React.FC = () => {
                   </div>
                 )}
 
-                <span className="text-[12px] text-[#7a7a7a] mt-1 block">
+                <span className="text-[12px] text-[var(--text-tertiary)] mt-1 block">
                   {comparacion.sinDatos
                     ? 'No hubo movimientos en el periodo anterior'
                     : `Periodo anterior: ${formatCurrency(netoPeriodoAnterior?.neto ?? 0)}`}
@@ -302,71 +307,71 @@ export const HeroMetrics: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid of Key Financial Cards: Light Parchment Surface (#f5f5f7) */}
-      <div className="w-full bg-[#f5f5f7] py-8 px-4 sm:py-12 sm:px-12 border-b border-[#e0e0e0]">
+      {/* Grid of Key Financial Cards: mismo --bg (Cupertino Midnight) */}
+      <div className="w-full bg-[var(--bg)] py-8 px-4 sm:py-12 sm:px-12 border-b border-[var(--border-soft)]">
         <div className="max-w-[1200px] mx-auto grid grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {/* Ingresos */}
-          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between">
+          <div className="apple-card min-h-[100px] flex flex-col justify-between">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#7a7a7a]">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                 Ingresos
               </span>
-              <TrendingUp className="w-5 h-5 text-[#34c759] flex-shrink-0" />
+              <TrendingUp className="w-5 h-5 text-[var(--text-secondary)] flex-shrink-0" strokeWidth={1.5} />
             </div>
-            <div className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[#1d1d1f] mt-2">
+            <div className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[var(--text)] mt-2">
               {formatCurrency(metrics.totalIncome)}
             </div>
-            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
+            <p className="hidden lg:block text-[12px] text-[var(--text-tertiary)] mt-2 border-t border-[var(--border-soft)] pt-2">
               {fuentesDeIngreso}
             </p>
           </div>
 
           {/* Gastos */}
-          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between">
+          <div className="apple-card min-h-[100px] flex flex-col justify-between">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#7a7a7a]">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                 Gastos
               </span>
-              <TrendingDown className="w-5 h-5 text-[#ff3b30] flex-shrink-0" />
+              <TrendingDown className="w-5 h-5 text-[var(--text-secondary)] flex-shrink-0" strokeWidth={1.5} />
             </div>
-            <div className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[#1d1d1f] mt-2">
+            <div className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[var(--text)] mt-2">
               {formatCurrency(metrics.totalExpenses)}
             </div>
-            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
+            <p className="hidden lg:block text-[12px] text-[var(--text-tertiary)] mt-2 border-t border-[var(--border-soft)] pt-2">
               Insumos, compras & costos fijos
             </p>
           </div>
 
           {/* Utilidad */}
-          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between border-2 border-[#0066cc]/20">
+          <div className="apple-card min-h-[100px] flex flex-col justify-between border-2 border-[color-mix(in_srgb,var(--accent)_22%,transparent)]">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#0066cc]">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--accent)]">
                 Utilidad
               </span>
-              <DollarSign className="w-5 h-5 text-[#0066cc] flex-shrink-0" />
+              <DollarSign className="w-5 h-5 text-[var(--text-secondary)] flex-shrink-0" strokeWidth={1.5} />
             </div>
             <div
               className={`num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight mt-2 ${
-                isPositiveCashFlow ? 'text-[#34c759]' : 'text-[#ff3b30]'
+                isPositiveCashFlow ? 'text-[var(--positive)]' : 'text-[var(--negative)]'
               }`}
             >
               {formatCurrency(metrics.netFreeCash)}
             </div>
-            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
+            <p className="hidden lg:block text-[12px] text-[var(--text-tertiary)] mt-2 border-t border-[var(--border-soft)] pt-2">
               Disponible para retiro o reinversión
             </p>
           </div>
 
           {/* Margen (ocupa la fila completa en móvil) */}
-          <div className="apple-card bg-white min-h-[100px] flex flex-col justify-between col-span-3 lg:col-span-1">
+          <div className="apple-card min-h-[100px] flex flex-col justify-between col-span-3 lg:col-span-1">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[#7a7a7a]">
+              <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                 Margen
               </span>
-              <Percent className="w-5 h-5 text-[#1d1d1f] flex-shrink-0" />
+              <Percent className="w-5 h-5 text-[var(--text-secondary)] flex-shrink-0" strokeWidth={1.5} />
             </div>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[#1d1d1f]">
+              <span className="num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight text-[var(--text)]">
                 {metrics.savingsOrProfitMargin}%
               </span>
               <span
@@ -385,7 +390,7 @@ export const HeroMetrics: React.FC = () => {
                   : 'Bajo'}
               </span>
             </div>
-            <p className="hidden lg:block text-[12px] text-[#7a7a7a] mt-2 border-t border-[#f0f0f0] pt-2">
+            <p className="hidden lg:block text-[12px] text-[var(--text-tertiary)] mt-2 border-t border-[var(--border-soft)] pt-2">
               Porcentaje neto de retención
             </p>
           </div>
