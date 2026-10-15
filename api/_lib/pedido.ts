@@ -195,14 +195,81 @@ export function normalizarCategoriaGasto(sugerida: unknown, texto: unknown): str
   return CATEGORIA_GASTO_DEFECTO;
 }
 
+/** Palabras con las que el modelo a veces "envuelve" la dirección. */
+const ENVOLTORIO_DIRECCION = /^(?:domicilio|delivery|env[ií]o|reparto)\s+(?:a|en|hacia|para)\s+/i;
+
+/** Patrones de entrega con su dirección, del más específico al más genérico. */
+const PATRONES_DIRECCION: RegExp[] = [
+  // "domicilio en Calle Hidalgo", "envío a Av. Juárez 45", "reparto a X"
+  /\b(?:domicilio|env[ií]o|env[ií]en|reparto)\s+(?:a|en|hacia|para)\s+(.+)$/i,
+  // "llévenlo a X", "mándenlo a X", "tráiganlo a X"
+  /\b(?:ll[eé]venlo|ll[eé]venle|ll[eé]ven|lleven|ll[eé]valo|m[aá]ndenlo|manden|tr[aá]iganlo|traigan)\s+(?:a|en|hacia|para)\s+(.+)$/i,
+  // "en Calle Hidalgo"
+  /\ben\s+(.+)$/i,
+  // "hacia Calle Hidalgo"
+  /\bhacia\s+(.+)$/i,
+  // "para Calle Morelos #123 Col. Centro" (nunca "para llevar/recoger")
+  /\bpara\s+(?!llevar\b|recoger\b|el\s+local\b|la\s+casa\b|mi\s+casa\b|domicilio\b)(.+)$/i,
+  // "a Calle X" (pero no "a domicilio", "a la casa", "a la colonia")
+  /\ba\s+(?!domicilio\b|la\s+casa\b|mi\s+casa\b|la\s+colonia\b|las?\s+\d)(.+)$/i,
+];
+
+/** Corta la dirección cuando ya empieza el pago u otra instrucción. */
+const CORTE_DIRECCION =
+  /[,;\n]|\b(?:con\s+papas|sin\s+papas|efectivo|transferencia|transfiero|deposito|spei|cash|cambio|pago|pagar[aáe]?|por\s+favor|gracias|para\s+llevar|a\s+las?)\b/i;
+
+/** Lo que NO es una dirección aunque venga tras una preposición. */
+const DIRECCION_NO_VALIDA =
+  /^(?:domicilio|delivery|la colonia|colonia|nada|ninguna|sin direccion|no se|recoger|llevar|pickup|el local|la oficina|el trabajo|\d+\s*(?:min|mins|minuto|minutos|hora|horas|hr|hrs|peso|pesos))$/;
+
+/** Frases posesivas ("la casa de…", "mi mamá") que nunca son una dirección. */
+const DIRECCION_POSESIVA = /^(?:la|mi|su|de)\s+(?:casa|mama|papa|abuela|abuelo|oficina|trabajo|local)\b/;
+
+/** Una dirección inventada ("la casa", "mi mamá") no sirve. */
+function direccionInvalida(texto: string): boolean {
+  const limpio = normalizarTexto(texto);
+  return DIRECCION_NO_VALIDA.test(limpio) || DIRECCION_POSESIVA.test(limpio);
+}
+
 function limpiarDireccion(valor: unknown): string | null {
   const texto = textoOTexto(valor, 160)
-    .replace(/^(en|a|hacia|para)\s+/i, '')
+    .replace(ENVOLTORIO_DIRECCION, '')
+    .replace(/^(?:en|a|hacia|para)\s+/i, '')
     .replace(/[.,;]+$/, '')
     .trim();
   if (!texto) return null;
-  if (/^(domicilio|delivery|ninguna|sin direccion|no se)$/.test(normalizarTexto(texto))) return null;
+  if (direccionInvalida(texto)) return null;
   return texto;
+}
+
+/** Quita el relleno y corta la dirección cuando empieza el pago. */
+function limpiarCandidatoDireccion(crudo: string): string | null {
+  const corte = CORTE_DIRECCION.exec(crudo);
+  let texto = (corte ? crudo.slice(0, corte.index) : crudo).trim();
+  // "a la colonia Centro" → "Colonia Centro"
+  texto = texto.replace(
+    /^la\s+(?=(?:colonia|calle|avenida|av\.|privada|cerrada|callej[oó]n|prolongaci[oó]n|andador)\b)/i,
+    ''
+  );
+  texto = texto.replace(/[.,;:\s]+$/, '').trim();
+  if (texto.length < 3 || !/[a-záéíóúüñ]/i.test(texto)) return null;
+  return direccionInvalida(texto) ? null : texto;
+}
+
+/**
+ * Saca la dirección del texto libre aunque Gemini no la devuelva:
+ * "1 hamburguesa tocino domicilio en Calle Hidalgo efectivo" → "Calle Hidalgo".
+ */
+export function extraerDireccion(texto: unknown): string | null {
+  const original = sanitizarTexto(texto, 300);
+  if (!original) return null;
+
+  for (const patron of PATRONES_DIRECCION) {
+    const coincidencia = patron.exec(original);
+    const candidato = coincidencia ? limpiarCandidatoDireccion(coincidencia[1]) : null;
+    if (candidato) return candidato;
+  }
+  return null;
 }
 
 function limpiarCliente(valor: unknown): string {
@@ -273,18 +340,24 @@ export function normalizarOperacion(
   const subtotalProductos = Math.round(productos.reduce((acc, p) => acc + p.importe, 0) * 100) / 100;
   const cargoEnvio = modalidad === 'delivery' ? CARGO_ENVIO : 0;
   const total = Math.round((subtotalProductos + cargoEnvio) * 100) / 100;
+  const direccion = limpiarDireccion(datos.direccion) ?? extraerDireccion(texto);
+  // Domicilio sin dirección clara: el bot debe preguntarla antes de confirmar.
+  const faltaDireccion = modalidad === 'delivery' && !direccion;
 
   return {
     tipo: 'pedido',
     productos,
     modalidad,
-    direccion: limpiarDireccion(datos.direccion),
+    direccion,
     cliente: limpiarCliente(datos.cliente),
     metodoPago: detectarMetodoPago(texto, datos.metodoPago),
     subtotalProductos,
     cargoEnvio,
     total,
-    confianza: modalidad === 'ambiguo' || productos.length === 0 || noReconocidos.length > 0 ? 'baja' : 'alta',
+    confianza:
+      modalidad === 'ambiguo' || productos.length === 0 || noReconocidos.length > 0 || faltaDireccion
+        ? 'baja'
+        : 'alta',
     noReconocidos,
     textoOriginal: texto,
   };
@@ -369,6 +442,12 @@ export function formatearResumenPedido(pedido: PedidoDetectado): string {
   lineas.push(`📍 Dirección: ${pedido.direccion ?? '(no detectada)'}`);
   lineas.push(`💳 Pago: ${pedido.metodoPago}`);
 
+  // A domicilio sin dirección legible: hay que pedirla antes de confirmar.
+  if (pedido.modalidad === 'delivery' && !pedido.direccion) {
+    lineas.push('');
+    lineas.push(TEXTO_PIDE_DIRECCION);
+  }
+
   if (pedido.noReconocidos.length > 0) {
     lineas.push('');
     lineas.push(`⚠️ No reconocí: ${pedido.noReconocidos.join(', ')}. Edita el pedido o regístralo a mano.`);
@@ -418,6 +497,8 @@ export const TEXTO_ERROR_GUARDADO =
 
 export const TEXTO_PIDE_MODALIDAD =
   '🤔 No me quedó claro si es a domicilio o para recoger. Elige una opción:';
+
+export const TEXTO_PIDE_DIRECCION = '❓ ¿A qué dirección lo enviamos?';
 
 export function formatearResumenDia(resumen: ResumenDia, etiqueta: string): string {
   return [

@@ -27,7 +27,11 @@ REGLAS:
 - "con papas" ⇒ el producto lleva papas (pon "conPapas": true). Si no lo menciona o dice "sin papas" ⇒ false.
 - "modalidad": "delivery" si menciona domicilio/envío/a la casa/llévenlo/a la colonia; "pickup" si dice recoger/paso por él/para llevar/voy al local; "ambiguo" si no menciona la entrega.
 - "metodoPago": "Efectivo", "Transferencia" o "Efectivo (Cambio)".
-- "direccion": la calle y número si aparece, si no null.
+- "direccion": SIEMPRE intenta extraer la dirección de entrega, aunque venga sin formato. Búscala después de:
+  · "en", "a", "para", "hacia": "domicilio en Calle Hidalgo" ⇒ "Calle Hidalgo"; "envío a Av. Juárez 45" ⇒ "Av. Juárez 45"; "para Calle Morelos #123 Col. Centro" ⇒ "Calle Morelos #123 Col. Centro".
+  · "llévenlo a", "mándenlo a", "tráiganlo a", "a la casa de": "llévenlo a la casa de mi mamá en Calle Hidalgo" ⇒ "Calle Hidalgo".
+  Copia SÓLO la dirección (calle, número, colonia): sin "domicilio", sin "a domicilio" y sin la forma de pago ("efectivo", "transferencia").
+- Si el mensaje menciona "domicilio" o "envío" PERO no se lee una dirección clara, pone "direccion": null y "confianza": "baja".
 - "cliente": el nombre si aparece, si no "Cliente WhatsApp".
 - No inventes productos que no estén en el menú ni cantidades que no se mencionen.`;
 

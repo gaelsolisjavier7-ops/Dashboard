@@ -26,6 +26,7 @@ import {
   detectarConPapas,
   detectarMetodoPago,
   detectarModalidad,
+  extraerDireccion,
   extraerMonto,
   fechaLocal,
   formatearResumenDia,
@@ -169,6 +170,32 @@ t('palabras de recoger → pickup', () => {
 t('sin mención de entrega → ambiguo (confianza baja)', () => {
   assert.equal(detectarModalidad('2 hamburguesas especiales'), 'ambiguo');
   assert.equal(detectarModalidad(''), 'ambiguo');
+});
+
+t('extrae la dirección del texto libre', () => {
+  assert.equal(
+    extraerDireccion('1 hamburguesa tocino domicilio en Calle Hidalgo efectivo'),
+    'Calle Hidalgo'
+  );
+  assert.equal(extraerDireccion('a domicilio en Av. Juárez 45'), 'Av. Juárez 45');
+  assert.equal(
+    extraerDireccion('2 especiales para Calle Morelos #123 Col. Centro'),
+    'Calle Morelos #123 Col. Centro'
+  );
+  assert.equal(
+    extraerDireccion('llévenlo a la casa de mi mamá en Calle Hidalgo'),
+    'Calle Hidalgo'
+  );
+  assert.equal(extraerDireccion('envío a Calle Zaragoza 12, transferencia'), 'Calle Zaragoza 12');
+});
+
+t('no inventa direcciones cuando no hay una clara', () => {
+  assert.equal(extraerDireccion('2 hamburguesas en efectivo'), null);
+  assert.equal(extraerDireccion('llévenlo a la casa'), null);
+  assert.equal(extraerDireccion('para llevar'), null);
+  assert.equal(extraerDireccion('lo recojo en el local'), null);
+  assert.equal(extraerDireccion('sin mención de entrega'), null);
+  assert.equal(extraerDireccion(''), null);
 });
 
 t('"con papas" y "sin papas"', () => {
@@ -320,6 +347,48 @@ t('sin productos → confianza baja y nada que registrar', () => {
   const operacion = normalizarOperacion({ tipo: 'pedido', productos: [] }, 'hola');
   assert.equal(operacion.productos.length, 0);
   assert.equal(operacion.confianza, 'baja');
+});
+
+t('si Gemini no da la dirección, se saca del texto del mensaje', () => {
+  const operacion = normalizarOperacion(
+    {
+      tipo: 'pedido',
+      productos: [{ nombre: 'Burger Tocino', cantidad: 1 }],
+      modalidad: 'delivery',
+      direccion: null,
+    },
+    '1 hamburguesa tocino domicilio en Calle Hidalgo efectivo'
+  );
+  assert.equal(operacion.direccion, 'Calle Hidalgo');
+  assert.equal(operacion.confianza, 'alta');
+});
+
+t('limpia el envoltorio "domicilio en …" si lo devuelve Gemini', () => {
+  const operacion = normalizarOperacion(
+    {
+      tipo: 'pedido',
+      productos: [{ nombre: 'Burger Tocino', cantidad: 1 }],
+      modalidad: 'delivery',
+      direccion: 'domicilio en Calle Hidalgo',
+    },
+    'a domicilio'
+  );
+  assert.equal(operacion.direccion, 'Calle Hidalgo');
+});
+
+t('a domicilio sin dirección clara → confianza baja y pregunta la dirección', () => {
+  const operacion = normalizarOperacion(
+    {
+      tipo: 'pedido',
+      productos: [{ nombre: 'Burger Tocino', cantidad: 1 }],
+      modalidad: 'delivery',
+    },
+    '1 hamburguesa tocino a domicilio'
+  );
+  assert.equal(operacion.modalidad, 'delivery');
+  assert.equal(operacion.direccion, null);
+  assert.equal(operacion.confianza, 'baja');
+  assert.ok(formatearResumenPedido(operacion).includes('¿A qué dirección lo enviamos?'));
 });
 
 t('gasto con monto y categoría', () => {
@@ -617,6 +686,29 @@ await ta('mensaje claro: muestra resumen y botones, sin escribir todavía', asyn
   assert.equal(enviado.opciones.reply_markup.inline_keyboard[0].length, 3);
   assert.ok(estado.borradores.has(CHAT), 'debe guardar el borrador');
   assert.equal(estado.borradores.get(CHAT).messageId, enviado.messageId);
+});
+
+await ta('pedido con "domicilio en …": el bot extrae la dirección del mensaje', async () => {
+  const { estado, bot } = crearEntorno({
+    respuestaGemini: {
+      tipo: 'pedido',
+      productos: [{ nombre: 'Burger Tocino', cantidad: 1 }],
+      modalidad: 'delivery',
+      direccion: null,
+      metodoPago: 'Efectivo',
+    },
+  });
+  await bot.manejarUpdate({
+    update_id: 1,
+    message: {
+      message_id: 10,
+      text: '1 hamburguesa tocino domicilio en Calle Hidalgo efectivo',
+      chat: { id: CHAT },
+    },
+  });
+  const enviado = estado.enviados[0];
+  assert.ok(enviado.texto.includes('📍 Dirección: Calle Hidalgo'), enviado.texto);
+  assert.ok(!enviado.texto.includes('(no detectada)'), enviado.texto);
 });
 
 await ta('confirmar guarda el pedido + 2 transacciones y responde', async () => {
