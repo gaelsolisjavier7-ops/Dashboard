@@ -228,7 +228,7 @@ export const InventarioPanel: React.FC<InventarioPanelProps> = ({
       ) : (
         <div className="apple-card bg-white p-0 sm:p-6">
           {/* Cabecera de tabla (escritorio) */}
-          <div className="hidden sm:grid grid-cols-12 gap-3 px-1 pb-3 text-[12px] font-semibold uppercase tracking-wide text-[#7a7a7a] border-b border-[#f0f0f0]">
+          <div className="hidden sm:grid grid-cols-12 gap-3 px-1 pb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] border-b border-[var(--border-soft)]">
             <span className="col-span-4">Nombre</span>
             <span className="col-span-2">Categoría</span>
             <span className="col-span-2 text-right">Costo / unidad</span>

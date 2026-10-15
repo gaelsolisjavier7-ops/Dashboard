@@ -4,7 +4,21 @@ import { useAuth } from '../../context/AuthContext';
 import { negocioDeSeccion, puedeVerNegocio } from '../../lib/roles';
 import { MENU_DATA } from '../../lib/products';
 import type { Transaction, EntityType, TransactionType, PaymentMethod } from '../../types/finance';
-import { AlertCircle, Camera, Loader2, RotateCcw, X } from 'lucide-react';
+import {
+  AlertCircle,
+  Banknote,
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Loader2,
+  RotateCcw,
+  Sandwich,
+  ShoppingCart,
+  Utensils,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
 import { useTicketScan } from '../../hooks/useTicketScan';
 import { etiquetaConfianza, resolverCategoria } from '../../lib/ticket';
 
@@ -16,6 +30,13 @@ interface TransactionModalProps {
 
 /** Atajos de monto: lo más importante para registrar en un toque. */
 const MONTOS_RAPIDOS = [100, 150, 200, 250, 300, 400];
+
+/** Ícono Lucide de cada familia del menú (Fase 3: fuera los emojis 🍔🍟🌭). */
+const ICONO_PRODUCTO = {
+  burgers: Sandwich,
+  hotdogs: UtensilsCrossed,
+  extras: Utensils,
+} as const;
 
 /** Nombre corto para los botones de producto: "Burger Especial" → "Especial". */
 const nombreCorto = (nombre: string) =>
@@ -217,13 +238,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const inputClase =
-    'w-full text-[15px] min-h-[48px] px-3.5 rounded-[12px] bg-[var(--surface-inset)] border border-[var(--border)] text-[var(--text)] focus:border-[var(--accent)] outline-none transition-colors';
+    'w-full text-[15px] min-h-[48px] px-3.5 rounded-[12px] bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] focus:border-[var(--accent)] outline-none transition-colors';
   const labelClase =
     'block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] mb-2';
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4">
-      <div className="w-full sm:max-w-[520px] h-full sm:h-auto sm:max-h-[92vh] bg-[var(--surface)] sm:rounded-[24px] border-0 sm:border sm:border-[var(--border)] flex flex-col overflow-hidden">
+      <div className="w-full sm:max-w-[520px] h-full sm:h-auto sm:max-h-[92vh] bg-[var(--bg)] sm:rounded-[20px] border-0 sm:border sm:border-[var(--border)] flex flex-col overflow-hidden">
         {/* Header (sticky en móvil: va fijo arriba del panel flex) */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--border)] flex-shrink-0">
           <h3 className="text-[20px] font-semibold tracking-[-0.28px] text-[var(--text)]">
@@ -232,19 +253,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="w-9 h-9 rounded-full bg-[var(--surface-elevated)] hover:bg-[var(--border)] flex items-center justify-center text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
+            className="w-9 h-9 rounded-full hover:bg-[var(--surface-elevated)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
             {/* 1. Tipo: Pedido (ingreso) vs Gasto */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex gap-1.5 p-1.5 rounded-[12px] bg-[var(--surface-elevated)]">
               {[
-                { id: 'ingreso' as TransactionType, label: '🛒 Pedido' },
-                { id: 'gasto' as TransactionType, label: '💸 Gasto' },
+                { id: 'ingreso' as TransactionType, label: 'Pedido', Icono: ShoppingCart },
+                { id: 'gasto' as TransactionType, label: 'Gasto', Icono: Banknote },
               ].map((opcion) => {
                 const activo = type === opcion.id;
                 return (
@@ -257,12 +278,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
                         : undefined
                     }
-                    className={`min-h-[48px] rounded-[12px] text-[15px] font-semibold transition-colors cursor-pointer border ${
-                      activo
-                        ? 'border-transparent'
-                        : 'bg-[var(--surface-elevated)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                    className={`flex-1 min-h-[44px] rounded-[10px] text-[15px] font-semibold transition-colors cursor-pointer inline-flex items-center justify-center gap-2 ${
+                      activo ? '' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
                     }`}
                   >
+                    <opcion.Icono className="w-[18px] h-[18px]" />
                     {opcion.label}
                   </button>
                 );
@@ -303,7 +323,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     ) : (
                       <>
                         <Camera className="w-4 h-4" />
-                        <span>📷 Subir ticket</span>
+                        <span>Subir ticket</span>
                       </>
                     )}
                   </button>
@@ -410,7 +430,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         className="flex-1 min-h-[44px] rounded-full text-[14px] font-semibold cursor-pointer"
                         style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }}
                       >
-                        {ticketAplicado ? 'Datos aplicados ✓' : 'Usar estos datos'}
+                        {ticketAplicado ? (
+                          <span className="inline-flex items-center justify-center gap-1.5">
+                            <Check className="w-4 h-4" />
+                            Datos aplicados
+                          </span>
+                        ) : (
+                          'Usar estos datos'
+                        )}
                       </button>
                       <button
                         type="button"
@@ -445,17 +472,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       onClick={() => setEntity(negocio.id)}
                       style={
                         activo
-                          ? {
-                              borderColor: 'var(--accent)',
-                              color: 'var(--accent)',
-                              backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-                            }
+                          ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
                           : undefined
                       }
-                      className={`flex-1 min-w-[104px] min-h-[48px] px-3 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
+                      className={`flex-1 min-w-[104px] min-h-[36px] px-4 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
                         activo
-                          ? 'font-semibold'
-                          : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                          ? 'font-semibold border-transparent'
+                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text)]'
                       }`}
                     >
                       {negocio.label}
@@ -476,7 +499,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="$0.00"
-                className="num-input num-hero w-full bg-transparent text-center text-[44px] leading-tight text-[var(--text)] outline-none border-0 border-b border-[var(--border)] focus:border-[var(--accent)] pb-2 transition-colors"
+                className="num-input num-hero w-full bg-transparent text-center text-[44px] leading-tight text-[var(--text)] outline-none border-0 border-b border-[var(--border)] focus:border-[var(--accent)] placeholder:text-[var(--text-tertiary)] pb-2 transition-colors"
               />
             </div>
 
@@ -492,14 +515,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       ? {
                           borderColor: 'var(--accent)',
                           color: 'var(--accent)',
-                          backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                          backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)',
                         }
                       : undefined
                   }
-                  className={`num-list min-h-[44px] rounded-[12px] border text-[16px] font-medium transition-colors cursor-pointer ${
+                  className={`num-list min-h-[44px] rounded-[10px] border text-[15px] transition-colors cursor-pointer ${
                     montoNumero === monto
                       ? 'font-semibold'
-                      : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text)] hover:border-[var(--accent)]'
+                      : 'border-[var(--border)] bg-[var(--surface)] font-medium text-[var(--text)] hover:border-[var(--accent)]'
                   }`}
                 >
                   ${monto}
@@ -512,30 +535,38 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <div>
                 <label className={labelClase}>Productos rápidos</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {productosPrincipales.map((producto) => (
-                    <button
-                      key={producto.id}
-                      type="button"
-                      onClick={() => agregarProducto(producto.nombre, producto.precio)}
-                      className="min-h-[44px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate">
-                        {producto.categoria === 'extras' ? '🍟' : '🍔'} {nombreCorto(producto.nombre)}
-                      </span>
-                      <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
-                        ${producto.precio}
-                      </span>
-                    </button>
-                  ))}
+                  {productosPrincipales.map((producto) => {
+                    const Icono = ICONO_PRODUCTO[producto.categoria];
+                    return (
+                      <button
+                        key={producto.id}
+                        type="button"
+                        onClick={() => agregarProducto(producto.nombre, producto.precio)}
+                        className="min-h-[56px] px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer flex items-center gap-3 text-left"
+                      >
+                        <Icono className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]" />
+                        <span className="flex-1 truncate">{nombreCorto(producto.nombre)}</span>
+                        <span className="num-list text-[13px] font-normal text-[var(--text-secondary)] flex-shrink-0">
+                          ${producto.precio}
+                        </span>
+                      </button>
+                    );
+                  })}
 
                   {/* Hot dogs: un toque despliega la lista */}
                   <button
                     type="button"
                     onClick={() => setHotDogsAbiertos((previo) => !previo)}
                     aria-expanded={hotDogsAbiertos}
-                    className="min-h-[44px] px-3 col-span-2 rounded-[12px] border border-dashed border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                    className="min-h-[48px] px-4 col-span-2 rounded-[12px] border border-dashed border-[var(--border)] text-[15px] font-semibold text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
-                    🌭 Hot Dogs {hotDogsAbiertos ? '▴' : '▾'}
+                    <UtensilsCrossed className="w-5 h-5 text-[var(--text-secondary)]" />
+                    <span>Hot Dogs</span>
+                    {hotDogsAbiertos ? (
+                      <ChevronUp className="w-4 h-4 text-[var(--text-secondary)]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[var(--text-secondary)]" />
+                    )}
                   </button>
 
                   {hotDogsAbiertos &&
@@ -544,10 +575,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         <button
                           type="button"
                           onClick={() => agregarHotDog(producto.nombre, producto.precio, false)}
-                          className="min-h-[40px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
+                          className="min-h-[52px] px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer flex items-center gap-2 text-left"
                         >
-                          <span className="truncate">🌭 {nombreCorto(producto.nombre)}</span>
-                          <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
+                          <UtensilsCrossed className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]" />
+                          <span className="flex-1 truncate">{nombreCorto(producto.nombre)}</span>
+                          <span className="num-list text-[13px] font-normal text-[var(--text-secondary)] flex-shrink-0">
                             ${producto.precio}
                           </span>
                         </button>
@@ -557,12 +589,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                             onClick={() =>
                               agregarHotDog(producto.nombre, producto.precioConPapas!, true)
                             }
-                            className="min-h-[40px] px-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[13px] text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-between gap-2"
+                            className="min-h-[52px] px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer flex items-center gap-2 text-left"
                           >
-                            <span className="truncate">
+                            <Utensils className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-secondary)]" />
+                            <span className="flex-1 truncate">
                               {nombreCorto(producto.nombre)} c/papas
                             </span>
-                            <span className="num-list text-[13px] text-[var(--text-secondary)] flex-shrink-0">
+                            <span className="num-list text-[13px] font-normal text-[var(--text-secondary)] flex-shrink-0">
                               ${producto.precioConPapas}
                             </span>
                           </button>
@@ -619,17 +652,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       onClick={() => setPaymentMethod(metodo.id)}
                       style={
                         activo
-                          ? {
-                              borderColor: 'var(--accent)',
-                              color: 'var(--accent)',
-                              backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-                            }
+                          ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
                           : undefined
                       }
-                      className={`flex-1 min-w-[104px] min-h-[48px] px-3 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
+                      className={`flex-1 min-w-[104px] min-h-[36px] px-4 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
                         activo
-                          ? 'font-semibold'
-                          : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                          ? 'font-semibold border-transparent'
+                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text)]'
                       }`}
                     >
                       {metodo.label}
@@ -665,12 +694,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
 
           {/* Footer sticky con el botón Guardar */}
-          <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4">
+          <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--bg)] px-5 py-4">
             <button
               type="submit"
               disabled={!puedeGuardar}
-              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }}
-              className="w-full h-14 rounded-full text-[16px] font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              style={
+                puedeGuardar || submitting
+                  ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
+                  : { backgroundColor: 'var(--control)', color: 'var(--text-tertiary)' }
+              }
+              className="w-full h-14 rounded-[16px] text-[17px] font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               {submitting ? 'Guardando...' : `Guardar ${montoTexto}`}
             </button>

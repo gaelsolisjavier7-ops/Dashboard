@@ -62,7 +62,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
   return (
     <div className="w-full">
       {/* Hero oscuro con las 4 métricas del inventario */}
-      <div className="w-full bg-[#272729] text-white py-10 sm:py-14 px-4 sm:px-12 border-b border-[#333333]">
+      <div className="w-full bg-[var(--bg)] text-[var(--text)] py-10 sm:py-14 px-4 sm:px-12 border-b border-[var(--border)]">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
@@ -75,24 +75,24 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
             )}
           </div>
 
-          <h1 className="text-[30px] sm:text-[44px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white">
+          <h1 className="text-[30px] sm:text-[44px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-[var(--text)]">
             Costos reales del menú
           </h1>
-          <p className="text-[16px] sm:text-[19px] text-[#cccccc] leading-relaxed mt-2 max-w-[680px]">
+          <p className="text-[16px] sm:text-[19px] text-[var(--text-secondary)] leading-relaxed mt-2 max-w-[680px]">
             Carga cómo compras cada insumo, define las recetas y el panel calcula el costo por
             unidad, el costo de cada producto y su margen en tiempo real.
           </p>
 
           {/* 4 métricas */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-7">
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5">
-              <div className="flex items-center justify-between text-[#cccccc]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+              <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">
                   Insumos activos
                 </span>
                 <Package className="w-4 h-4 text-[#2997ff]" />
               </div>
-              <div className="text-[28px] font-semibold text-white tracking-tight mt-1">
+              <div className="text-[28px] font-semibold text-[var(--text)] tracking-tight mt-1">
                 {metricas.totalActivos}
               </div>
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">
@@ -101,28 +101,28 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
               </span>
             </div>
 
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5">
-              <div className="flex items-center justify-between text-[#cccccc]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+              <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">
                   Valor inventario
                 </span>
                 <TrendingUp className="w-4 h-4 text-[#34c759]" />
               </div>
-              <div className="text-[28px] font-semibold text-white tracking-tight mt-1">
+              <div className="text-[28px] font-semibold text-[var(--text)] tracking-tight mt-1">
                 {formatMXN(metricas.valorTotal)}
               </div>
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">Σ stock × costo unitario</span>
             </div>
 
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5">
-              <div className="flex items-center justify-between text-[#cccccc]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+              <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">Stock bajo</span>
                 <AlertCircle
                   className={`w-4 h-4 ${metricas.stockBajo > 0 ? 'text-[#ff3b30]' : 'text-[#7a7a7a]'}`}
                 />
               </div>
               <div className="mt-1 flex items-center space-x-2">
-                <span className="text-[28px] font-semibold text-white tracking-tight">
+                <span className="text-[28px] font-semibold text-[var(--text)] tracking-tight">
                   {metricas.stockBajo}
                 </span>
                 {metricas.stockBajo > 0 && (
@@ -136,12 +136,12 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
               </span>
             </div>
 
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5">
-              <div className="flex items-center justify-between text-[#cccccc]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+              <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">Categorías</span>
                 <Boxes className="w-4 h-4 text-[#2997ff]" />
               </div>
-              <div className="text-[28px] font-semibold text-white tracking-tight mt-1">
+              <div className="text-[28px] font-semibold text-[var(--text)] tracking-tight mt-1">
                 {metricas.categorias}
               </div>
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">Distintas en uso</span>
@@ -154,15 +154,15 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
       <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex items-center justify-between gap-3 mb-6">
-            <div className="flex items-center bg-white p-1 rounded-full border border-[#e0e0e0]">
+            <div className="flex items-center bg-[var(--surface)] p-1 rounded-full border border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => setSubTab('inventario')}
                 aria-current={subTab === 'inventario' ? 'page' : undefined}
                 className={`flex items-center space-x-1.5 px-4 min-h-[40px] text-[14px] rounded-full transition-all apple-pressable cursor-pointer ${
                   subTab === 'inventario'
-                    ? 'bg-[#1d1d1f] text-white font-semibold'
-                    : 'text-[#1d1d1f] hover:bg-[#f5f5f7]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)]'
                 }`}
               >
                 <Package className="w-3.5 h-3.5" />
@@ -174,8 +174,8 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
                 aria-current={subTab === 'recetas' ? 'page' : undefined}
                 className={`flex items-center space-x-1.5 px-4 min-h-[40px] text-[14px] rounded-full transition-all apple-pressable cursor-pointer ${
                   subTab === 'recetas'
-                    ? 'bg-[#1d1d1f] text-white font-semibold'
-                    : 'text-[#1d1d1f] hover:bg-[#f5f5f7]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)]'
                 }`}
               >
                 <ClipboardList className="w-3.5 h-3.5" />

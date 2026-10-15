@@ -382,7 +382,7 @@ export const AirPodsModule: React.FC = () => {
   return (
     <div className="w-full">
       {/* Hero: título + acciones */}
-      <div className="w-full bg-[#272729] text-white py-10 sm:py-16 px-4 sm:px-12 border-b border-[#333333]">
+      <div className="w-full bg-[var(--bg)] text-[var(--text)] py-10 sm:py-16 px-4 sm:px-12 border-b border-[var(--border)]">
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div>
             <div className="flex items-center space-x-2">
@@ -396,10 +396,10 @@ export const AirPodsModule: React.FC = () => {
               )}
             </div>
 
-            <h1 className="text-[34px] sm:text-[44px] lg:text-[52px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-white">
+            <h1 className="text-[34px] sm:text-[44px] lg:text-[52px] font-semibold tracking-[-0.025em] leading-[1.08] mt-2 text-[var(--text)]">
               Inventario AirPods 1.1
             </h1>
-            <p className="text-[17px] sm:text-[19px] text-[#cccccc] font-normal leading-relaxed mt-2 max-w-[620px]">
+            <p className="text-[17px] sm:text-[19px] text-[var(--text-secondary)] font-normal leading-relaxed mt-2 max-w-[620px]">
               Compras al proveedor, ventas al público y stock en tiempo real desde la colección
               'inventario_airpods'.
             </p>
@@ -407,7 +407,7 @@ export const AirPodsModule: React.FC = () => {
             {stockActual < 0 && (
               <div className="mt-4 inline-flex items-start space-x-2 px-3.5 py-2 rounded-[12px] bg-[#ff3b30]/15 border border-[#ff3b30]/40">
                 <AlertCircle className="w-4 h-4 text-[#ff453a] flex-shrink-0 mt-0.5" />
-                <span className="text-[13px] text-[#ff9f9a]">
+                <span className="text-[13px] text-[var(--negative)]">
                   Stock negativo ({stockActual}): hay más ventas registradas que compras. Registra
                   la compra que falta.
                 </span>
@@ -416,11 +416,11 @@ export const AirPodsModule: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-            <div className="bg-[#1f1f21] border border-[#3a3a3c] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
-              <span className="text-[12px] font-medium text-[#cccccc] uppercase tracking-wider block">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+              <span className="text-[12px] font-medium text-[var(--text-secondary)] uppercase tracking-wider block">
                 Movimientos
               </span>
-              <div className="text-[28px] font-semibold text-white tracking-tight mt-1">
+              <div className="text-[28px] font-semibold text-[var(--text)] tracking-tight mt-1">
                 {movimientosAirPods.length}
               </div>
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">
@@ -600,7 +600,7 @@ export const AirPodsModule: React.FC = () => {
             ) : (
               <>
                 {/* Encabezado (solo escritorio) */}
-                <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wide text-[#7a7a7a]">
+                <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] border-b border-[var(--border-soft)]">
                   <span className="col-span-3">Fecha</span>
                   <span className="col-span-2">Tipo</span>
                   <span className="col-span-2 text-center">Cantidad</span>
@@ -618,8 +618,10 @@ export const AirPodsModule: React.FC = () => {
                     return (
                       <div
                         key={mov.id}
-                        className={`grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center px-4 py-3.5 border-t border-[#f5f5f7] transition-colors ${
-                          enConfirmacion ? 'bg-[#fff5f5]' : 'hover:bg-[#fafafc]'
+                        className={`grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center px-4 py-3.5 border-t border-[var(--border-soft)] transition-colors ${
+                          enConfirmacion
+                            ? 'bg-[color-mix(in_srgb,var(--negative)_12%,transparent)]'
+                            : 'hover:bg-[var(--surface-elevated)]'
                         }`}
                       >
                         {/* Fecha + detalle */}

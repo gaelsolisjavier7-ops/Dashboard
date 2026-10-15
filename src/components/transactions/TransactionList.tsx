@@ -211,32 +211,39 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         }
       : undefined;
 
+  /* Control segmentado (Fase 3): contenedor --surface, activo --accent, 32px */
+  const segmentoClase = (activo: boolean) =>
+    `h-8 px-4 rounded-[8px] text-[13px] whitespace-nowrap transition-colors cursor-pointer ${
+      activo ? 'font-semibold' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+    }`;
+  const segmentoEstilo = (activo: boolean) =>
+    activo ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' } : undefined;
+
   return (
-    <div className="w-full py-6 px-4 sm:py-10 sm:px-12 bg-[#ffffff]">
+    <div className="w-full py-6 px-4 sm:py-10 sm:px-12 bg-[var(--bg)]">
       <div className="max-w-[1200px] mx-auto">
         {/* Header: título + CTA (en móvil manda el FAB) */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-[28px] sm:text-[36px] font-semibold tracking-[-0.02em] text-[var(--text)]">
+            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--text)]">
               Transacciones
             </h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-              {labelPeriodo} · {filteredTransactions.length} movimiento
-              {filteredTransactions.length === 1 ? '' : 's'}
+              Historial de movimientos
             </p>
           </div>
           <button
             type="button"
             onClick={onOpenNewTransaction}
-            className="apple-btn-primary hidden lg:inline-flex min-h-[44px] text-[15px] cursor-pointer"
+            className="apple-btn-primary hidden lg:inline-flex min-h-[40px] text-[15px] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Registro</span>
           </button>
         </div>
 
-        {/* Filtros de período */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mt-5">
+        {/* Filtros de período: control segmentado 40px */}
+        <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] overflow-x-auto no-scrollbar mt-5 w-fit max-w-full">
           {(
             [
               ['hoy', 'Hoy'],
@@ -245,17 +252,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               ['mes', 'Este mes'],
               ['todo', 'Todo el tiempo'],
             ] as [ChipPeriodo, string][]
-          ).map(([chip, label]) => (
-            <button
-              key={chip}
-              type="button"
-              onClick={() => irAPeriodo(chip)}
-              style={chipEstilo(chipPeriodoActivo === chip)}
-              className={chipClase(chipPeriodoActivo === chip)}
-            >
-              {label}
-            </button>
-          ))}
+          ).map(([chip, label]) => {
+            const activo = chipPeriodoActivo === chip;
+            return (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => irAPeriodo(chip)}
+                style={segmentoEstilo(activo)}
+                className={segmentoClase(activo)}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Filtros de negocio */}
@@ -277,19 +287,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         </div>
 
         {/* Búsqueda + tipo */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pb-5 border-b border-[#f0f0f0]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pb-5 border-b border-[var(--border-soft)]">
           <div className="relative flex-1 max-w-[420px]">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#7a7a7a]" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por concepto, categoría o notas..."
-              className="w-full min-h-[44px] pl-11 pr-4 rounded-full bg-[#f5f5f7] border border-[#e0e0e0] focus:border-[#0071e3] focus:bg-white outline-none text-[15px] transition-all"
+              className="w-full min-h-[44px] pl-11 pr-4 rounded-full bg-[var(--surface)] border border-[var(--border)] focus:border-[var(--accent)] placeholder:text-[var(--text-tertiary)] text-[var(--text)] outline-none text-[15px] transition-all"
             />
           </div>
 
-          <div className="flex items-center bg-[#f5f5f7] p-1 rounded-full border border-[#e0e0e0] self-start">
+          <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-[10px] border border-[var(--border)] self-start">
             {(
               [
                 ['all', `Todos (${filteredTransactions.length})`],
@@ -301,11 +311,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 key={tipo}
                 type="button"
                 onClick={() => setFilterType(tipo)}
-                className={`px-3 py-1.5 rounded-full text-[13px] transition-all apple-pressable cursor-pointer ${
+                className={`h-8 px-3 rounded-[8px] text-[13px] transition-colors apple-pressable cursor-pointer ${
                   filterType === tipo
-                    ? 'bg-[#1d1d1f] text-white font-medium'
-                    : 'text-[#1d1d1f] hover:bg-[#eaeaea]'
+                    ? 'font-semibold'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
                 }`}
+                style={
+                  filterType === tipo
+                    ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
+                    : undefined
+                }
               >
                 {label}
               </button>
@@ -315,16 +330,18 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
         {/* Lista agrupada por día */}
         {loadingTransactions ? (
-          <div className="apple-card bg-[#fafafc] text-center py-16 px-4 mt-6">
-            <span className="w-6 h-6 border-2 border-[#0066cc] border-t-transparent rounded-full animate-spin inline-block mb-3" />
-            <p className="text-[15px] text-[#7a7a7a]">Cargando transacciones desde Firestore...</p>
+          <div className="apple-card text-center py-16 px-4 mt-6">
+            <span className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin inline-block mb-3" />
+            <p className="text-[15px] text-[var(--text-secondary)]">
+              Cargando transacciones desde Firestore...
+            </p>
           </div>
         ) : displayedTransactions.length === 0 ? (
-          <div className="apple-card bg-[#fafafc] text-center py-16 px-4 mt-6">
-            <p className="text-[17px] font-semibold text-[#1d1d1f]">
+          <div className="apple-card text-center py-16 px-4 mt-6">
+            <p className="text-[17px] font-semibold text-[var(--text)]">
               Sin movimientos en este período
             </p>
-            <p className="text-[14px] text-[#7a7a7a] mt-1 max-w-[420px] mx-auto">
+            <p className="text-[14px] text-[var(--text-secondary)] mt-1 max-w-[420px] mx-auto">
               Prueba con otro rango de fechas o registra un movimiento: también puedes escribirlo
               por Telegram y aparecerá aquí solo.
             </p>
@@ -342,13 +359,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             {grupos.map((grupo) => (
               <section key={grupo.clave}>
                 {/* Encabezado del día: pegajoso en escritorio */}
-                <div className="sticky max-lg:static top-[96px] z-10 flex items-center justify-between gap-3 py-2 px-1 bg-[#f5f5f7] border-b border-[var(--border)]">
+                <div className="sticky max-lg:static top-[96px] z-10 flex items-center justify-between gap-3 py-2 px-1 bg-[var(--bg)] border-b border-[var(--border)]">
                   <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
                     {etiquetaDia(grupo.clave)}
                   </span>
                   <span
-                    className={`num-list text-[14px] font-medium ${
-                      grupo.neto >= 0 ? 'text-[#34c759]' : 'text-[#ff3b30]'
+                    className={`num-list num-strong text-[13px] ${
+                      grupo.neto >= 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]'
                     }`}
                   >
                     {grupo.neto >= 0 ? '+' : '−'}
@@ -370,15 +387,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     return (
                       <div
                         key={tx.id}
-                        className="group apple-card bg-white flex items-center gap-3 px-3 py-3 sm:px-4 hover:border-[var(--control)] transition-colors"
+                        className="group flex min-h-[72px] items-center gap-3 px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--control)] transition-colors"
                       >
                         {/* Dirección */}
                         <span
-                          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                           style={{
                             backgroundColor: isIncome
-                              ? 'color-mix(in srgb, var(--positive) 12%, transparent)'
-                              : 'color-mix(in srgb, var(--negative) 12%, transparent)',
+                              ? 'color-mix(in srgb, var(--positive) 15%, transparent)'
+                              : 'color-mix(in srgb, var(--negative) 15%, transparent)',
                             color: isIncome ? 'var(--positive)' : 'var(--negative)',
                           }}
                         >
@@ -402,7 +419,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
                         {/* Monto */}
                         <span
-                          className="num-list text-[20px] font-medium flex-shrink-0"
+                          className="num-list num-strong text-[20px] flex-shrink-0"
                           style={{ color: isIncome ? 'var(--positive)' : 'var(--negative)' }}
                         >
                           {isIncome ? '+' : '−'}
@@ -442,32 +459,29 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             ))}
 
             {/* Total del período */}
-            <div className="apple-card bg-white">
-              <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            <div
+              className="apple-card bg-[var(--surface)]"
+              style={{ borderTopWidth: 2, borderTopColor: 'var(--accent)' }}
+            >
+              <span className="block text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
                 Total del período
               </span>
               <div className="grid grid-cols-3 gap-3 mt-3">
                 <div>
                   <span className="block text-[12px] text-[var(--text-secondary)]">Ingresos</span>
-                  <span className="num-list text-[20px] font-medium text-[#34c759]">
+                  <span className="num-list num-strong text-[20px] text-[var(--positive)]">
                     {formatCurrency(totalesPeriodo.ingresos)}
                   </span>
                 </div>
                 <div>
                   <span className="block text-[12px] text-[var(--text-secondary)]">Gastos</span>
-                  <span className="num-list text-[20px] font-medium text-[#ff3b30]">
+                  <span className="num-list num-strong text-[20px] text-[var(--negative)]">
                     {formatCurrency(totalesPeriodo.gastos)}
                   </span>
                 </div>
                 <div>
                   <span className="block text-[12px] text-[var(--text-secondary)]">Neto</span>
-                  <span
-                    className={`num-list text-[20px] font-semibold ${
-                      totalesPeriodo.ingresos - totalesPeriodo.gastos >= 0
-                        ? 'text-[#34c759]'
-                        : 'text-[#ff3b30]'
-                    }`}
-                  >
+                  <span className="num-list num-bold text-[24px] text-[var(--text)]">
                     {formatCurrency(totalesPeriodo.ingresos - totalesPeriodo.gastos)}
                   </span>
                 </div>
@@ -481,24 +495,24 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         )}
 
         {/* Utilidades: exportar / importar */}
-        <div className="mt-12 pt-6 border-t border-[#f0f0f0] flex flex-wrap items-center justify-between gap-4 text-[13px] text-[#7a7a7a]">
+        <div className="mt-12 pt-6 border-t border-[var(--border-soft)] flex flex-wrap items-center justify-between gap-4 text-[13px] text-[var(--text-secondary)]">
           <div className="flex items-center space-x-4">
             <button
               onClick={handleExport}
-              className="flex items-center space-x-1 hover:text-[#1d1d1f] transition-colors cursor-pointer"
+              className="flex items-center space-x-1 hover:text-[var(--text)] transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Exportar JSON desde Firestore</span>
             </button>
 
-            <label className="flex items-center space-x-1 hover:text-[#1d1d1f] transition-colors cursor-pointer">
+            <label className="flex items-center space-x-1 hover:text-[var(--text)] transition-colors cursor-pointer">
               <Upload className="w-3.5 h-3.5" />
               <span>Importar a Firestore</span>
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
           </div>
 
-          <span className="text-[12px] text-[#8e8e93]">
+          <span className="text-[12px] text-[var(--text-tertiary)]">
             Sincronización en tiempo real con Firestore activada
           </span>
         </div>

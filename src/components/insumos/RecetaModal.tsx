@@ -320,7 +320,7 @@ export const RecetaModal: React.FC<RecetaModalProps> = ({
               }`}
             >
               <span
-                className={`w-5 h-5 rounded-full bg-white shadow transition-transform mx-1 ${
+                className={`w-5 h-5 rounded-full bg-[var(--accent-ink)] shadow transition-transform mx-1 ${
                   incluyePapas ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
@@ -339,7 +339,7 @@ export const RecetaModal: React.FC<RecetaModalProps> = ({
             <div className="rounded-[14px] bg-[#f5f5f7] border border-[#e0e0e0] p-4">
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[#7a7a7a] block">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] block">
                     Costo total
                   </span>
                   <span className="text-[20px] font-semibold text-[#1d1d1f] tracking-tight">
@@ -352,7 +352,7 @@ export const RecetaModal: React.FC<RecetaModalProps> = ({
                   )}
                 </div>
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[#7a7a7a] block">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] block">
                     Ganancia
                   </span>
                   <span className={`text-[20px] font-semibold tracking-tight ${TEXTO_MARGEN[resumen.color]}`}>
@@ -360,7 +360,7 @@ export const RecetaModal: React.FC<RecetaModalProps> = ({
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[#7a7a7a] block">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] block">
                     Margen
                   </span>
                   <span
