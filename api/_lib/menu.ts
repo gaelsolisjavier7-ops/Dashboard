@@ -136,7 +136,7 @@ function tokensDistintivos(producto: ProductoMenuBot): string[] {
 }
 
 function familiaDe(texto: string): CategoriaMenu | null {
-  // "jumbo" es como el cliente llama al hot dog en este negocio.
+  // "jumbo" es como el cliente llama al hot dog CON papas en este negocio.
   if (/(hot ?dog|hotdog|perro|jocho|jumbo)s?/.test(texto)) return 'Hot Dogs';
   if (/(hamburguesa|burger|burguer)s?/.test(texto)) return 'Hamburguesas';
   if (/\bpapas\b/.test(texto)) return 'Extras';

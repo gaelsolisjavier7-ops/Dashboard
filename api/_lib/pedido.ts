@@ -134,11 +134,15 @@ export function detectarModalidad(texto: unknown): Modalidad {
   return 'ambiguo';
 }
 
-/** "con papas" ⇒ precio con papas; "sin papas" o silencio ⇒ precio sin papas. */
+/**
+ * "con papas" ⇒ precio con papas; "sin papas" manda; "jumbo" ⇒ hot dog CON
+ * papas (así pide el cliente en México); silencio ⇒ precio sin papas.
+ */
 export function detectarConPapas(texto: unknown): boolean {
   const limpio = normalizarTexto(texto);
   if (/\bsin papas\b/.test(limpio)) return false;
-  return /\bcon papas\b/.test(limpio);
+  if (/\bcon papas\b/.test(limpio)) return true;
+  return /\bjumbos?\b/.test(limpio);
 }
 
 export function detectarMetodoPago(texto: unknown, sugerido?: unknown): MetodoPago {

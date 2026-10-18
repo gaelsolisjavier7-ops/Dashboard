@@ -207,10 +207,13 @@ t('no inventa direcciones cuando no hay una clara', () => {
   assert.equal(extraerDireccion(''), null);
 });
 
-t('"con papas" y "sin papas"', () => {
+t('"con papas", "sin papas" y "jumbo"', () => {
   assert.equal(detectarConPapas('1 hot dog sencillo con papas'), true);
   assert.equal(detectarConPapas('1 hot dog sencillo sin papas'), false);
   assert.equal(detectarConPapas('1 hot dog sencillo'), false);
+  assert.equal(detectarConPapas('un jumbo tocino'), true);
+  assert.equal(detectarConPapas('un jumbo'), true);
+  assert.equal(detectarConPapas('un jumbo sin papas'), false);
 });
 
 t('método de pago detectado del texto', () => {
@@ -307,14 +310,30 @@ t('lista multilínea con "jumbo" y "pollo" detecta los 3 productos', () => {
   );
   assert.equal(operacion.tipo, 'pedido');
   assert.deepEqual(
-    operacion.productos.map((p) => [p.nombre, p.precioUnitario]),
+    operacion.productos.map((p) => [p.nombre, p.precioUnitario, p.conPapas]),
     [
-      ['Burguer de Pollo', 120],
-      ['Burger Hawaiana', 125],
-      ['Hot Dog Tocino', 65],
+      ['Burguer de Pollo', 120, false],
+      ['Burger Hawaiana', 125, false],
+      ['Hot Dog Tocino', 75, true],
     ]
   );
-  assert.equal(operacion.subtotalProductos, 310);
+  assert.equal(operacion.subtotalProductos, 320);
+});
+
+t('"jumbo" siempre cobra el precio con papas del hot dog', () => {
+  for (const [nombre, esperado] of [
+    ['Hot Dog Sencillo', 50],
+    ['Hot Dog Tocino', 75],
+    ['Hot Dog Hawaiano', 75],
+    ['Hot Dog Queso', 55],
+  ]) {
+    const operacion = normalizarOperacion(
+      { tipo: 'pedido', productos: [{ nombre, cantidad: 1 }] },
+      `un jumbo (${nombre})`
+    );
+    assert.equal(operacion.productos[0].precioUnitario, esperado, nombre);
+    assert.equal(operacion.productos[0].conPapas, true, nombre);
+  }
 });
 
 t('la modalidad la decide el texto, no el modelo', () => {
