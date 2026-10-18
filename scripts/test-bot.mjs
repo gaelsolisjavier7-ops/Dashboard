@@ -77,8 +77,8 @@ const AHORA = Date.UTC(2026, 9, 12, 21, 30);
 /* ═══════════════════════ 1. Menú y precios ═══════════════════════ */
 grupo('1. Menú y precios');
 
-t('el catálogo del bot tiene los 10 productos del menú', () => {
-  assert.equal(PRODUCTOS.length, 10);
+t('el catálogo del bot tiene los 11 productos del menú', () => {
+  assert.equal(PRODUCTOS.length, 11);
 });
 
 t('precios exactos del negocio', () => {
@@ -86,6 +86,7 @@ t('precios exactos del negocio', () => {
   assert.equal(precioProducto('Burger Tocino'), 110);
   assert.equal(precioProducto('Burger Hawaiana'), 125);
   assert.equal(precioProducto('Burger Especial'), 150);
+  assert.equal(precioProducto('Burguer de Pollo'), 120);
   assert.equal(precioProducto('Hot Dog Sencillo'), 40);
   assert.equal(precioProducto('Hot Dog Queso', true), 55);
   assert.equal(precioProducto('Hot Dog Tocino', true), 75);
@@ -123,6 +124,14 @@ t('busca productos escritos de mil formas', () => {
   assert.equal(buscarProducto('combinado')?.nombre, 'Hot Dog Combinado');
 });
 
+t('sinónimos locales: "pollo" y "jumbo"', () => {
+  assert.equal(buscarProducto('Burguer de Pollo')?.nombre, 'Burguer de Pollo');
+  assert.equal(buscarProducto('una burguer pollo')?.nombre, 'Burguer de Pollo');
+  assert.equal(buscarProducto('pollo')?.nombre, 'Burguer de Pollo');
+  assert.equal(buscarProducto('un jumbo tocino')?.nombre, 'Hot Dog Tocino');
+  assert.equal(buscarProducto('jumbo hawaiano')?.nombre, 'Hot Dog Hawaiano');
+});
+
 t('"tocino" sin familia no rompe (elige hamburguesa)', () => {
   assert.equal(buscarProducto('tocino')?.nombre, 'Burger Tocino');
 });
@@ -133,7 +142,7 @@ t('un producto inexistente devuelve null', () => {
 });
 
 t('el menú que ve Gemini es el que pidió el negocio', () => {
-  assert.ok(MENU_TEXTO.includes('HAMBURGUESAS: Sencilla $100 | Tocino $110 | Hawaiana $125 | Especial $150'));
+  assert.ok(MENU_TEXTO.includes('HAMBURGUESAS: Sencilla $100 | Tocino $110 | Hawaiana $125 | Especial $150 | Pollo $120'));
   assert.ok(MENU_TEXTO.includes('HOT DOGS (sin/con papas): Sencillo $40/$50 | Queso $45/$55 | Tocino $65/$75 | Hawaiano $70/$75 | Combinado $80/$90'));
   assert.ok(MENU_TEXTO.includes('EXTRAS: Papas $50'));
   assert.ok(MENU_TEXTO.includes('ENVÍO: A domicilio $30'));
@@ -281,6 +290,31 @@ t('recalcula precios y totales ignorando lo que dijo el modelo', () => {
   assert.equal(operacion.subtotalProductos, 365);
   assert.equal(operacion.cargoEnvio, 30);
   assert.equal(operacion.total, 395);
+});
+
+t('lista multilínea con "jumbo" y "pollo" detecta los 3 productos', () => {
+  const mensaje = 'Voy a querer\nUna burguer pollo\nUna burguer hawaiana\nUn jumbo tocino\nPor favor';
+  const operacion = normalizarOperacion(
+    {
+      tipo: 'pedido',
+      productos: [
+        { nombre: 'Burguer de Pollo', cantidad: 1 },
+        { nombre: 'Burger Hawaiana', cantidad: 1 },
+        { nombre: 'Hot Dog de Tocino', cantidad: 1 },
+      ],
+    },
+    mensaje
+  );
+  assert.equal(operacion.tipo, 'pedido');
+  assert.deepEqual(
+    operacion.productos.map((p) => [p.nombre, p.precioUnitario]),
+    [
+      ['Burguer de Pollo', 120],
+      ['Burger Hawaiana', 125],
+      ['Hot Dog Tocino', 65],
+    ]
+  );
+  assert.equal(operacion.subtotalProductos, 310);
 });
 
 t('la modalidad la decide el texto, no el modelo', () => {

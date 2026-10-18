@@ -33,6 +33,8 @@ REGLAS:
   Copia SÓLO la dirección (calle, número, colonia): sin "domicilio", sin "a domicilio" y sin la forma de pago ("efectivo", "transferencia").
 - Si el mensaje menciona "domicilio" o "envío" PERO no se lee una dirección clara, pone "direccion": null y "confianza": "baja".
 - "cliente": el nombre si aparece, si no "Cliente WhatsApp".
+- Presta mucha atención a los pedidos que vienen en múltiples líneas o con introducciones como 'voy a querer'. Extrae CADA producto mencionado. Si el cliente dice 'jumbo', se refiere a un Hot Dog. Si dice 'pollo', es la Burguer de Pollo. NO omitas productos.
+- Ignora las frases introductorias ("voy a querer", "me das", "quiero", "por favor", "gracias"): no son productos.
 - No inventes productos que no estén en el menú ni cantidades que no se mencionen.`;
 
 export const ESQUEMA_RESPUESTA = {

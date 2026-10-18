@@ -51,6 +51,12 @@ export const PRODUCTOS: ProductoMenuBot[] = [
     alias: ['especial', 'burguer especial', 'burger especial', 'hamburguesa especial', 'hamburguesa doble'],
   },
   {
+    nombre: 'Burguer de Pollo',
+    categoria: 'Hamburguesas',
+    precio: 120,
+    alias: ['pollo', 'hamburguesa de pollo', 'burger pollo', 'burguer pollo', 'hamburguesa con pollo'],
+  },
+  {
     nombre: 'Hot Dog Sencillo',
     categoria: 'Hot Dogs',
     precio: 40,
@@ -94,7 +100,7 @@ export const PRODUCTOS: ProductoMenuBot[] = [
 ];
 
 /** Texto del menú que se le pasa a Gemini (idéntico al que pidió el negocio). */
-export const MENU_TEXTO = `HAMBURGUESAS: Sencilla $100 | Tocino $110 | Hawaiana $125 | Especial $150
+export const MENU_TEXTO = `HAMBURGUESAS: Sencilla $100 | Tocino $110 | Hawaiana $125 | Especial $150 | Pollo $120
 HOT DOGS (sin/con papas): Sencillo $40/$50 | Queso $45/$55 | Tocino $65/$75 | Hawaiano $70/$75 | Combinado $80/$90
 EXTRAS: Papas $50
 ENVÍO: A domicilio $30`;
@@ -116,7 +122,7 @@ export function normalizarTexto(texto: unknown): string {
 /** Palabras que no distinguen un producto de otro (familia o relleno). */
 const PALABRAS_GENERICAS = new Set([
   'hamburguesa', 'hamburguesas', 'burger', 'burgers', 'burguer', 'burguers',
-  'hot', 'dog', 'dogs', 'hotdog', 'hotdogs', 'perro', 'perros', 'jocho', 'jochos',
+  'hot', 'dog', 'dogs', 'hotdog', 'hotdogs', 'perro', 'perros', 'jocho', 'jochos', 'jumbo', 'jumbos',
   'orden', 'porcion', 'porciones', 'de', 'del', 'la', 'el', 'los', 'las',
   'con', 'sin', 'y', 'a', 'para', 'una', 'uno', 'unos', 'unas', 'mi', 'al',
 ]);
@@ -130,7 +136,8 @@ function tokensDistintivos(producto: ProductoMenuBot): string[] {
 }
 
 function familiaDe(texto: string): CategoriaMenu | null {
-  if (/(hot ?dog|hotdog|perro|jocho)s?/.test(texto)) return 'Hot Dogs';
+  // "jumbo" es como el cliente llama al hot dog en este negocio.
+  if (/(hot ?dog|hotdog|perro|jocho|jumbo)s?/.test(texto)) return 'Hot Dogs';
   if (/(hamburguesa|burger|burguer)s?/.test(texto)) return 'Hamburguesas';
   if (/\bpapas\b/.test(texto)) return 'Extras';
   return null;
