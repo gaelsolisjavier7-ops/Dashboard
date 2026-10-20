@@ -189,7 +189,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     activo ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' } : undefined;
 
   return (
-    <div className="w-full py-6 px-4 sm:py-10 sm:px-12 bg-[var(--bg)]">
+    <div className="w-full py-6 px-4 sm:py-10 sm:px-12 bg-transparent">
       <div className="max-w-[1200px] mx-auto">
         {/* Header: título + CTA (en móvil manda el FAB) */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -212,7 +212,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         </div>
 
         {/* Filtros de período: control segmentado 40px */}
-        <div className="flex items-center gap-1 p-1 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] overflow-x-auto no-scrollbar mt-5 w-fit max-w-full">
+        <div className="glass-card flex items-center gap-1 p-1 rounded-[10px] overflow-x-auto no-scrollbar mt-5 w-fit max-w-full">
           {(
             [
               ['hoy', 'Hoy'],
@@ -238,7 +238,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         </div>
 
         {/* Búsqueda + tipo */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pb-5 border-b border-[var(--border-soft)]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pb-5 border-b border-white/5">
           <div className="relative flex-1 max-w-[420px]">
             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
             <input
@@ -246,11 +246,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por concepto, categoría o notas..."
-              className="w-full min-h-[44px] pl-11 pr-4 rounded-full bg-[var(--surface)] border border-[var(--border)] focus:border-[var(--accent)] placeholder:text-[var(--text-tertiary)] text-[var(--text)] outline-none text-[15px] transition-all"
+              className="w-full min-h-[44px] pl-11 pr-4 rounded-full bg-white/5 border border-white/10 focus:border-[var(--accent)] placeholder:text-[var(--text-tertiary)] text-[var(--text)] outline-none text-[15px] transition-all"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-[10px] border border-[var(--border)] self-start">
+          <div className="glass-card flex items-center gap-1 p-1 rounded-[10px] self-start">
             {(
               [
                 ['all', `Todos (${filteredTransactions.length})`],
@@ -281,14 +281,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
         {/* Lista agrupada por día */}
         {loadingTransactions ? (
-          <div className="apple-card text-center py-16 px-4 mt-6">
+          <div className="glass-card text-center py-16 px-4 mt-6 rounded-[20px]">
             <span className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin inline-block mb-3" />
             <p className="text-[15px] text-[var(--text-secondary)]">
               Cargando transacciones desde Firestore...
             </p>
           </div>
         ) : displayedTransactions.length === 0 ? (
-          <div className="apple-card text-center py-16 px-4 mt-6">
+          <div className="glass-card text-center py-16 px-4 mt-6 rounded-[20px]">
             <p className="text-[17px] font-semibold text-[var(--text)]">
               Sin movimientos en este período
             </p>
@@ -310,7 +310,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             {grupos.map((grupo) => (
               <section key={grupo.clave}>
                 {/* Encabezado del día: pegajoso en escritorio */}
-                <div className="sticky max-lg:static top-[96px] z-10 flex items-center justify-between gap-3 py-2 px-1 bg-[var(--bg)] border-b border-[var(--border)]">
+                <div className="sticky max-lg:static top-[96px] z-10 flex items-center justify-between gap-3 py-2 px-1 bg-[#09080a]/80 backdrop-blur-md border-b border-white/10">
                   <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
                     {etiquetaDia(grupo.clave)}
                   </span>
@@ -338,7 +338,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     return (
                       <div
                         key={tx.id}
-                        className="group flex min-h-[72px] items-center gap-3 px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--control)] transition-colors"
+                        className="glass-card group flex min-h-[72px] items-center gap-3 px-4 py-3 rounded-[12px] hover:bg-white/[0.07] transition-colors"
                       >
                         {/* Dirección */}
                         <span
@@ -384,7 +384,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             onClick={() => onEditTransaction(tx)}
                             title="Editar"
                             aria-label={`Editar ${titulo}`}
-                            className="p-2.5 rounded-full text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                            className="p-2.5 rounded-full text-[var(--text-secondary)] hover:bg-white/10 hover:text-[var(--text)] transition-colors cursor-pointer"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -411,7 +411,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
             {/* Total del período */}
             <div
-              className="apple-card bg-[var(--surface)]"
+              className="glass-card rounded-[20px] p-6"
               style={{ borderTopWidth: 2, borderTopColor: 'var(--accent)' }}
             >
               <span className="block text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
@@ -446,7 +446,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         )}
 
         {/* Utilidades: exportar / importar */}
-        <div className="mt-12 pt-6 border-t border-[var(--border-soft)] flex flex-wrap items-center justify-between gap-4 text-[13px] text-[var(--text-secondary)]">
+        <div className="mt-12 pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 text-[13px] text-[var(--text-secondary)]">
           <div className="flex items-center space-x-4">
             <button
               onClick={handleExport}

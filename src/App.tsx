@@ -65,7 +65,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
   const esSeccionCosteo = seccion === 'insumos' || seccion === 'recetas';
 
   return (
-    <div className="min-h-screen flex bg-[var(--bg)] text-[var(--text)]">
+    <div className="ambient-bg min-h-screen flex bg-[#09080a] text-[var(--text)]">
       {/* Sidebar de escritorio (lg+): reemplaza al menú del header y a la BottomNav */}
       <Sidebar
         currentTab={currentTab}
@@ -91,7 +91,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
       />
 
       {/* Main Content Areas */}
-      <main className="flex-1 bg-[var(--bg)]">
+      <main className="flex-1 bg-transparent">
         {currentTab === 'dashboard' &&
           (esSeccionCosteo ? (
             /* Insumos y Recetas: módulo de costeo con sub-tabs Inventario | Recetas */
@@ -111,7 +111,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
               <PedidosRecientes />
 
               {/* 3. Charts & Financial Deep-dive (mismo --bg) */}
-              <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[var(--bg)] border-b border-[var(--border-soft)]">
+              <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-transparent border-b border-white/5">
                 <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-10">
                   <ExpenseCategoryChart />
                 </div>

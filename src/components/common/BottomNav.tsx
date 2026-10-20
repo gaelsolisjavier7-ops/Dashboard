@@ -27,7 +27,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, setCurrentTab 
   return (
     <nav
       aria-label="Navegación principal"
-      className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--surface)] backdrop-blur-xl border-t border-[var(--border)] flex justify-around pt-2 bottom-nav-safe select-none"
+      className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#09080a]/80 backdrop-blur-xl border-t border-white/10 flex justify-around pt-2 bottom-nav-safe select-none"
     >
       {tabs.map((tab) => {
         const activo = currentTab === tab;
@@ -37,8 +37,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, setCurrentTab 
             type="button"
             onClick={() => setCurrentTab(tab)}
             aria-current={activo ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center space-y-0.5 px-5 py-1 rounded-[12px] transition-colors cursor-pointer ${
-              activo ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'
+            className={`flex flex-col items-center justify-center space-y-0.5 px-5 py-1 rounded-[12px] border transition-colors cursor-pointer ${
+              activo
+                ? 'text-[var(--text)] bg-white/10 border-white/10'
+                : 'text-[var(--text-secondary)] border-transparent'
             }`}
           >
             {TAB_CONFIG[tab].icon}

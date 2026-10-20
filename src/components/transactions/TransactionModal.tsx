@@ -214,22 +214,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const inputClase =
-    'w-full text-[15px] min-h-[48px] px-3.5 rounded-[12px] bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] focus:border-[var(--accent)] outline-none transition-colors';
+    'w-full text-[15px] min-h-[48px] px-3.5 rounded-[12px] bg-white/5 border border-white/10 text-[var(--text)] placeholder:text-white/30 focus:border-[var(--accent)] focus:bg-white/[0.07] outline-none transition-colors';
   const labelClase =
     'block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] mb-2';
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4">
-      <div className="w-full sm:max-w-[520px] h-full sm:h-auto sm:max-h-[92vh] bg-[var(--bg)] sm:rounded-[20px] border-0 sm:border sm:border-[var(--border)] flex flex-col overflow-hidden">
+      <div className="w-full sm:max-w-[520px] h-full sm:h-auto sm:max-h-[92vh] modal-card sm:rounded-[24px] flex flex-col overflow-hidden">
         {/* Header (sticky en móvil: va fijo arriba del panel flex) */}
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--border)] flex-shrink-0">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10 flex-shrink-0">
           <h3 className="text-[20px] font-semibold tracking-[-0.28px] text-[var(--text)]">
             {editingTransaction ? 'Editar Registro' : 'Nuevo Registro'}
           </h3>
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="w-9 h-9 rounded-full hover:bg-[var(--surface-elevated)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
+            className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -238,7 +238,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
             {/* 1. Tipo: Pedido (ingreso) vs Gasto */}
-            <div className="flex gap-1.5 p-1.5 rounded-[12px] bg-[var(--surface-elevated)]">
+            <div className="flex gap-1.5 p-1.5 rounded-[12px] bg-white/5 border border-white/10">
               {[
                 { id: 'ingreso' as TransactionType, label: 'Pedido', Icono: ShoppingCart },
                 { id: 'gasto' as TransactionType, label: 'Gasto', Icono: Banknote },
@@ -289,7 +289,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     type="button"
                     onClick={abrirSelectorTicket}
                     disabled={escaneando}
-                    className="w-full min-h-[48px] rounded-[12px] border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] text-[14px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                    className="w-full min-h-[48px] rounded-[12px] border border-dashed border-white/15 bg-white/5 text-[14px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text)] hover:bg-white/[0.07] transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
                   >
                     {escaneando ? (
                       <>
@@ -331,7 +331,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 )}
 
                 {ticket && (
-                  <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
+                  <div className="rounded-[14px] border border-white/10 bg-white/5 p-3">
                     {ticket.confianza === 'baja' && (
                       <div
                         className="mb-2.5 flex items-center gap-2 px-2.5 py-2 rounded-[10px] border"
@@ -351,7 +351,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <img
                         src={ticket.preview}
                         alt="Ticket escaneado"
-                        className="w-16 h-16 rounded-[10px] object-cover border border-[var(--border)] flex-shrink-0"
+                        className="w-16 h-16 rounded-[10px] object-cover border border-white/10 flex-shrink-0"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -421,7 +421,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           setTicketAplicado(false);
                           resetTicket();
                         }}
-                        className="min-h-[44px] px-3 rounded-full border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                        className="min-h-[44px] px-3 rounded-full border border-white/10 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer"
                       >
                         Descartar
                       </button>
@@ -446,7 +446,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="$0.00"
-                className="num-input num-hero w-full bg-transparent text-center text-[44px] leading-tight text-[var(--text)] outline-none border-0 border-b border-[var(--border)] focus:border-[var(--accent)] placeholder:text-[var(--text-tertiary)] pb-2 transition-colors"
+                className="num-input num-hero w-full bg-transparent text-center text-[44px] leading-tight text-[var(--text)] outline-none border-0 border-b border-white/10 focus:border-[var(--accent)] placeholder:text-[var(--text-tertiary)] pb-2 transition-colors"
               />
             </div>
 
@@ -469,7 +469,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   className={`num-list min-h-[44px] rounded-[10px] border text-[15px] transition-colors cursor-pointer ${
                     montoNumero === monto
                       ? 'font-semibold'
-                      : 'border-[var(--border)] bg-[var(--surface)] font-medium text-[var(--text)] hover:border-[var(--accent)]'
+                      : 'border-white/10 bg-white/5 font-medium text-[var(--text)] hover:border-[var(--accent)]'
                   }`}
                 >
                   ${monto}
@@ -488,7 +488,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         key={producto.id}
                         type="button"
                         onClick={() => agregarProducto(producto.nombre, producto.precio)}
-                        className="min-h-[56px] px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer flex items-center gap-3 text-left"
+                        className="min-h-[56px] px-4 py-3 rounded-[12px] border border-white/10 bg-white/5 text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-3 text-left"
                       >
                         <Icono className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]" />
                         <span className="flex-1 truncate">{nombreCorto(producto.nombre)}</span>
@@ -504,7 +504,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     type="button"
                     onClick={() => setHotDogsAbiertos((previo) => !previo)}
                     aria-expanded={hotDogsAbiertos}
-                    className="min-h-[48px] px-4 col-span-2 rounded-[12px] border border-dashed border-[var(--border)] text-[15px] font-semibold text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    className="min-h-[48px] px-4 col-span-2 rounded-[12px] border border-dashed border-white/10 text-[15px] font-semibold text-[var(--text)] hover:border-[var(--accent)] transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     <UtensilsCrossed className="w-5 h-5 text-[var(--text-secondary)]" />
                     <span>Hot Dogs</span>
@@ -521,7 +521,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         <button
                           type="button"
                           onClick={() => agregarHotDog(producto.nombre, producto.precio, false)}
-                          className="min-h-[52px] px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer flex items-center gap-2 text-left"
+                          className="min-h-[52px] px-4 py-3 rounded-[12px] border border-white/10 bg-white/5 text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2 text-left"
                         >
                           <UtensilsCrossed className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]" />
                           <span className="flex-1 truncate">{nombreCorto(producto.nombre)}</span>
@@ -535,7 +535,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                             onClick={() =>
                               agregarHotDog(producto.nombre, producto.precioConPapas!, true)
                             }
-                            className="min-h-[52px] px-4 py-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer flex items-center gap-2 text-left"
+                            className="min-h-[52px] px-4 py-3 rounded-[12px] border border-white/10 bg-white/5 text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2 text-left"
                           >
                             <Utensils className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-secondary)]" />
                             <span className="flex-1 truncate">
@@ -603,7 +603,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       className={`flex-1 min-w-[104px] min-h-[36px] px-4 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
                         activo
                           ? 'font-semibold border-transparent'
-                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+                          : 'border-white/10 bg-white/5 text-[var(--text-secondary)] hover:text-[var(--text)]'
                       }`}
                     >
                       {metodo.label}
@@ -639,13 +639,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
 
           {/* Footer sticky con el botón Guardar */}
-          <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--bg)] px-5 py-4">
+          <div className="flex-shrink-0 border-t border-white/10 bg-white/[0.03] px-5 py-4">
             <button
               type="submit"
               disabled={!puedeGuardar}
               style={
                 puedeGuardar || submitting
-                  ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
+                  ? {
+                      backgroundColor: 'var(--accent)',
+                      backgroundImage:
+                        'linear-gradient(135deg, #0a84ff 0%, #3b9dff 52%, #0a84ff 100%)',
+                      color: 'var(--accent-ink)',
+                      boxShadow: '0 10px 28px rgba(10, 132, 255, 0.3)',
+                    }
                   : { backgroundColor: 'var(--control)', color: 'var(--text-tertiary)' }
               }
               className="w-full h-14 rounded-[16px] text-[17px] font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"

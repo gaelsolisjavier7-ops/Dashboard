@@ -1,151 +1,172 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
-/* OJO: las fuentes se cargan con <link> en index.html. Un @import aquí se
-   emitiría DESPUÉS de las reglas de Tailwind en el bundle y el navegador lo
-   ignoraría (Inter/JetBrains Mono nunca se descargaban), por eso se quitó. */
+:root {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+  font-synthesis: none;
+}
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TEMA · FASE 1 del rediseño (dark por defecto)
-   ---------------------------------------------------------------------------
-   La paleta vive en variables CSS. El dark es el default; el light se activa
-   con <html data-theme="light"> (no hay toggle en la UI todavía, pero los
-   valores originales quedan intactos para que siga funcionando).
+* {
+  box-sizing: border-box;
+}
 
-   Los componentes tienen hex literales en utilidades de Tailwind
-   (bg-white, text-[#1d1d1f]…). Para no tocarlos uno por uno, más abajo hay una
-   capa de remapeo con selectores de atributo ([class~="bg-white"]) que vive
-   FUERA de @layer: así gana a las utilidades de Tailwind (que sí van en @layer)
-   sin necesidad de !important. Es una capa TRANSITORIA: en FASE 2/3 los
-   componentes usan los tokens directamente y esta capa se puede borrar.
-   ═══════════════════════════════════════════════════════════════════════════ */
+html {
+  background: #09080a;
+}
 
-@layer base {
-  /* ═══ Paleta "Cupertino Midnight" (Apple dark mode) ═══ */
-  :root {
-    /* ── Superficies ── */
-    --bg: #1c1c1e;               /* iOS Dark Gray 6 · gris, nunca negro puro */
-    --surface: #2c2c2e;          /* iOS Dark Gray 5 · hace "flotar" las cards */
-    --surface-elevated: #3a3a3c; /* iOS Dark Gray 4 */
-    --surface-inset: #1c1c1e;    /* campos hundidos dentro de una card */
-    --border: #38383a;
-    --border-soft: #2c2c2e;
-    --control: #48484a;
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #09080a;
+}
 
-    /* ── Semánticos ── */
-    --positive: #2dd058; /* ingreso */
-    --negative: #ff453a; /* gasto */
-    --pending: #ff9f0a;  /* pendiente */
+button,
+input {
+  font: inherit;
+}
 
-    /* ── Acento (Apple Blue dark) ── */
-    --accent: #0a84ff;
-    --accent-hover: #409cff;
-    --accent-ink: #ffffff;
+button {
+  cursor: pointer;
+}
 
-    /* ── Texto ── */
-    --text: #ffffff;
-    --text-secondary: #8e8e93; /* iOS Secondary Label */
-    --text-tertiary: #636366;
-    --text-muted: var(--text-tertiary); /* alias: lo usan la capa de remapeo y el modal */
-    --text-on-dark: #ffffff;
+.ambient-bg {
+  background:
+    radial-gradient(circle at 82% 8%, rgba(177, 36, 15, 0.17), transparent 27%),
+    radial-gradient(circle at 50% 60%, rgba(232, 76, 28, 0.06), transparent 34%),
+    radial-gradient(circle at 12% 94%, rgba(104, 26, 19, 0.1), transparent 31%);
+}
 
-    /* ── Tipografía ── */
-    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+.glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
 
-    /* ── Superficies compuestas ── */
-    --frost: rgba(28, 28, 30, 0.82);
+.hero-card {
+  border: 1px solid rgba(255, 152, 110, 0.2);
+  background:
+    linear-gradient(145deg, rgba(103, 32, 21, 0.58), rgba(27, 14, 16, 0.72)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 24px 55px rgba(86, 22, 10, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
 
-    /* Compatibilidad con los tokens Apple previos (ya no se usan en componentes) */
-    --apple-primary: var(--accent);
-    --apple-primary-focus: var(--accent-hover);
-    --apple-primary-on-dark: var(--accent);
-    --apple-ink: var(--text);
-    --apple-body: var(--text);
-    --apple-body-on-dark: var(--text-on-dark);
-    --apple-body-muted: var(--text-secondary);
-    --apple-ink-muted-80: var(--text-secondary);
-    --apple-ink-muted-48: var(--text-tertiary);
-    --apple-divider-soft: var(--border-soft);
-    --apple-hairline: var(--border);
-    --apple-canvas: var(--bg);
-    --apple-canvas-parchment: var(--bg);
-    --apple-surface-pearl: var(--surface-elevated);
-    --apple-surface-tile-1: var(--bg);
-    --apple-surface-tile-2: var(--surface-elevated);
-    --apple-surface-tile-3: var(--surface);
-    --apple-surface-black: var(--bg);
-    --apple-surface-chip-translucent: var(--control);
+.modal-card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(145deg, rgba(34, 28, 30, 0.94), rgba(14, 12, 14, 0.96));
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  animation: modal-in 220ms ease-out;
+}
 
-    color-scheme: dark;
+.category-ring {
+  background: conic-gradient(
+    #ff6a3d 0deg 151deg,
+    #ffae65 151deg 252deg,
+    #a65bff 252deg 317deg,
+    rgba(255, 255, 255, 0.16) 317deg 360deg
+  );
+  box-shadow: 0 0 35px rgba(235, 80, 39, 0.12);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
   }
-
-  /* Light mode opcional: mismos valores que antes del rediseño */
-  html[data-theme="light"] {
-    --bg: #ffffff;
-    --surface: #ffffff;
-    --surface-elevated: #fafafc;
-    --surface-inset: #f5f5f7;
-    --border: #e0e0e0;
-    --border-soft: #f0f0f0;
-    --control: #d2d2d7;
-    --accent: #0066cc;
-    --accent-hover: #0071e3;
-    --accent-ink: #ffffff;
-    --text: #1d1d1f;
-    --text-secondary: #7a7a7a;
-    --text-tertiary: #8e8e93;
-    --text-muted: var(--text-tertiary);
-    --text-on-dark: #ffffff;
-    --frost: rgba(245, 245, 247, 0.82);
-    color-scheme: light;
-  }
-
-  /* OJO: 17px es la base de la que dependen TODAS las utilidades rem de
-     Tailwind (y el breakpoint sm sigue siendo 640px). No cambiar. */
-  html,
-  body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    min-height: 100%;
-    font-family: var(--font-sans);
-    background-color: var(--bg);
-    color: var(--text);
-    font-size: 17px;
-    line-height: 1.47;
-    letter-spacing: -0.011em;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  html {
-    background-color: var(--bg);
-  }
-
-  #root {
-    width: 100%;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--bg);
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-/* ═════════════════════════ Tipografía numérica (mono) ═════════════════════════
-   Los números van en monoespaciada con dígitos tabulares para que las cifras
-   no bailen al actualizarse. Las utilidades de tamaño (.num-size-*) quedan
-   listas para FASE 2; en FASE 1 se aplican .num-* sin cambiar tamaños, así el
-   layout responsive actual no se altera.
-   ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAPA DE COMPATIBILIDAD · FASE 3
+   ---------------------------------------------------------------------------
+   Los componentes existentes usan los tokens --bg / --surface / --accent y
+   las clases heredadas .apple-card, .apple-frosted, .apple-btn-*, .fab, .num-*.
+   Esta capa los adapta al nuevo tema Glassmorphism sin dejar pantallas rotas.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #09080a;
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-elevated: rgba(255, 255, 255, 0.09);
+  --surface-inset: rgba(0, 0, 0, 0.24);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --control: rgba(255, 255, 255, 0.16);
+
+  --positive: #4ade80;
+  --negative: #ff6b5e;
+  --pending: #fbbf24;
+
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-ink: #ffffff;
+
+  --text: #f5f5f7;
+  --text-secondary: rgba(245, 245, 247, 0.64);
+  --text-tertiary: rgba(245, 245, 247, 0.42);
+  --text-muted: rgba(245, 245, 247, 0.42);
+  --text-on-dark: #ffffff;
+
+  --frost: rgba(9, 8, 10, 0.56);
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  color: var(--text);
+}
+
+body {
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Cifras: Manrope con dígitos tabulares ── */
 .num-hero,
 .num-metric,
 .num-list,
 .num-size-hero,
 .num-size-metric,
 .num-size-list {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
@@ -154,157 +175,99 @@
   font-weight: 600;
   letter-spacing: -0.03em;
 }
+
 .num-metric {
   font-weight: 600;
   letter-spacing: -0.02em;
 }
+
 .num-list {
   font-weight: 500;
 }
 
-/* Fase 3: los números con más peso. Hacen falta porque las utilidades
-   font-semibold/font-bold (en @layer) NO pueden ganarle a .num-* (sin capa). */
 .num-strong {
   font-weight: 600;
 }
+
 .num-bold {
   font-weight: 700;
 }
 
-/* Tamaños exactos del diseño objetivo (60 / 28 / 20 px) */
 .num-size-hero {
   font-size: clamp(40px, 11vw, 60px);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.02;
 }
+
 .num-size-metric {
   font-size: 28px;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
+
 .num-size-list {
   font-size: 20px;
   font-weight: 500;
   line-height: 1.3;
 }
 
-/* Apple Specific Typography Helpers (se mantienen por compatibilidad) */
-.font-apple-display {
-  font-family: var(--font-sans);
-  letter-spacing: -0.28px;
-}
-
-.apple-hero-display {
-  font-size: clamp(34px, 5vw, 56px);
-  font-weight: 600;
-  line-height: 1.07;
-  letter-spacing: -0.28px;
-}
-
-.apple-display-lg {
-  font-size: clamp(28px, 4vw, 40px);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: 0;
-}
-
-.apple-display-md {
-  font-size: 34px;
-  font-weight: 600;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-}
-
-.apple-tagline {
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.19;
-  letter-spacing: 0.231px;
-}
-
-.apple-body {
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-}
-
-.apple-body-strong {
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.24;
-  letter-spacing: -0.374px;
-}
-
-.apple-caption {
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
-}
-
-.apple-caption-strong {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.29;
-  letter-spacing: -0.224px;
-}
-
-.apple-fine-print {
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.0;
-  letter-spacing: -0.12px;
-}
-
-/* Rediseño: sin sombras salvo el FAB */
-.apple-product-shadow {
-  box-shadow: none;
-}
-
-/* Micro-interaction: active scale transform 0.95 */
+/* ── Interacción ── */
 .apple-pressable {
-  transition: transform 0.12s ease-in-out, opacity 0.12s ease;
+  transition:
+    transform 0.12s ease-in-out,
+    opacity 0.12s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
+
 .apple-pressable:active {
   transform: scale(0.95);
 }
 
-/* ═════════════════ Fase 3 · fundamentos globales de interacción ═════════════
-   Van en @layer base: así las utilidades de Tailwind (outline-none,
-   transition-*) y los componentes (.apple-btn-*, .apple-pressable, .fab)
-   siguen ganando cuando definen su propio comportamiento.
-   ─────────────────────────────────────────────────────────────────────────── */
-@layer base {
-  button,
-  a,
-  input,
-  select,
-  textarea {
-    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
-  }
-
-  /* Feedback táctil (los botones con su propio :active lo sobrescriben) */
-  button:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-
-  /* Anillo de foco accesible y consistente */
-  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-/* ══════════════════════════════ Botones ══════════════════════════════ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Alias de cards heredadas → vidrio ── */
+.apple-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.apple-frosted {
+  background-color: rgba(9, 8, 10, 0.56);
+  backdrop-filter: saturate(160%) blur(22px);
+  -webkit-backdrop-filter: saturate(160%) blur(22px);
+}
+
+.apple-frosted-dark {
+  background-color: rgba(9, 8, 10, 0.76);
+  backdrop-filter: saturate(160%) blur(22px);
+  -webkit-backdrop-filter: saturate(160%) blur(22px);
+}
+
+/* ── Botones primarios: azul Apple con gradiente sutil ── */
 .apple-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   background-color: var(--accent);
+  background-image: linear-gradient(135deg, #0a84ff 0%, #3b9dff 52%, #0a84ff 100%);
   color: var(--accent-ink);
   border-radius: 9999px;
   padding: 11px 22px;
@@ -312,16 +275,28 @@
   font-weight: 600;
   line-height: 1;
   text-decoration: none;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 10px 28px rgba(10, 132, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
   cursor: pointer;
-  transition: transform 0.12s ease, background-color 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease,
+    box-shadow 0.12s ease;
 }
+
 .apple-btn-primary:hover {
-  background-color: var(--accent-hover);
+  filter: brightness(1.08);
+  box-shadow:
+    0 14px 34px rgba(10, 132, 255, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
+
 .apple-btn-primary:active {
   transform: scale(0.95);
 }
+
 .apple-btn-primary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -332,115 +307,92 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.05);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
   padding: 11px 22px;
   font-size: 17px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.12s ease, background-color 0.12s ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition:
+    transform 0.12s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease;
 }
+
 .apple-btn-secondary:hover {
-  background-color: var(--surface-elevated);
+  background-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
 }
+
 .apple-btn-secondary:active {
   transform: scale(0.95);
 }
 
-.apple-btn-dark-utility {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background-color: var(--surface-elevated);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 8px 15px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.29;
-  letter-spacing: -0.224px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
-}
-.apple-btn-dark-utility:active {
-  transform: scale(0.95);
-}
-
+.apple-btn-dark-utility,
 .apple-btn-pearl {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background-color: var(--surface-elevated);
+  background-color: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   padding: 8px 14px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.12s ease;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform 0.12s ease, background-color 0.12s ease;
 }
+
+.apple-btn-dark-utility:active,
 .apple-btn-pearl:active {
   transform: scale(0.95);
 }
 
-/* ══════════════════════════════ Cards ══════════════════════════════
-   Radio 16px y borde de 1px: sin sombra, el relieve lo da la superficie. */
-.apple-card {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 24px;
-}
-
-/* Frosted glass (nav) */
-.apple-frosted {
-  background-color: var(--frost);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-}
-
-.apple-frosted-dark {
-  background-color: rgba(23, 23, 23, 0.82);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-}
-
-/* ══════════════════════ Botón flotante "+" (FAB) ══════════════════════ */
+/* ── FAB ── */
 .fab {
   position: fixed;
-  bottom: 5rem; /* bottom-20 en móvil: libra la BottomNav */
+  bottom: 5rem;
   right: 1rem;
   z-index: 40;
   width: 64px;
   height: 64px;
   border-radius: 9999px;
   background-color: var(--accent);
+  background-image: linear-gradient(135deg, #0a84ff 0%, #3b9dff 52%, #0a84ff 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
-  box-shadow: 0 10px 40px color-mix(in srgb, var(--accent) 35%, transparent);
-  transition: transform 0.12s ease, background-color 0.12s ease;
+  box-shadow:
+    0 16px 44px rgba(10, 132, 255, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  transition: transform 0.12s ease, filter 0.12s ease;
 }
+
 .fab:hover {
-  background-color: var(--accent-hover);
+  filter: brightness(1.08);
 }
+
 .fab:active {
   transform: scale(0.95);
 }
+
 .fab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+
 @media (min-width: 640px) {
   .fab {
     bottom: 2rem;
@@ -448,262 +400,244 @@
   }
 }
 
-/* ══════════════ Capa de remapeo de la paleta Apple (dark) ══════════════
-   TRANSITORIA. Elimina los hex de la paleta vieja sin tocar los componentes.
-   Cada bloque es un rol: superficies, bordes, texto y semánticos. */
-
-/* ── Superficies ──
-   OJO: en este código `bg-white` se usa en cards/modales y `bg-[#ffffff]` en
-   contenedores de página (body, raíz de App) y controles del SubNav: por eso
-   cada uno va a una capa distinta (superficie vs fondo). */
-:root:not([data-theme="light"]) [class~="bg-white"] {
-  background-color: var(--surface);
-}
-:root:not([data-theme="light"]) [class~="bg-[#ffffff]"] {
-  background-color: var(--bg);
-}
-:root:not([data-theme="light"]) [class~="bg-[#f5f5f7]"] {
-  background-color: var(--bg);
-}
-:root:not([data-theme="light"]) [class~="bg-[#fafafc]"] {
-  background-color: var(--surface-elevated);
-}
-:root:not([data-theme="light"]) [class~="bg-[#000000]"],
-:root:not([data-theme="light"]) [class~="bg-black"] {
-  background-color: var(--bg);
-}
-:root:not([data-theme="light"]) [class~="bg-[#1d1d1f]"],
-:root:not([data-theme="light"]) [class~="bg-[#1f1f21]"] {
-  background-color: var(--surface);
-}
-:root:not([data-theme="light"]) [class~="bg-[#272729]"] {
-  background-color: #111111;
-}
-:root:not([data-theme="light"]) [class~="bg-[#e0e0e0]"],
-:root:not([data-theme="light"]) [class~="bg-[#f0f0f0]"],
-:root:not([data-theme="light"]) [class~="bg-[#eaeaea]"] {
-  background-color: var(--border);
-}
-:root:not([data-theme="light"]) [class~="bg-[#d2d2d7]"] {
-  background-color: var(--control);
-}
-
-/* ── Bordes y separadores ── */
-:root:not([data-theme="light"]) [class~="border-[#e0e0e0]"],
-:root:not([data-theme="light"]) [class~="border-[#f0f0f0]"],
-:root:not([data-theme="light"]) [class~="border-[#eaeaea]"],
-:root:not([data-theme="light"]) [class~="border-[#f5f5f7]"],
-:root:not([data-theme="light"]) [class~="border-[#d2d2d7]"],
-:root:not([data-theme="light"]) [class~="border-[#b0b0b5]"],
-:root:not([data-theme="light"]) [class~="border-[#cccccc]"],
-:root:not([data-theme="light"]) [class~="border-[#333333]"],
-:root:not([data-theme="light"]) [class~="border-[#333]"],
-:root:not([data-theme="light"]) [class~="border-[#3a3a3c]"] {
-  border-color: var(--border);
-}
-:root:not([data-theme="light"]) [class~="border-[#1d1d1f]"] {
-  border-color: var(--control);
-}
-/* Bordes de acento (antes azul Apple) → verde del acento */
-:root:not([data-theme="light"]) [class~="border-[#0066cc]"],
-:root:not([data-theme="light"]) [class~="border-[#0071e3]"],
-:root:not([data-theme="light"]) [class~="border-[#2997ff]"] {
-  border-color: var(--accent);
-}
-:root:not([data-theme="light"]) [class~="divide-[#f5f5f7]"] > * + *,
-:root:not([data-theme="light"]) [class~="divide-[#f0f0f0]"] > * + * {
-  border-color: var(--border-soft);
-}
-
-/* ── Texto ── */
-:root:not([data-theme="light"]) [class~="text-[#1d1d1f]"] {
-  color: var(--text);
-}
-:root:not([data-theme="light"]) [class~="text-[#7a7a7a]"],
-:root:not([data-theme="light"]) [class~="text-[#8e8e93]"] {
-  color: var(--text-secondary);
-}
-:root:not([data-theme="light"]) [class~="text-[#555555]"],
-:root:not([data-theme="light"]) [class~="text-[#b0b0b5]"] {
-  color: var(--text-muted);
-}
-:root:not([data-theme="light"]) [class~="text-[#333333]"],
-:root:not([data-theme="light"]) [class~="text-[#cccccc]"] {
-  color: #d4d4d8;
-}
-:root:not([data-theme="light"]) [class~="text-[#0066cc]"],
-:root:not([data-theme="light"]) [class~="text-[#0071e3]"],
-:root:not([data-theme="light"]) [class~="text-[#2997ff]"] {
-  color: var(--accent);
-}
-:root:not([data-theme="light"]) [class~="text-[#ff3b30]"],
-:root:not([data-theme="light"]) [class~="text-[#ff453a]"] {
-  color: var(--negative);
-}
-:root:not([data-theme="light"]) [class~="text-[#34c759]"],
-:root:not([data-theme="light"]) [class~="text-[#30d158]"] {
-  color: var(--positive);
-}
-:root:not([data-theme="light"]) [class~="text-[#ff9500]"],
-:root:not([data-theme="light"]) [class~="text-[#ff9f0a]"] {
-  color: var(--pending);
-}
-
-/* ── Rellenos semánticos con alfa (bg-[#color]/10, /20…) ── */
-:root:not([data-theme="light"]) [class*="bg-[#34c759]/"],
-:root:not([data-theme="light"]) [class*="bg-[#30d158]/"] {
-  background-color: color-mix(in srgb, var(--positive) 14%, transparent);
-}
-/* Los tintes que en la paleta vieja eran azules son tintes del ACENTO
-   (antes caían en verde y dejaban chips verde+azul descoordinados). */
-:root:not([data-theme="light"]) [class*="bg-[#0066cc]/"],
-:root:not([data-theme="light"]) [class*="bg-[#2997ff]/"] {
-  background-color: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-:root:not([data-theme="light"]) [class*="bg-[#ff3b30]/"],
-:root:not([data-theme="light"]) [class*="bg-[#ff453a]/"],
-:root:not([data-theme="light"]) [class~="bg-[#fff0f0]"] {
-  background-color: color-mix(in srgb, var(--negative) 14%, transparent);
-}
-:root:not([data-theme="light"]) [class*="bg-[#ff9500]/"],
-:root:not([data-theme="light"]) [class*="bg-[#ff9f0a]/"] {
-  background-color: color-mix(in srgb, var(--pending) 14%, transparent);
-}
-
-/* ── Rellenos semánticos sólidos ── */
-:root:not([data-theme="light"]) [class~="bg-[#34c759]"],
-:root:not([data-theme="light"]) [class~="bg-[#30d158]"] {
-  background-color: var(--positive);
-}
-:root:not([data-theme="light"]) [class~="bg-[#ff3b30]"],
-:root:not([data-theme="light"]) [class~="bg-[#ff453a]"] {
-  background-color: var(--negative);
-}
-:root:not([data-theme="light"]) [class~="bg-[#ff9500]"] {
-  background-color: var(--pending);
-}
-:root:not([data-theme="light"]) [class~="bg-[#0066cc]"],
-:root:not([data-theme="light"]) [class~="bg-[#0071e3]"],
-:root:not([data-theme="light"]) [class~="bg-[#2997ff]"] {
-  background-color: var(--accent);
-}
-
-/* ── Hovers de la paleta vieja ── */
-:root:not([data-theme="light"]) [class~="hover:bg-[#0071e3]"]:hover {
-  background-color: var(--accent-hover);
-}
-:root:not([data-theme="light"]) [class~="hover:bg-[#f5f5f7]"]:hover,
-:root:not([data-theme="light"]) [class~="hover:bg-[#fafafc]"]:hover {
-  background-color: var(--surface-elevated);
-}
-:root:not([data-theme="light"]) [class~="hover:bg-[#1d1d1f]"]:hover,
-:root:not([data-theme="light"]) [class~="hover:bg-[#272729]"]:hover {
-  background-color: var(--surface-elevated);
-}
-:root:not([data-theme="light"]) [class~="hover:bg-[#fff0f0]"]:hover {
-  background-color: color-mix(in srgb, var(--negative) 16%, transparent);
-}
-
-/* ── Focos y placeholders ── */
-:root:not([data-theme="light"]) [class~="focus:border-[#0071e3]"]:focus,
-:root:not([data-theme="light"]) [class~="focus:border-[#0066cc]"]:focus {
-  border-color: var(--accent);
-}
-:root:not([data-theme="light"]) [class~="focus:bg-white"]:focus {
-  background-color: var(--surface-inset);
-}
-:root:not([data-theme="light"]) [class~="placeholder:text-[#8e8e93]"]::placeholder {
-  color: var(--text-muted);
-}
-
-/* ── Sin sombras (solo el FAB las lleva) ── */
-:root:not([data-theme="light"]) [class~="shadow"],
-:root:not([data-theme="light"]) [class~="shadow-sm"],
-:root:not([data-theme="light"]) [class~="shadow-md"],
-:root:not([data-theme="light"]) [class~="shadow-lg"],
-:root:not([data-theme="light"]) [class~="shadow-xl"],
-:root:not([data-theme="light"]) [class~="shadow-2xl"],
-:root:not([data-theme="light"]) [class*="shadow-["] {
-  box-shadow: none;
-}
-
-/* Input numérico grande del modal: sin flechas de spinner */
-.num-input::-webkit-outer-spin-button,
-.num-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.num-input {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-/* ══════════ Resalte temporal de pedidos pendientes (alerta del bot) ══════════
-   La alerta añade `.alerta-pendientes` a la sección de pedidos durante 2.6 s.
-   Usa outline (no sombra: el FAB es la única sombra del sistema). */
+/* ── Resalte temporal de pedidos pendientes ── */
 .alerta-pendientes {
   outline: 2px solid var(--pending);
   outline-offset: -2px;
   border-radius: 16px;
   transition: outline-color 0.3s ease;
 }
+
 .alerta-pendientes [data-pendiente='true'] {
   background-color: color-mix(in srgb, var(--pending) 10%, transparent);
   border-radius: 12px;
 }
 
-/* Custom scrollbar (dark): 8px, pulgar --control, hover --border */
+/* ── Scrollbars y utilidades móviles ── */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: var(--control);
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.24);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE MÓVIL (<640px = breakpoint `sm`)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Carrusel horizontal de pills (SubNav) sin barra de scroll visible */
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
-/* Barra de navegación inferior: respeta el home indicator del iPhone */
 .bottom-nav-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
-/* Padding de las tarjetas en móvil.
-   OJO: .apple-card se emite FUERA de @layer (igual que .apple-btn-*), así que
-   las utilidades de Tailwind (p-4, p-5…) NO pueden sobrescribirlo: las reglas
-   sin capa ganan a las que están en @layer. Por eso el ajuste móvil se hace
-   aquí y no con clases en el JSX. */
+/* ── Remapeo de la paleta clara heredada al tema oscuro ──
+   Evita tener que reescribir los hex literales de componentes antiguos
+   (PedidosRecientes, Footer, ExpenseCategoryChart, etc.). */
+:root:not([data-theme='light']) [class~='bg-white'] {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+:root:not([data-theme='light']) [class~='bg-[#ffffff]'] {
+  background-color: var(--bg);
+}
+:root:not([data-theme='light']) [class~='bg-[#f5f5f7]'] {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+:root:not([data-theme='light']) [class~='bg-[#fafafc]'] {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+:root:not([data-theme='light']) [class~='bg-[#000000]'],
+:root:not([data-theme='light']) [class~='bg-black'] {
+  background-color: var(--bg);
+}
+:root:not([data-theme='light']) [class~='bg-[#1d1d1f]'],
+:root:not([data-theme='light']) [class~='bg-[#1f1f21]'] {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+:root:not([data-theme='light']) [class~='bg-[#272729]'] {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+:root:not([data-theme='light']) [class~='bg-[#e0e0e0]'],
+:root:not([data-theme='light']) [class~='bg-[#f0f0f0]'],
+:root:not([data-theme='light']) [class~='bg-[#eaeaea]'] {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+:root:not([data-theme='light']) [class~='bg-[#d2d2d7]'] {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Bordes */
+:root:not([data-theme='light']) [class~='border-[#e0e0e0]'],
+:root:not([data-theme='light']) [class~='border-[#f0f0f0]'],
+:root:not([data-theme='light']) [class~='border-[#eaeaea]'],
+:root:not([data-theme='light']) [class~='border-[#f5f5f7]'],
+:root:not([data-theme='light']) [class~='border-[#d2d2d7]'],
+:root:not([data-theme='light']) [class~='border-[#b0b0b5]'],
+:root:not([data-theme='light']) [class~='border-[#cccccc]'],
+:root:not([data-theme='light']) [class~='border-[#333333]'],
+:root:not([data-theme='light']) [class~='border-[#333]'],
+:root:not([data-theme='light']) [class~='border-[#3a3a3c]'] {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+:root:not([data-theme='light']) [class~='border-[#1d1d1f]'] {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+:root:not([data-theme='light']) [class~='border-[#0066cc]'],
+:root:not([data-theme='light']) [class~='border-[#0071e3]'],
+:root:not([data-theme='light']) [class~='border-[#2997ff]'] {
+  border-color: var(--accent);
+}
+:root:not([data-theme='light']) [class~='divide-[#f5f5f7]'] > * + *,
+:root:not([data-theme='light']) [class~='divide-[#f0f0f0]'] > * + * {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Texto */
+:root:not([data-theme='light']) [class~='text-[#1d1d1f]'] {
+  color: var(--text);
+}
+:root:not([data-theme='light']) [class~='text-[#7a7a7a]'],
+:root:not([data-theme='light']) [class~='text-[#8e8e93]'] {
+  color: var(--text-secondary);
+}
+:root:not([data-theme='light']) [class~='text-[#555555]'],
+:root:not([data-theme='light']) [class~='text-[#b0b0b5]'] {
+  color: var(--text-secondary);
+}
+:root:not([data-theme='light']) [class~='text-[#333333]'],
+:root:not([data-theme='light']) [class~='text-[#cccccc]'] {
+  color: var(--text);
+}
+:root:not([data-theme='light']) [class~='text-[#0066cc]'],
+:root:not([data-theme='light']) [class~='text-[#0071e3]'],
+:root:not([data-theme='light']) [class~='text-[#2997ff]'] {
+  color: var(--accent);
+}
+:root:not([data-theme='light']) [class~='text-[#ff3b30]'],
+:root:not([data-theme='light']) [class~='text-[#ff453a]'] {
+  color: var(--negative);
+}
+:root:not([data-theme='light']) [class~='text-[#34c759]'],
+:root:not([data-theme='light']) [class~='text-[#30d158]'] {
+  color: var(--positive);
+}
+:root:not([data-theme='light']) [class~='text-[#ff9500]'],
+:root:not([data-theme='light']) [class~='text-[#ff9f0a]'] {
+  color: var(--pending);
+}
+
+/* Rellenos semánticos */
+:root:not([data-theme='light']) [class*='bg-[#34c759]/'],
+:root:not([data-theme='light']) [class*='bg-[#30d158]/'] {
+  background-color: color-mix(in srgb, var(--positive) 14%, transparent);
+}
+:root:not([data-theme='light']) [class*='bg-[#0066cc]/'],
+:root:not([data-theme='light']) [class*='bg-[#2997ff]/'] {
+  background-color: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+:root:not([data-theme='light']) [class*='bg-[#ff3b30]/'],
+:root:not([data-theme='light']) [class*='bg-[#ff453a]/'],
+:root:not([data-theme='light']) [class~='bg-[#fff0f0]'] {
+  background-color: color-mix(in srgb, var(--negative) 14%, transparent);
+}
+:root:not([data-theme='light']) [class*='bg-[#ff9500]/'],
+:root:not([data-theme='light']) [class*='bg-[#ff9f0a]/'] {
+  background-color: color-mix(in srgb, var(--pending) 14%, transparent);
+}
+
+:root:not([data-theme='light']) [class~='bg-[#34c759]'],
+:root:not([data-theme='light']) [class~='bg-[#30d158]'] {
+  background-color: var(--positive);
+}
+:root:not([data-theme='light']) [class~='bg-[#ff3b30]'],
+:root:not([data-theme='light']) [class~='bg-[#ff453a]'] {
+  background-color: var(--negative);
+}
+:root:not([data-theme='light']) [class~='bg-[#ff9500]'] {
+  background-color: var(--pending);
+}
+:root:not([data-theme='light']) [class~='bg-[#0066cc]'],
+:root:not([data-theme='light']) [class~='bg-[#0071e3]'],
+:root:not([data-theme='light']) [class~='bg-[#2997ff]'] {
+  background-color: var(--accent);
+}
+
+/* Hovers heredados */
+:root:not([data-theme='light']) [class~='hover:bg-[#0071e3]']:hover {
+  background-color: var(--accent-hover);
+}
+:root:not([data-theme='light']) [class~='hover:bg-[#f5f5f7]']:hover,
+:root:not([data-theme='light']) [class~='hover:bg-[#fafafc]']:hover,
+:root:not([data-theme='light']) [class~='hover:bg-[#eaeaea]']:hover,
+:root:not([data-theme='light']) [class~='hover:bg-[#e0e0e0]']:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+:root:not([data-theme='light']) [class~='hover:bg-[#1d1d1f]']:hover,
+:root:not([data-theme='light']) [class~='hover:bg-[#272729]']:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+:root:not([data-theme='light']) [class~='hover:bg-[#fff0f0]']:hover {
+  background-color: color-mix(in srgb, var(--negative) 16%, transparent);
+}
+:root:not([data-theme='light']) [class~='hover:text-[#1d1d1f]']:hover {
+  color: var(--text);
+}
+:root:not([data-theme='light']) [class~='hover:text-[#0066cc]']:hover {
+  color: var(--accent);
+}
+:root:not([data-theme='light']) [class~='hover:border-[#e0e0e0]']:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Focos y placeholders */
+:root:not([data-theme='light']) [class~='focus:border-[#0071e3]']:focus,
+:root:not([data-theme='light']) [class~='focus:border-[#0066cc]']:focus {
+  border-color: var(--accent);
+}
+:root:not([data-theme='light']) [class~='focus:bg-white']:focus {
+  background-color: var(--surface-inset);
+}
+:root:not([data-theme='light']) [class~='placeholder:text-[#8e8e93]']::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Inputs numéricos sin spinners */
+.num-input::-webkit-outer-spin-button,
+.num-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.num-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Padding de cards en móvil + altura táctil de inputs */
 @media (max-width: 639.98px) {
   .apple-card {
     padding: 18px;
     border-radius: 20px;
   }
 
-  /* Altura táctil mínima de 48px en móvil (inputs y selects).
-     Se excluyen checkbox/radio y los botones (los compactos de icono, como los
-     de las filas de recetas o los steppers, se romperían). */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
   select,
   textarea {
     min-height: 48px;

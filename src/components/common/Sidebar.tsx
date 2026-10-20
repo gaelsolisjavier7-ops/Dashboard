@@ -80,20 +80,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const itemClase = (activo: boolean) =>
-    `w-full flex items-center gap-3 min-h-[48px] px-3 rounded-[10px] transition-colors cursor-pointer ${
+    `w-full flex items-center gap-3 min-h-[48px] px-3 rounded-[10px] border transition-colors cursor-pointer ${
       activo
-        ? 'bg-[var(--surface)] text-[var(--text)] font-semibold [&>span:first-child]:text-[var(--accent)]'
-        : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+        ? 'bg-white/10 border-white/10 text-[var(--text)] font-semibold [&>span:first-child]:text-[var(--accent)]'
+        : 'border-transparent text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text)]'
     }`;
 
   return (
     <aside
-      className={`hidden lg:flex flex-col flex-shrink-0 sticky top-0 h-screen bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-200 ${
+      className={`hidden lg:flex flex-col flex-shrink-0 sticky top-0 h-screen bg-transparent border-r border-white/5 backdrop-blur-md transition-[width] duration-200 ${
         colapsado ? 'w-[72px]' : 'w-[240px]'
       }`}
     >
       {/* Header: logo + marca + toggle */}
-      <div className="flex items-center gap-2 px-3 h-[60px] border-b border-[var(--border)] flex-shrink-0">
+      <div className="flex items-center gap-2 px-3 h-[60px] border-b border-white/5 flex-shrink-0">
         <img
           src="/entre3-logo.png"
           alt="ENTRE 3"
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setColapsado((previo) => !previo)}
           aria-label={colapsado ? 'Expandir menú' : 'Colapsar menú'}
           title={colapsado ? 'Expandir menú' : 'Colapsar menú'}
-          className="p-1.5 rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
+          className="p-1.5 rounded-[8px] text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text)] transition-colors cursor-pointer flex-shrink-0"
         >
           {colapsado ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -139,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
 
         {secciones.length > 0 && (
-          <div className="my-2 border-t border-[var(--border-soft)]" role="separator" />
+          <div className="my-2 border-t border-white/5" role="separator" />
         )}
 
         {secciones.map((item) => {
@@ -194,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Footer: usuario */}
-      <div className="flex-shrink-0 border-t border-[var(--border)] p-3">
+      <div className="flex-shrink-0 border-t border-white/5 p-3">
         <div className="flex items-center gap-2.5">
           {user?.photoURL ? (
             <img

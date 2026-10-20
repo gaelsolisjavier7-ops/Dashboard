@@ -78,7 +78,7 @@ export const PedidosRecientes: React.FC = () => {
   return (
     <div
       id="pedidos-recientes"
-      className="w-full py-6 px-4 sm:py-12 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0] transition-[outline] duration-300"
+      className="w-full py-6 px-4 sm:py-12 sm:px-12 bg-transparent border-b border-white/5 transition-[outline] duration-300"
     >
       <div className="max-w-[1200px] mx-auto">
         <div className="apple-card bg-white">

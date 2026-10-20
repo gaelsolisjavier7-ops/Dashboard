@@ -63,7 +63,7 @@ export const SubNav: React.FC<SubNavProps> = ({
     }));
 
   return (
-    <div className="sticky top-[44px] z-40 w-full apple-frosted border-b border-[var(--border-soft)] select-none">
+    <div className="sticky top-[44px] z-40 w-full bg-transparent border-b border-white/5 backdrop-blur-md select-none">
       <div className="mx-auto flex h-auto sm:min-h-[52px] max-w-[1440px] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 sm:px-8 py-2 sm:py-1.5">
         {/* Left: Section Title */}
         <div className="flex items-center space-x-3 sm:space-x-6 min-w-0 flex-1 sm:flex-none">
@@ -77,10 +77,10 @@ export const SubNav: React.FC<SubNavProps> = ({
               <button
                 key={tab}
                 onClick={() => setCurrentTab(tab)}
-                className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${
+                className={`px-2 py-1 rounded-full border transition-colors cursor-pointer ${
                   currentTab === tab
-                    ? 'text-[var(--accent)] font-semibold'
-                    : 'text-[var(--text-secondary)]'
+                    ? 'bg-white/10 border-white/10 text-[var(--text)] font-semibold'
+                    : 'border-transparent text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text)]'
                 }`}
               >
                 {TAB_CORTO[tab]}
@@ -99,8 +99,8 @@ export const SubNav: React.FC<SubNavProps> = ({
                 onClick={() => setSelectedSection(item.id)}
                 className={`flex items-center gap-2 h-[36px] px-4 text-[13px] rounded-full transition-all apple-pressable cursor-pointer ${
                   isSelected
-                    ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold border border-transparent'
-                    : 'bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] font-medium hover:text-[var(--text)]'
+                    ? 'bg-white/10 text-[var(--text)] font-semibold border border-white/10'
+                    : 'bg-white/5 border border-white/10 text-[var(--text-secondary)] font-medium hover:text-[var(--text)] hover:bg-white/[0.08]'
                 }`}
               >
                 {item.icon}
@@ -119,7 +119,7 @@ export const SubNav: React.FC<SubNavProps> = ({
             value={dateRange.filter}
             onChange={(e) => setFilter(e.target.value as DateFilter)}
             aria-label="Periodo"
-            className="text-[12px] sm:text-[13px] bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-full px-2.5 sm:px-3 py-1.5 outline-none focus:border-[var(--accent)] transition-colors cursor-pointer flex-shrink-0"
+            className="text-[12px] sm:text-[13px] bg-white/5 border border-white/10 text-[var(--text)] rounded-full px-2.5 sm:px-3 py-1.5 outline-none focus:border-[var(--accent)] transition-colors cursor-pointer flex-shrink-0"
           >
             {DATE_FILTER_OPTIONS.map((opcion) => (
               <option key={opcion.id} value={opcion.id}>
@@ -132,13 +132,13 @@ export const SubNav: React.FC<SubNavProps> = ({
           <div className="hidden lg:flex items-center space-x-1.5 xl:space-x-2">
             {dateRange.filter !== 'all' && (
               <>
-                <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-full flex-shrink-0">
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-full flex-shrink-0">
                   <button
                     type="button"
                     onClick={prevPeriod}
                     aria-label="Periodo anterior"
                     title="Periodo anterior"
-                    className="px-2 py-1.5 rounded-l-full text-[var(--text)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
+                    className="px-2 py-1.5 rounded-l-full text-[var(--text)] hover:bg-white/10 transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
@@ -151,7 +151,7 @@ export const SubNav: React.FC<SubNavProps> = ({
                     disabled={dateRange.offset === 0}
                     aria-label="Periodo siguiente"
                     title="Periodo siguiente"
-                    className="px-2 py-1.5 rounded-r-full text-[var(--text)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    className="px-2 py-1.5 rounded-r-full text-[var(--text)] hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -161,7 +161,7 @@ export const SubNav: React.FC<SubNavProps> = ({
                   <button
                     type="button"
                     onClick={irAHoy}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[var(--accent)] text-[var(--accent-ink)] hover:bg-[var(--accent-hover)] transition-colors cursor-pointer flex-shrink-0"
+                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-gradient-to-r from-[#0a84ff] to-[#3b9dff] text-white shadow-[0_8px_24px_rgba(10,132,255,0.28)] hover:brightness-110 transition-all cursor-pointer flex-shrink-0"
                   >
                     Hoy
                   </button>
@@ -187,8 +187,8 @@ export const SubNav: React.FC<SubNavProps> = ({
 
       {/* Móvil/tablet: navegación de periodo en su propia fila (no cabe en la primera) */}
       {dateRange.filter !== 'all' && (
-        <div className="lg:hidden flex items-center gap-2 px-4 py-2 bg-[var(--bg)] border-t border-[var(--border-soft)] overflow-x-auto no-scrollbar">
-          <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-full flex-shrink-0">
+        <div className="lg:hidden flex items-center gap-2 px-4 py-2 bg-transparent border-t border-white/5 overflow-x-auto no-scrollbar">
+          <div className="flex items-center bg-white/5 border border-white/10 rounded-full flex-shrink-0">
             <button
               type="button"
               onClick={prevPeriod}
@@ -217,7 +217,7 @@ export const SubNav: React.FC<SubNavProps> = ({
             <button
               type="button"
               onClick={irAHoy}
-              className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[var(--accent)] text-[var(--accent-ink)] flex-shrink-0 cursor-pointer"
+              className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-gradient-to-r from-[#0a84ff] to-[#3b9dff] text-white shadow-[0_8px_24px_rgba(10,132,255,0.24)] flex-shrink-0 cursor-pointer"
             >
               Hoy
             </button>
@@ -227,7 +227,7 @@ export const SubNav: React.FC<SubNavProps> = ({
 
       {/* Mobile/Tablet Sub-row for Entity Selector: carrusel con snap + scroll táctil */}
       <div className="relative lg:hidden">
-        <div className="flex items-center justify-start gap-2 overflow-x-auto px-4 py-2 pr-8 bg-[var(--bg)] border-t border-[var(--border-soft)] no-scrollbar snap-x snap-mandatory">
+        <div className="flex items-center justify-start gap-2 overflow-x-auto px-4 py-2 pr-8 bg-transparent border-t border-white/5 no-scrollbar snap-x snap-mandatory">
           {entities.map((item) => {
             const isSelected = selectedSection === item.id;
             return (
@@ -236,8 +236,8 @@ export const SubNav: React.FC<SubNavProps> = ({
                 onClick={() => setSelectedSection(item.id)}
                 className={`flex items-center gap-2 h-[36px] px-4 text-[13px] whitespace-nowrap rounded-full transition-all apple-pressable flex-shrink-0 snap-start border cursor-pointer ${
                   isSelected
-                    ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold border-transparent'
-                    : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] font-medium'
+                    ? 'bg-white/10 text-[var(--text)] font-semibold border-white/10'
+                    : 'bg-white/5 border-white/10 text-[var(--text-secondary)] font-medium'
                 }`}
               >
                 {item.icon}
@@ -248,7 +248,7 @@ export const SubNav: React.FC<SubNavProps> = ({
         </div>
 
         {/* Gradiente que insinúa que hay más pills hacia la derecha (no captura clicks) */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[var(--bg)] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#09080a] to-transparent" />
       </div>
     </div>
   );

@@ -113,14 +113,14 @@ export const HeroMetrics: React.FC = () => {
   return (
     <div className="w-full">
       {/* Hero Showcase Banner: mismo --bg que el resto del main (Cupertino Midnight) */}
-      <div className="w-full bg-[var(--bg)] text-[var(--text)] py-10 sm:py-20 px-4 sm:px-12 border-b border-[var(--border-soft)]">
+      <div className="w-full py-8 sm:py-14 px-4 sm:px-12 bg-transparent border-b border-white/5">
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row md:flex-wrap items-start md:items-center justify-between gap-8">
-          <div className="w-full min-w-0 md:w-auto">
+          <div className="w-full min-w-0 md:w-auto hero-card rounded-[28px] p-6 sm:p-8">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[12px] font-semibold tracking-[0.18em] uppercase text-[var(--text-secondary)]">
                 Negocio: Hamburguesas
               </span>
-              <span className="text-[12px] text-[var(--text-tertiary)]">·</span>
+              <span className="hidden sm:inline text-[12px] text-[var(--text-tertiary)]">·</span>
               <span className="text-[12px] font-medium tracking-[0.18em] uppercase text-[var(--text-secondary)]">
                 {labelPeriodo}
               </span>
@@ -161,7 +161,7 @@ export const HeroMetrics: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row md:flex-wrap gap-3 sm:gap-4 w-full md:w-auto">
             {/* Margen Card */}
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+            <div className="glass-card rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
               <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] block">
                 Margen Libre
               </span>
@@ -191,7 +191,7 @@ export const HeroMetrics: React.FC = () => {
             </div>
 
             {/* Pedidos Web en vivo */}
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+            <div className="glass-card rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
               <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between">
                 <span>Pedidos Web</span>
                 <ShoppingBag className="w-3.5 h-3.5 text-[var(--text-secondary)]" strokeWidth={1.5} />
@@ -211,7 +211,7 @@ export const HeroMetrics: React.FC = () => {
 
             {/* Costo y margen promedio según las recetas (sólo si hay recetas) */}
             {mostrarRecetas && (
-              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+              <div className="glass-card rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
                 <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between">
                   <span>Costo por producto</span>
                   <ClipboardList className="w-3.5 h-3.5 text-[var(--text-secondary)]" strokeWidth={1.5} />
@@ -242,7 +242,7 @@ export const HeroMetrics: React.FC = () => {
 
             {/* Comparación contra el periodo anterior (mismo filtro, offset -1) */}
             {comparacion && (
-              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
+              <div className="glass-card rounded-[20px] p-6 min-w-0 sm:min-w-[190px] w-full sm:w-auto">
                 <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)] block">
                   vs. periodo anterior
                 </span>
@@ -280,10 +280,10 @@ export const HeroMetrics: React.FC = () => {
       </div>
 
       {/* Grid of Key Financial Cards: mismo --bg (Cupertino Midnight) */}
-      <div className="w-full bg-[var(--bg)] py-8 px-4 sm:py-12 sm:px-12 border-b border-[var(--border-soft)]">
+      <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-transparent border-b border-white/5">
         <div className="max-w-[1200px] mx-auto grid grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {/* Ingresos */}
-          <div className="apple-card min-h-[100px] flex flex-col justify-between">
+          <div className="glass-card rounded-[20px] p-5 min-h-[100px] flex flex-col justify-between">
             <div className="flex items-start justify-between gap-2">
               <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                 Ingresos
@@ -299,7 +299,7 @@ export const HeroMetrics: React.FC = () => {
           </div>
 
           {/* Gastos */}
-          <div className="apple-card min-h-[100px] flex flex-col justify-between">
+          <div className="glass-card rounded-[20px] p-5 min-h-[100px] flex flex-col justify-between">
             <div className="flex items-start justify-between gap-2">
               <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                 Gastos
@@ -315,7 +315,7 @@ export const HeroMetrics: React.FC = () => {
           </div>
 
           {/* Utilidad */}
-          <div className="apple-card min-h-[100px] flex flex-col justify-between border-2 border-[color-mix(in_srgb,var(--accent)_22%,transparent)]">
+          <div className="glass-card rounded-[20px] p-5 min-h-[100px] flex flex-col justify-between ring-1 ring-[color-mix(in_srgb,var(--accent)_22%,transparent)]">
             <div className="flex items-start justify-between gap-2">
               <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--accent)]">
                 Utilidad
@@ -335,7 +335,7 @@ export const HeroMetrics: React.FC = () => {
           </div>
 
           {/* Margen (ocupa la fila completa en móvil) */}
-          <div className="apple-card min-h-[100px] flex flex-col justify-between col-span-3 lg:col-span-1">
+          <div className="glass-card rounded-[20px] p-5 min-h-[100px] flex flex-col justify-between col-span-3 lg:col-span-1">
             <div className="flex items-start justify-between gap-2">
               <span className="text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                 Margen

@@ -62,7 +62,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
   return (
     <div className="w-full">
       {/* Hero oscuro con las 4 métricas del inventario */}
-      <div className="w-full bg-[var(--bg)] text-[var(--text)] py-10 sm:py-14 px-4 sm:px-12 border-b border-[var(--border)]">
+      <div className="w-full bg-transparent text-[var(--text)] py-10 sm:py-14 px-4 sm:px-12 border-b border-white/5">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
@@ -85,7 +85,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
 
           {/* 4 métricas */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-7">
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+            <div className="glass-card rounded-[18px] p-4 sm:p-5">
               <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">
                   Insumos activos
@@ -101,7 +101,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
               </span>
             </div>
 
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+            <div className="glass-card rounded-[18px] p-4 sm:p-5">
               <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">
                   Valor inventario
@@ -114,7 +114,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
               <span className="text-[12px] text-[#7a7a7a] mt-1 block">Σ stock × costo unitario</span>
             </div>
 
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+            <div className="glass-card rounded-[18px] p-4 sm:p-5">
               <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">Stock bajo</span>
                 <AlertCircle
@@ -136,7 +136,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
               </span>
             </div>
 
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5">
+            <div className="glass-card rounded-[18px] p-4 sm:p-5">
               <div className="flex items-center justify-between text-[var(--text-secondary)]">
                 <span className="text-[12px] font-medium uppercase tracking-wider">Categorías</span>
                 <Boxes className="w-4 h-4 text-[#2997ff]" />
@@ -151,18 +151,18 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
       </div>
 
       {/* Sub-tabs + contenido */}
-      <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-[#f5f5f7] border-b border-[#e0e0e0]">
+      <div className="w-full py-8 px-4 sm:py-12 sm:px-12 bg-transparent border-b border-white/5">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex items-center justify-between gap-3 mb-6">
-            <div className="flex items-center bg-[var(--surface)] p-1 rounded-full border border-[var(--border)]">
+            <div className="glass-card flex items-center p-1 rounded-full">
               <button
                 type="button"
                 onClick={() => setSubTab('inventario')}
                 aria-current={subTab === 'inventario' ? 'page' : undefined}
                 className={`flex items-center space-x-1.5 px-4 min-h-[40px] text-[14px] rounded-full transition-all apple-pressable cursor-pointer ${
                   subTab === 'inventario'
-                    ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)]'
+                    ? 'bg-gradient-to-r from-[#0a84ff] to-[#3b9dff] text-white font-semibold shadow-[0_8px_24px_rgba(10,132,255,0.24)]'
+                    : 'text-[var(--text-secondary)] hover:bg-white/10'
                 }`}
               >
                 <Package className="w-3.5 h-3.5" />
@@ -174,8 +174,8 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
                 aria-current={subTab === 'recetas' ? 'page' : undefined}
                 className={`flex items-center space-x-1.5 px-4 min-h-[40px] text-[14px] rounded-full transition-all apple-pressable cursor-pointer ${
                   subTab === 'recetas'
-                    ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)]'
+                    ? 'bg-gradient-to-r from-[#0a84ff] to-[#3b9dff] text-white font-semibold shadow-[0_8px_24px_rgba(10,132,255,0.24)]'
+                    : 'text-[var(--text-secondary)] hover:bg-white/10'
                 }`}
               >
                 <ClipboardList className="w-3.5 h-3.5" />

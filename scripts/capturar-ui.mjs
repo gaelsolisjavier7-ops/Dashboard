@@ -34,7 +34,7 @@ const PEDIDOS = [
 
 const MODULOS = {
   useUsuario: `export function useUsuario() {
-  return { usuarioAuth: { email: '${EMAIL}', displayName: '${NOMBRE}', photoURL: null },
+  return { usuarioAuth: { uid: 'demo', email: '${EMAIL}', displayName: '${NOMBRE}', photoURL: null, emailVerified: true },
     usuarioPerfil: { id: '${EMAIL}', email: '${EMAIL}', nombre: '${NOMBRE}', rol: '${ROL}', datos: { rol: '${ROL}' } },
     rol: '${ROL}', loading: false, error: null };
 }
