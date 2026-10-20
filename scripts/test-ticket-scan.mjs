@@ -20,6 +20,11 @@ import {
   resumirProductos,
 } from '../api/_lib/ticket.ts';
 import { GeminiError } from '../api/_lib/gemini.ts';
+import {
+  CORREOS_PERMITIDOS,
+  esCorreoAutorizado,
+  normalizarCorreo,
+} from '../api/_lib/auth.ts';
 import { resolverCategoria } from '../src/lib/ticket.ts';
 
 let pass = 0;
@@ -72,6 +77,32 @@ const peticion = (cuerpo, cabeceras = { authorization: 'Bearer token-valido' }) 
   method: 'POST',
   headers: cabeceras,
   body: cuerpo,
+});
+
+/* ═════════════ 0. Whitelist de endpoints privados ═════════════ */
+grupo('0. Whitelist de endpoints privados');
+
+t('sólo los dos correos de los dueños están autorizados', () => {
+  assert.deepEqual([...CORREOS_PERMITIDOS], [
+    'gaelsolisjavier7@gmail.com',
+    'jcmissdj@gmail.com',
+  ]);
+  for (const correo of CORREOS_PERMITIDOS) {
+    assert.equal(esCorreoAutorizado(correo), true, correo);
+  }
+});
+
+t('un correo externo NO está autorizado', () => {
+  assert.equal(esCorreoAutorizado('intruso@gmail.com'), false);
+  assert.equal(esCorreoAutorizado('gaelsolisjavier7@gmail.com.evil.com'), false);
+});
+
+t('tolera mayúsculas/espacios y rechaza vacíos', () => {
+  assert.equal(esCorreoAutorizado('  GAELSOLISJAVIER7@GMAIL.COM '), true);
+  assert.equal(normalizarCorreo(' JCMISSDJ@Gmail.com '), 'jcmissdj@gmail.com');
+  assert.equal(esCorreoAutorizado(''), false);
+  assert.equal(esCorreoAutorizado(null), false);
+  assert.equal(esCorreoAutorizado(undefined), false);
 });
 
 /* ═════════════ 1. Parseo correcto de la respuesta de Gemini ═════════════ */

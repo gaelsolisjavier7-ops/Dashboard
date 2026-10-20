@@ -92,45 +92,34 @@ t('el rol se resuelve igual para los dos correos (docId = email)', () => {
 
 /* ─────────────── 3. pestañas por rol ─────────────── */
 grupo('3. Pestañas (header y bottom nav)');
-t('super_admin ve dashboard, flujo y lista', () =>
-  assert.deepEqual(tabsDisponibles('super_admin'), ['dashboard', 'cashflow', 'transactions']));
-t('el socio ve dashboard y lista, NO flujo', () =>
-  assert.deepEqual(tabsDisponibles('admin_hamburguesas'), ['dashboard', 'transactions']));
-t('el socio no puede abrir Flujo de Caja', () => {
+t('todos ven dashboard y transacciones', () => {
+  assert.deepEqual(tabsDisponibles('super_admin'), ['dashboard', 'transactions']);
+  assert.deepEqual(tabsDisponibles('admin_hamburguesas'), ['dashboard', 'transactions']);
+});
+t('Flujo de Caja ya no existe', () => {
+  assert.equal(puedeVerTab('super_admin', 'cashflow'), false);
   assert.equal(puedeVerTab('admin_hamburguesas', 'cashflow'), false);
-  assert.equal(puedeVerTab('admin_hamburguesas', 'dashboard'), true);
-  assert.equal(puedeVerTab('admin_hamburguesas', 'transactions'), true);
 });
 t('sin rol no hay pestañas', () => assert.deepEqual(tabsDisponibles(null), []));
 
 /* ─────────────── 4. secciones / pills por rol ─────────────── */
 grupo('4. Secciones (pills)');
-t('super_admin ve las 6 secciones en orden', () =>
-  assert.deepEqual(seccionesDisponibles('super_admin'), [
-    'all',
-    'personal',
-    'hamburguesas',
-    'airpods',
-    'insumos',
-    'recetas',
-  ]));
-t('el socio ve Hamburguesas, Insumos y Recetas', () =>
-  assert.deepEqual(seccionesDisponibles('admin_hamburguesas'), ['hamburguesas', 'insumos', 'recetas']));
-t('el socio NO ve Consolidado, Personal ni AirPods', () => {
-  for (const seccion of ['all', 'personal', 'airpods']) {
-    assert.equal(puedeVerSeccion('admin_hamburguesas', seccion), false, `no debería ver ${seccion}`);
-  }
+t('ambos roles ven Hamburguesas, Insumos y Recetas', () => {
+  assert.deepEqual(seccionesDisponibles('super_admin'), ['hamburguesas', 'insumos', 'recetas']);
+  assert.deepEqual(seccionesDisponibles('admin_hamburguesas'), ['hamburguesas', 'insumos', 'recetas']);
 });
-t('el super admin ve todo', () => {
-  for (const seccion of ['all', 'personal', 'hamburguesas', 'airpods', 'insumos', 'recetas']) {
-    assert.equal(puedeVerSeccion('super_admin', seccion), true, `debería ver ${seccion}`);
+t('Consolidado, Personal y AirPods ya no existen', () => {
+  for (const seccion of ['all', 'personal', 'airpods']) {
+    assert.equal(puedeVerSeccion('super_admin', seccion), false, `no debería ver ${seccion}`);
+    assert.equal(puedeVerSeccion('admin_hamburguesas', seccion), false, `no debería ver ${seccion}`);
   }
 });
 t('sin rol no puede ver ninguna sección', () =>
   assert.equal(puedeVerSeccion(null, 'hamburguesas'), false));
-t('la sección inicial del socio es Hamburguesas', () =>
-  assert.equal(seccionInicial('admin_hamburguesas'), 'hamburguesas'));
-t('la sección inicial del super admin es Consolidado', () => assert.equal(seccionInicial('super_admin'), 'all'));
+t('la sección inicial de ambos roles es Hamburguesas', () => {
+  assert.equal(seccionInicial('admin_hamburguesas'), 'hamburguesas');
+  assert.equal(seccionInicial('super_admin'), 'hamburguesas');
+});
 
 /* ─────────────── 5. filtrado de transacciones ─────────────── */
 grupo('5. Filtrado de transacciones por negocio');
@@ -140,36 +129,40 @@ const transacciones = [
   { id: 'tx-3', negocio: 'airpods', monto: 4200 },
   { id: 'tx-4', entity: 'hamburguesas', monto: 300 }, // formato legacy
   { id: 'tx-5', entity: 'personal', monto: 50 }, // formato legacy
+  { id: 'tx-6', monto: 120 }, // legacy sin negocio → hamburguesas
 ];
 
-t('el socio sólo recibe movimientos de hamburguesas', () =>
+t('sólo se reciben movimientos de hamburguesas', () => {
   assert.deepEqual(
     filtrarTransaccionesPorRol('admin_hamburguesas', transacciones).map((tx) => tx.id),
-    ['tx-1', 'tx-4']
-  ));
-t('el socio no ve ningún importe de Personal ni AirPods', () => {
+    ['tx-1', 'tx-4', 'tx-6']
+  );
+  assert.deepEqual(
+    filtrarTransaccionesPorRol('super_admin', transacciones).map((tx) => tx.id),
+    ['tx-1', 'tx-4', 'tx-6']
+  );
+});
+t('no se ve ningún importe de Personal ni AirPods', () => {
   const visibles = filtrarTransaccionesPorRol('admin_hamburguesas', transacciones);
   assert.equal(visibles.some((tx) => (tx.negocio || tx.entity) === 'personal'), false);
   assert.equal(visibles.some((tx) => (tx.negocio || tx.entity) === 'airpods'), false);
   const total = visibles.reduce((acc, tx) => acc + tx.monto, 0);
-  assert.equal(total, 1800);
+  assert.equal(total, 1920);
 });
-t('el super admin recibe todas', () =>
-  assert.equal(filtrarTransaccionesPorRol('super_admin', transacciones).length, transacciones.length));
 t('sin rol no recibe ninguna', () =>
   assert.deepEqual(filtrarTransaccionesPorRol(null, transacciones), []));
-t('puedeVerNegocio: socio sólo hamburguesas', () => {
+t('puedeVerNegocio: sólo hamburguesas', () => {
   assert.equal(puedeVerNegocio('admin_hamburguesas', 'hamburguesas'), true);
+  assert.equal(puedeVerNegocio('super_admin', 'hamburguesas'), true);
   assert.equal(puedeVerNegocio('admin_hamburguesas', 'personal'), false);
   assert.equal(puedeVerNegocio('admin_hamburguesas', 'airpods'), false);
 });
-t('una transacción sin negocio ni entity se trata como personal (oculta al socio)', () =>
-  assert.deepEqual(filtrarTransaccionesPorRol('admin_hamburguesas', [{ id: 'x' }]), []));
-t('negocioDeSeccion mapea sólo las secciones de negocio', () => {
+t('una transacción sin negocio ni entity se trata como hamburguesas', () => {
+  const visibles = filtrarTransaccionesPorRol('admin_hamburguesas', [{ id: 'x' }]);
+  assert.deepEqual(visibles.map((tx) => tx.id), ['x']);
+});
+t('negocioDeSeccion mapea sólo Hamburguesas', () => {
   assert.equal(negocioDeSeccion('hamburguesas'), 'hamburguesas');
-  assert.equal(negocioDeSeccion('personal'), 'personal');
-  assert.equal(negocioDeSeccion('airpods'), 'airpods');
-  assert.equal(negocioDeSeccion('all'), null);
   assert.equal(negocioDeSeccion('insumos'), null);
   assert.equal(negocioDeSeccion('recetas'), null);
 });

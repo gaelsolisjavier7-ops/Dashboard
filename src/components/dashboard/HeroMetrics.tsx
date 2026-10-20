@@ -11,7 +11,6 @@ import { TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag, ClipboardLi
 export const HeroMetrics: React.FC = () => {
   const {
     metrics,
-    selectedEntity,
     pedidosDelPeriodo,
     webOrdersIncome,
     dateRange,
@@ -39,13 +38,7 @@ export const HeroMetrics: React.FC = () => {
   );
   const totalPedidosMonto = webOrdersIncome;
 
-  // Los pedidos web se integran al Consolidado y a Hamburguesas
-  const includeWebOrders = selectedEntity === 'all' || selectedEntity === 'hamburguesas';
-
-  // Las ventas del inventario AirPods se integran al Consolidado y a AirPods
-  const includeAirPodsSales = selectedEntity === 'all' || selectedEntity === 'airpods';
-
-  // Costo y margen promedio según las recetas (sólo tiene sentido en hamburguesas)
+  // Costo y margen promedio según las recetas
   const promedioRecetas = useMemo(
     () =>
       promediosRecetas({
@@ -63,7 +56,7 @@ export const HeroMetrics: React.FC = () => {
     [recetas, insumos]
   );
 
-  const mostrarRecetas = includeWebOrders && promedioRecetas.conReceta > 0;
+  const mostrarRecetas = promedioRecetas.conReceta > 0;
 
   // Ventas de hoy y de ayer para el hero. Sólo lee datos que ya expone el
   // contexto y usa helpers puros de fechas (no toca lógica ni servicios).
@@ -75,23 +68,19 @@ export const HeroMetrics: React.FC = () => {
       let total = 0;
 
       transactions.forEach((tx) => {
-        const negocio = tx.negocio || tx.entity || 'personal';
-        if (selectedEntity !== 'all' && negocio !== selectedEntity) return;
         const ms = parseFechaFirestore(tx.fecha || tx.date || '').ms;
         if (!Number.isFinite(ms) || ms < inicio || ms > fin) return;
         const tipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
         if (tipo === 'ingreso' || tipo === 'income') total += Number(tx.monto ?? tx.amount ?? 0);
       });
 
-      if (selectedEntity === 'all' || selectedEntity === 'hamburguesas') {
-        total += ingresoPedidosWeb(pedidos, inicio, fin);
-      }
+      total += ingresoPedidosWeb(pedidos, inicio, fin);
 
       return total;
     };
 
     return { hoy: calcular(0), ayer: calcular(-1) };
-  }, [transactions, pedidos, selectedEntity]);
+  }, [transactions, pedidos]);
 
   const ventasHoy = ventasPorDia.hoy;
   const ventasAyer = ventasPorDia.ayer;
@@ -117,26 +106,9 @@ export const HeroMetrics: React.FC = () => {
     return { sinDatos: false as const, delta, pct, subio: delta >= 0 };
   }, [dateRange.filter, netoPeriodoAnterior, metrics.netFreeCash]);
 
-  const fuentesDeIngreso = [
-    'Ventas registradas',
-    ...(includeWebOrders ? ['pedidos web del periodo'] : []),
-    ...(includeAirPodsSales ? ['ventas de inventario AirPods'] : []),
-  ].join(' + ');
+  const fuentesDeIngreso = ['Ventas registradas', 'pedidos web del periodo'].join(' + ');
 
-  const getEntityTitle = () => {
-    switch (selectedEntity) {
-      case 'personal':
-        return 'Finanzas Personales';
-      case 'hamburguesas':
-        return 'Negocio: Hamburguesas';
-      case 'airpods':
-        return 'Negocio: Reventa AirPods';
-      default:
-        return 'Visión Consolidada';
-    }
-  };
-
-  const isPositiveCashFlow = metrics.netFreeCash >= 0;
+  const isPositiveNet = metrics.netFreeCash >= 0;
 
   return (
     <div className="w-full">
@@ -146,7 +118,7 @@ export const HeroMetrics: React.FC = () => {
           <div className="w-full min-w-0 md:w-auto">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[12px] font-semibold tracking-[0.18em] uppercase text-[var(--text-secondary)]">
-                {getEntityTitle()}
+                Negocio: Hamburguesas
               </span>
               <span className="text-[12px] text-[var(--text-tertiary)]">·</span>
               <span className="text-[12px] font-medium tracking-[0.18em] uppercase text-[var(--text-secondary)]">
@@ -352,7 +324,7 @@ export const HeroMetrics: React.FC = () => {
             </div>
             <div
               className={`num-metric text-[19px] sm:text-[22px] font-semibold tracking-tight mt-2 ${
-                isPositiveCashFlow ? 'text-[var(--positive)]' : 'text-[var(--negative)]'
+                isPositiveNet ? 'text-[var(--positive)]' : 'text-[var(--negative)]'
               }`}
             >
               {formatCurrency(metrics.netFreeCash)}

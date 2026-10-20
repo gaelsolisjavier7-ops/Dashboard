@@ -13,6 +13,14 @@ dist-ssr
 *.local
 .api-runtime-check
 
+# Variables de entorno y credenciales (NUNCA subir al repo)
+.env
+.env.*
+!.env.example
+*serviceAccount*.json
+*firebase-adminsdk*.json
+.vercel
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

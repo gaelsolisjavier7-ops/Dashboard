@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { useAuth } from '../../context/AuthContext';
-import { negocioDeSeccion, puedeVerNegocio } from '../../lib/roles';
 import { MENU_DATA } from '../../lib/products';
-import type { Transaction, EntityType, TransactionType, PaymentMethod } from '../../types/finance';
+import type { Transaction, TransactionType, PaymentMethod } from '../../types/finance';
 import {
   AlertCircle,
   Banknote,
@@ -70,14 +68,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onClose,
   editingTransaction,
 }) => {
-  const { categories, addTransaction, updateTransaction, selectedEntity } = useFinance();
-  const { rol } = useAuth();
+  const { categories, addTransaction, updateTransaction } = useFinance();
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
   // Por defecto "Pedido" (ingreso): el 90% de los registros manuales son ventas
   const [type, setType] = useState<TransactionType>('ingreso');
-  const [entity, setEntity] = useState<EntityType>('hamburguesas');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('transferencia');
@@ -94,21 +90,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     reset: resetTicket,
   } = useTicketScan();
 
-  // Available categories for selected entity and type
-  const availableCategories = categories.filter(
-    (c) => (c.entity === entity || c.entity === 'all') && c.type === type
-  );
-
-  // Chips de negocio filtrados por rol (usa el helper de permisos existente)
-  const negociosDisponibles = useMemo(
-    () =>
-      [
-        { id: 'hamburguesas' as EntityType, label: 'Hamburguesas' },
-        { id: 'airpods' as EntityType, label: 'AirPods' },
-        { id: 'personal' as EntityType, label: 'Personal' },
-      ].filter((negocio) => puedeVerNegocio(rol, negocio.id)),
-    [rol]
-  );
+  // Available categories for the selected type (todas son de hamburguesas)
+  const availableCategories = categories.filter((c) => c.type === type);
 
   // Productos rápidos del menú (sólo para hamburguesas)
   const productosPrincipales = useMemo(
@@ -123,7 +106,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTitle(editingTransaction.descripcion || editingTransaction.title || '');
       setAmount(editingTransaction.monto ?? editingTransaction.amount ?? '');
       setType(editingTransaction.tipo === 'ingreso' ? 'ingreso' : 'gasto');
-      setEntity(editingTransaction.negocio || editingTransaction.entity || 'hamburguesas');
       setCategory(editingTransaction.categoria || editingTransaction.category || '');
       setDate(editingTransaction.fecha || editingTransaction.date || new Date().toISOString().split('T')[0]);
       setPaymentMethod(editingTransaction.paymentMethod || 'transferencia');
@@ -132,10 +114,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTitle('');
       setAmount('');
       setType('ingreso');
-      // La sección activa puede ser Insumos/Recetas/Consolidado: en ese caso el
-      // movimiento se registra por defecto en hamburguesas.
-      const defaultEnt: EntityType = negocioDeSeccion(selectedEntity) ?? 'hamburguesas';
-      setEntity(defaultEnt);
       setDate(new Date().toISOString().split('T')[0]);
       setPaymentMethod('transferencia');
       setNotes('');
@@ -143,14 +121,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setHotDogsAbiertos(false);
     setTicketAplicado(false);
     resetTicket();
-  }, [editingTransaction, isOpen, selectedEntity, resetTicket]);
+  }, [editingTransaction, isOpen, resetTicket]);
 
   // Update category when available categories change
   useEffect(() => {
     if (availableCategories.length > 0 && !availableCategories.find((c) => c.name === category)) {
       setCategory(availableCategories[0].name);
     }
-  }, [entity, type, availableCategories, category]);
+  }, [type, availableCategories, category]);
 
   if (!isOpen) return null;
 
@@ -160,17 +138,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: Partial<Transaction> = {
         fecha: date,
         tipo: type,
         categoria: category || availableCategories[0]?.name || 'General',
         monto: Number(amount),
         descripcion: title.trim(),
-        negocio: entity,
+        negocio: 'hamburguesas',
         title: title.trim(),
         amount: Number(amount),
         type,
-        entity,
         category: category || availableCategories[0]?.name || 'General',
         date,
         paymentMethod,
@@ -214,9 +191,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     if (descripcion) setTitle(descripcion);
 
     const opciones = categories
-      .filter((c) => (c.entity === 'hamburguesas' || c.entity === 'all') && c.type === 'gasto')
+      .filter((c) => c.type === 'gasto')
       .map((c) => c.name);
-    setEntity('hamburguesas');
     setCategory(resolverCategoria(ticket.categoria, opciones));
     setPaymentMethod('efectivo');
     if (ticket.fecha) setDate(ticket.fecha);
@@ -459,35 +435,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             )}
 
-            {/* 2. Unidad de negocio (filtrada por rol) */}
-            <div>
-              <label className={labelClase}>Unidad de negocio</label>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {negociosDisponibles.map((negocio) => {
-                  const activo = entity === negocio.id;
-                  return (
-                    <button
-                      key={negocio.id}
-                      type="button"
-                      onClick={() => setEntity(negocio.id)}
-                      style={
-                        activo
-                          ? { backgroundColor: 'var(--accent)', color: 'var(--accent-ink)' }
-                          : undefined
-                      }
-                      className={`flex-1 min-w-[104px] min-h-[36px] px-4 rounded-full border text-[13px] text-center transition-colors cursor-pointer ${
-                        activo
-                          ? 'font-semibold border-transparent'
-                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text)]'
-                      }`}
-                    >
-                      {negocio.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* 3. Monto grande */}
             <div>
               <label className={`${labelClase} text-center`}>Monto total</label>
@@ -530,9 +477,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               ))}
             </div>
 
-            {/* 5. Productos rápidos (sólo hamburguesas) */}
-            {entity === 'hamburguesas' && (
-              <div>
+            {/* 5. Productos rápidos */}
+            <div>
                 <label className={labelClase}>Productos rápidos</label>
                 <div className="grid grid-cols-2 gap-2">
                   {productosPrincipales.map((producto) => {
@@ -607,7 +553,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   Tocar un producto suma su precio al monto y lo agrega a la descripción.
                 </p>
               </div>
-            )}
 
             {/* 6. Descripción / items */}
             <div>

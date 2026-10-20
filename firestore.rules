@@ -8,6 +8,14 @@ rules_version = '2';
 //    super_admin        → gaelsolisjavier7@gmail.com   (acceso total)
 //    admin_hamburguesas → jcmissdj@gmail.com           (Hamburguesas, Insumos, Recetas)
 //
+//  Seguridad:
+//    - Sólo los dos correos de la whitelist, con el correo VERIFICADO por
+//      Firebase Auth, pueden leer/escribir datos privados.
+//    - `pedidos` permite `create` público (la web de clientes no tiene login),
+//      pero NUNCA lectura pública: los teléfonos/direcciones de clientes quedan
+//      visibles únicamente para el staff autenticado.
+//    - Cualquier otra colección/ruta queda cerrada.
+//
 //  Nota: el filtrado "solo hamburguesas" del socio se aplica en el frontend.
 //  Al final del archivo hay un bloque OPCIONAL para imponerlo también en la
 //  base de datos (modo estricto).
@@ -23,12 +31,18 @@ service cloud.firestore {
     }
 
     function emailActual() {
-      return request.auth != null ? request.auth.token.email.lower() : '';
+      return request.auth != null && request.auth.token.email is string
+        ? request.auth.token.email.lower()
+        : '';
     }
 
-    // Autenticado y con correo dentro de la whitelist
+    // Autenticado, con correo VERIFICADO y dentro de la whitelist.
+    // `email_verified` bloquea cuentas email/password creadas con el correo de
+    // un dueño sin controlar su bandeja (Firebase no las marca como verificadas).
     function estaEnWhitelist() {
-      return request.auth != null && emailActual() in correosPermitidos();
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && emailActual() in correosPermitidos();
     }
 
     function rutaPerfil(email) {
@@ -80,8 +94,9 @@ service cloud.firestore {
     }
 
     // ─────────────────────────── pedidos/{doc} ──────────────────────────
-    // La web pública de hamburguesas crea los pedidos sin login.
-    // Ambos correos autorizados pueden leer, actualizar y borrar.
+    // La web pública de hamburguesas crea los pedidos sin login (create
+    // abierto). La lectura queda CERRADA al público: los pedidos contienen
+    // teléfonos y direcciones de clientes y sólo los ve el staff autenticado.
     match /pedidos/{pedido} {
       allow create: if true;
 
@@ -106,12 +121,6 @@ service cloud.firestore {
     // ─────────────────────────── recetas/{doc} ──────────────────────────
     match /recetas/{receta} {
       allow read, create, update, delete: if esStaff();
-    }
-
-    // ──────────────────── inventario_airpods/{doc} ──────────────────────
-    // Sólo el super admin.
-    match /inventario_airpods/{movimiento} {
-      allow read, create, update, delete: if esSuperAdmin();
     }
 
     // ─────────────────────────── config/{doc} ───────────────────────────

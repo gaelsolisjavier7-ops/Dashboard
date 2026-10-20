@@ -1,9 +1,7 @@
-import type { Rol } from '../lib/roles';
+import type { NegocioId, Rol } from '../lib/roles';
 import type { UnidadBase, UnidadCompra } from '../lib/costeo';
 
 export type { NegocioId, Rol, SeccionId, TabId } from '../lib/roles';
-
-export type EntityType = 'personal' | 'hamburguesas' | 'airpods';
 
 export type TransactionType = 'ingreso' | 'gasto';
 
@@ -14,7 +12,7 @@ export type { DateFilter, DateRange } from '../lib/fechas';
 export interface CategoryItem {
   id: string;
   name: string;
-  entity: EntityType | 'all';
+  entity: NegocioId;
   type: TransactionType;
   color?: string;
 }
@@ -26,12 +24,12 @@ export interface Transaction {
   categoria: string;
   monto: number;
   descripcion: string;
-  negocio: EntityType;
+  negocio: NegocioId;
   // campos opcionales para compatibilidad
   title?: string;
   amount?: number;
   type?: 'income' | 'expense' | 'ingreso' | 'gasto';
-  entity?: EntityType;
+  entity?: NegocioId;
   category?: string;
   date?: string;
   notes?: string;
@@ -60,58 +58,11 @@ export interface Pedido {
   origen?: string;
 }
 
-/* ── Inventario AirPods (colección `inventario_airpods`) ── */
-
-export type TipoMovimientoAirPods = 'compra' | 'venta';
-
-/** Documento de `inventario_airpods` normalizado para la UI. */
-export interface MovimientoAirPods {
-  id: string;
-  tipo: TipoMovimientoAirPods;
-  cantidad: number;
-  precio_unitario: number;
-  /** cantidad × precio_unitario (lo que realmente se guarda en Firestore). */
-  total: number;
-  /** Fecha del movimiento en ISO 8601. */
-  fecha: string;
-  /** Fecha del movimiento en milisegundos (epoch) para ordenar y filtrar. */
-  fechaMs: number;
-  tieneHora: boolean;
-  notas: string | null;
-  cliente: string | null;
-  createdAtMs: number | null;
-}
-
-export interface InventarioAirPodsMetrics {
-  /** Unidades en stock: compradas − vendidas. */
-  stockActual: number;
-  /** Dinero parado en inventario: stockActual × precioPromedioCompra. */
-  capitalInmovilizado: number;
-  /** Ventas cobradas − costo promedio de lo vendido. */
-  gananciaAcumulada: number;
-  unidadesCompradas: number;
-  unidadesVendidas: number;
-  precioPromedioCompra: number;
-  precioPromedioVenta: number;
-  /** Ratio 0..1: para mostrarlo como % hay que multiplicar por 100. */
-  margenPromedio: number;
-  inversionTotal: number;
-  ingresosTotales: number;
-}
-
-export interface CashFlowMetrics {
+export interface FinanceMetrics {
   totalIncome: number;
   totalExpenses: number;
   netFreeCash: number;
   savingsOrProfitMargin: number; // percentage
-  entityBreakdown: {
-    [key in EntityType]: {
-      income: number;
-      expenses: number;
-      freeCash: number;
-      margin: number;
-    };
-  };
 }
 
 export interface FirebaseConfigState {

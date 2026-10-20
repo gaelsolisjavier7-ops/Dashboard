@@ -1,6 +1,10 @@
 /**
  * Sistema de permisos multi-usuario del panel ENTRE 3.
  *
+ * Fase 2: el sistema quedó enfocado 100% en el negocio de hamburguesas.
+ * Ya no existen secciones, pestañas ni negocios de "Personal", "AirPods"
+ * o "Flujo de Caja".
+ *
  * IMPORTANTE: este archivo es deliberadamente **puro** (cero imports de runtime,
  * sólo tipos) para que `scripts/test-permisos.mjs` pueda importarlo directo con
  * Node y verificar toda la lógica de roles sin Firebase ni React.
@@ -10,13 +14,13 @@
 export type Rol = 'super_admin' | 'admin_hamburguesas';
 
 /** Secciones del panel (cada una es una pill + una vista). */
-export type SeccionId = 'all' | 'personal' | 'hamburguesas' | 'airpods' | 'insumos' | 'recetas';
+export type SeccionId = 'hamburguesas' | 'insumos' | 'recetas';
 
-/** Negocios reales: son las claves de `transacciones.negocio` y del cash flow. */
-export type NegocioId = 'personal' | 'hamburguesas' | 'airpods';
+/** Único negocio real: clave de `transacciones.negocio`. */
+export type NegocioId = 'hamburguesas';
 
 /** Pestañas de la app (header de escritorio y bottom nav de móvil). */
-export type TabId = 'dashboard' | 'cashflow' | 'transactions';
+export type TabId = 'dashboard' | 'transactions';
 
 export const SUPER_ADMIN_EMAIL = 'gaelsolisjavier7@gmail.com';
 export const ADMIN_HAMBURGUESAS_EMAIL = 'jcmissdj@gmail.com';
@@ -34,52 +38,43 @@ export const ROL_LABEL: Record<Rol, string> = {
 
 /** Orden canónico de las pills. */
 export const SECCIONES_ORDEN: readonly SeccionId[] = [
-  'all',
-  'personal',
   'hamburguesas',
-  'airpods',
   'insumos',
   'recetas',
 ];
 
 export const SECCION_LABEL: Record<SeccionId, string> = {
-  all: 'Consolidado',
-  personal: 'Personal',
   hamburguesas: 'Hamburguesas',
-  airpods: 'AirPods',
   insumos: 'Insumos',
   recetas: 'Recetas',
 };
 
 /** Secciones visibles por rol (el orden manda en el SubNav y en el test). */
 export const SECCIONES_POR_ROL: Record<Rol, readonly SeccionId[]> = {
-  super_admin: ['all', 'personal', 'hamburguesas', 'airpods', 'insumos', 'recetas'],
+  super_admin: ['hamburguesas', 'insumos', 'recetas'],
   admin_hamburguesas: ['hamburguesas', 'insumos', 'recetas'],
 };
 
-/** Negocios cuyos datos puede ver cada rol. */
+/** Único negocio cuyos datos se pueden ver. */
 export const NEGOCIOS_POR_ROL: Record<Rol, readonly NegocioId[]> = {
-  super_admin: ['personal', 'hamburguesas', 'airpods'],
+  super_admin: ['hamburguesas'],
   admin_hamburguesas: ['hamburguesas'],
 };
 
-/** Pestañas visibles por rol. El socio no tiene Flujo de Caja (expone Personal/AirPods). */
+/** Pestañas visibles por rol. Flujo de Caja fue eliminado del sistema. */
 export const TABS_POR_ROL: Record<Rol, readonly TabId[]> = {
-  super_admin: ['dashboard', 'cashflow', 'transactions'],
+  super_admin: ['dashboard', 'transactions'],
   admin_hamburguesas: ['dashboard', 'transactions'],
 };
 
 export const TAB_LABEL: Record<TabId, string> = {
   dashboard: 'Dashboard',
-  cashflow: 'Flujo de Caja',
   transactions: 'Transacciones',
 };
 
-/** Sección de negocio → negocio subyacente (Consolidado, Insumos y Recetas no mapean a ninguno). */
+/** Sección de negocio → negocio subyacente (Insumos y Recetas no mapean a ninguno). */
 const SECCION_A_NEGOCIO: Partial<Record<SeccionId, NegocioId>> = {
-  personal: 'personal',
   hamburguesas: 'hamburguesas',
-  airpods: 'airpods',
 };
 
 /* ─────────────────────────────── helpers ─────────────────────────────── */
@@ -169,24 +164,29 @@ export function puedeVerTab(rol: Rol | null, tab: TabId): boolean {
   return TABS_POR_ROL[rol].includes(tab);
 }
 
+/**
+ * Único negocio permitido: hamburguesas. Los registros legacy sin `negocio`
+ * se consideran hamburguesas; cualquier otro valor queda fuera.
+ */
 export function puedeVerNegocio(rol: Rol | null, negocio: NegocioId | string | null | undefined): boolean {
   if (!rol) return false;
-  return (NEGOCIOS_POR_ROL[rol] as readonly string[]).includes(String(negocio ?? 'personal'));
+  return String(negocio ?? 'hamburguesas') === 'hamburguesas';
 }
 
-/** Negocio subyacente de una sección (null para Consolidado / Insumos / Recetas). */
+/** Negocio subyacente de una sección (null para Insumos / Recetas). */
 export function negocioDeSeccion(seccion: SeccionId): NegocioId | null {
   return SECCION_A_NEGOCIO[seccion] ?? null;
 }
 
 /**
  * Filtra transacciones según el rol. Es la única puerta por la que el frontend
- * del socio puede ver movimientos: sólo `negocio === 'hamburguesas'`.
+ * puede ver movimientos: sólo `negocio === 'hamburguesas'` (o legacy sin
+ * negocio, que se asume hamburguesas).
  */
 export function filtrarTransaccionesPorRol<T extends { negocio?: string | null; entity?: string | null }>(
   rol: Rol | null,
   transacciones: readonly T[]
 ): T[] {
   if (!rol) return [];
-  return transacciones.filter((tx) => puedeVerNegocio(rol, tx.negocio || tx.entity || 'personal'));
+  return transacciones.filter((tx) => puedeVerNegocio(rol, tx.negocio || tx.entity || 'hamburguesas'));
 }

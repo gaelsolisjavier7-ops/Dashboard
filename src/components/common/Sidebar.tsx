@@ -10,12 +10,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  Headphones,
   LayoutDashboard,
   Receipt,
-  User,
   Utensils,
-  Wallet,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,15 +24,11 @@ interface SidebarProps {
 
 const ICONO_TAB: Record<TabId, React.ReactNode> = {
   dashboard: <LayoutDashboard className="w-5 h-5" />,
-  cashflow: <Wallet className="w-5 h-5" />,
   transactions: <Receipt className="w-5 h-5" />,
 };
 
 const ICONO_SECCION: Record<SeccionId, React.ReactNode> = {
-  all: <LayoutDashboard className="w-5 h-5" />,
   hamburguesas: <Utensils className="w-5 h-5" />,
-  airpods: <Headphones className="w-5 h-5" />,
-  personal: <User className="w-5 h-5" />,
   insumos: <Boxes className="w-5 h-5" />,
   recetas: <ClipboardList className="w-5 h-5" />,
 };
@@ -62,10 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const tabs = useMemo(() => tabsDisponibles(rol), [rol]);
 
-  // Secciones visibles para el rol, en el orden canónico de la app ('all' es el
-  // Dashboard, que ya está arriba).
+  // Secciones visibles para el rol, en el orden canónico de la app.
   const secciones = useMemo(
-    () => SECCIONES_ORDEN.filter((item) => item !== 'all' && puedeVerSeccion(rol, item)),
+    () => SECCIONES_ORDEN.filter((item) => puedeVerSeccion(rol, item)),
     [rol]
   );
 

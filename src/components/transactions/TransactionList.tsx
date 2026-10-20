@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { useAuth } from '../../context/AuthContext';
-import { puedeVerNegocio } from '../../lib/roles';
 import { formatFechaRelativa, parseFechaFirestore } from '../../lib/fechas';
-import type { Transaction, EntityType, TransactionType } from '../../types/finance';
+import type { Transaction, TransactionType } from '../../types/finance';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -35,15 +33,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     loadingTransactions,
     exportDataJSON,
     importDataJSON,
-    selectedEntity,
-    setSelectedEntity,
     dateRange,
     setFilter,
     setOffset,
     irAHoy,
     labelPeriodo,
   } = useFinance();
-  const { rol } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<TransactionType | 'all'>('all');
@@ -54,17 +49,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       currency: 'MXN',
       maximumFractionDigits: 0,
     }).format(val || 0);
-
-  const negociosDisponibles = useMemo(
-    () =>
-      [
-        { id: 'all' as const, label: 'Todos' },
-        { id: 'hamburguesas' as EntityType, label: 'Hamburguesas' },
-        { id: 'airpods' as EntityType, label: 'AirPods' },
-        { id: 'personal' as EntityType, label: 'Personal' },
-      ].filter((negocio) => negocio.id === 'all' || puedeVerNegocio(rol, negocio.id)),
-    [rol]
-  );
 
   const chipPeriodoActivo: ChipPeriodo =
     dateRange.filter === 'all'
@@ -196,21 +180,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     reader.readAsText(file);
   };
 
-  const chipClase = (activo: boolean) =>
-    `px-3.5 min-h-[36px] rounded-full border text-[13px] transition-colors cursor-pointer whitespace-nowrap ${
-      activo
-        ? 'font-semibold'
-        : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text)]'
-    }`;
-  const chipEstilo = (activo: boolean) =>
-    activo
-      ? {
-          backgroundColor: 'var(--accent)',
-          borderColor: 'var(--accent)',
-          color: 'var(--accent-ink)',
-        }
-      : undefined;
-
   /* Control segmentado (Fase 3): contenedor --surface, activo --accent, 32px */
   const segmentoClase = (activo: boolean) =>
     `h-8 px-4 rounded-[8px] text-[13px] whitespace-nowrap transition-colors cursor-pointer ${
@@ -263,24 +232,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 className={segmentoClase(activo)}
               >
                 {label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filtros de negocio */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mt-2.5">
-          {negociosDisponibles.map((negocio) => {
-            const activo = selectedEntity === negocio.id;
-            return (
-              <button
-                key={negocio.id}
-                type="button"
-                onClick={() => setSelectedEntity(negocio.id)}
-                style={chipEstilo(activo)}
-                className={chipClase(activo)}
-              >
-                {negocio.label}
               </button>
             );
           })}

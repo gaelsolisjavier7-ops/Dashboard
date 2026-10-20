@@ -10,10 +10,7 @@ import {
   ChevronRight,
   ClipboardList,
   Plus,
-  User,
   Utensils,
-  Headphones,
-  Layers,
 } from 'lucide-react';
 
 interface SubNavProps {
@@ -25,16 +22,12 @@ interface SubNavProps {
 /** Etiquetas cortas para el conmutador de pestañas de tablet. */
 const TAB_CORTO: Record<TabId, string> = {
   dashboard: 'Dash',
-  cashflow: 'Flujo',
   transactions: 'Lista',
 };
 
 /** Icono de cada sección (las visibles dependen del rol). */
 const ICONO_SECCION: Record<SeccionId, React.ReactNode> = {
-  all: <Layers className="w-3.5 h-3.5" />,
-  personal: <User className="w-3.5 h-3.5" />,
   hamburguesas: <Utensils className="w-3.5 h-3.5" />,
-  airpods: <Headphones className="w-3.5 h-3.5" />,
   insumos: <Boxes className="w-3.5 h-3.5" />,
   recetas: <ClipboardList className="w-3.5 h-3.5" />,
 };
@@ -45,8 +38,8 @@ export const SubNav: React.FC<SubNavProps> = ({
   setCurrentTab,
 }) => {
   const {
-    selectedEntity,
-    setSelectedEntity,
+    selectedSection,
+    setSelectedSection,
     dateRange,
     labelPeriodo,
     setFilter,
@@ -57,19 +50,11 @@ export const SubNav: React.FC<SubNavProps> = ({
   const { rol } = useAuth();
 
   const getSectionTitle = () => {
-    switch (currentTab) {
-      case 'dashboard':
-        return selectedEntity === 'airpods' ? 'Inventario AirPods' : 'Resumen Financiero';
-      case 'cashflow':
-        return 'Flujo de Caja Libre';
-      case 'transactions':
-        return 'Libro de Movimientos';
-      default:
-        return 'Finanzas';
-    }
+    if (currentTab === 'transactions') return 'Libro de Movimientos';
+    return SECCION_LABEL[selectedSection] ?? 'Hamburguesas';
   };
 
-  // Pills según rol: el socio sólo ve Hamburguesas, Insumos y Recetas
+  // Pills según rol: Hamburguesas, Insumos y Recetas.
   const entities: { id: SeccionId; label: string; icon: React.ReactNode }[] =
     seccionesDisponibles(rol).map((id) => ({
       id,
@@ -107,11 +92,11 @@ export const SubNav: React.FC<SubNavProps> = ({
         {/* Center: Entity Selector Pills (solo escritorio) */}
         <div className="hidden lg:flex items-center gap-2">
           {entities.map((item) => {
-            const isSelected = selectedEntity === item.id;
+            const isSelected = selectedSection === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setSelectedEntity(item.id)}
+                onClick={() => setSelectedSection(item.id)}
                 className={`flex items-center gap-2 h-[36px] px-4 text-[13px] rounded-full transition-all apple-pressable cursor-pointer ${
                   isSelected
                     ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold border border-transparent'
@@ -244,11 +229,11 @@ export const SubNav: React.FC<SubNavProps> = ({
       <div className="relative lg:hidden">
         <div className="flex items-center justify-start gap-2 overflow-x-auto px-4 py-2 pr-8 bg-[var(--bg)] border-t border-[var(--border-soft)] no-scrollbar snap-x snap-mandatory">
           {entities.map((item) => {
-            const isSelected = selectedEntity === item.id;
+            const isSelected = selectedSection === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setSelectedEntity(item.id)}
+                onClick={() => setSelectedSection(item.id)}
                 className={`flex items-center gap-2 h-[36px] px-4 text-[13px] whitespace-nowrap rounded-full transition-all apple-pressable flex-shrink-0 snap-start border cursor-pointer ${
                   isSelected
                     ? 'bg-[var(--accent)] text-[var(--accent-ink)] font-semibold border-transparent'

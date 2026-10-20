@@ -22,8 +22,6 @@ const TRANSACCIONES = [
   { id: 't1', fecha: '2026-10-12', tipo: 'ingreso', categoria: 'Ventas Mostrador', monto: 3850, descripcion: 'Ventas del día', negocio: 'hamburguesas' },
   { id: 't2', fecha: '2026-10-12', tipo: 'gasto', categoria: 'Carne & Pan', monto: 1240, descripcion: 'Compra de carne', negocio: 'hamburguesas' },
   { id: 't3', fecha: '2026-10-12', tipo: 'ingreso', categoria: 'Envíos', monto: 210, descripcion: 'Envíos cobrados', negocio: 'hamburguesas' },
-  { id: 't4', fecha: '2026-10-10', tipo: 'ingreso', categoria: 'Venta AirPods Pro 2', monto: 4200, descripcion: 'Venta AirPods', negocio: 'airpods' },
-  { id: 't5', fecha: '2026-10-11', tipo: 'ingreso', categoria: 'Sueldo / Honorarios Fijos', monto: 6000, descripcion: 'Sueldo', negocio: 'personal' },
   { id: 't6', fecha: '2026-10-09', tipo: 'gasto', categoria: 'Gas & Servicios Local', monto: 480, descripcion: 'Gas', negocio: 'hamburguesas' },
 ];
 const PEDIDOS = [
@@ -32,9 +30,6 @@ const PEDIDOS = [
   { id: 'p3', fecha: '2026-10-12T13:40:00', fechaMs: Date.now() - 35 * 60000, tieneHora: true, total: 480, productos: [], cliente: 'Cliente WhatsApp', clienteDireccion: 'Calle Zaragoza 8', estado: 'Pendiente', modalidad: 'delivery', origen: 'whatsapp' },
   { id: 'p4', fecha: '2026-10-12T13:05:00', fechaMs: Date.now() - 70 * 60000, tieneHora: true, total: 150, productos: [], cliente: 'Ana', clienteDireccion: null, estado: 'Entregado', modalidad: 'pickup', origen: 'web' },
   { id: 'p5', fecha: '2026-10-12T12:30:00', fechaMs: Date.now() - 105 * 60000, tieneHora: true, total: 320, productos: [], cliente: 'Beto', clienteDireccion: 'Calle 5 de Mayo 22', estado: 'Entregado', modalidad: 'delivery', origen: 'web' },
-];
-const MOVIMIENTOS = [
-  { id: 'a1', tipo: 'venta', cantidad: 1, precio_unitario: 4200, total: 4200, fecha: '2026-10-10T12:00:00', fechaMs: Date.parse('2026-10-10T12:00:00'), tieneHora: true, notas: null, cliente: null, createdAtMs: null },
 ];
 
 const MODULOS = {
@@ -49,9 +44,6 @@ export function useTransactions() { return { transacciones, loading: false, erro
 `,
   usePedidos: `const pedidos = ${JSON.stringify(PEDIDOS)};
 export function usePedidos() { return { pedidos, loading: false, error: null, updateEstado: async () => {} }; }
-`,
-  useAirPods: `const movimientos = ${JSON.stringify(MOVIMIENTOS)};
-export function useAirPods() { return { movimientos, loading: false, error: null, stockActual: 3, capitalInmovilizado: 9000, gananciaAcumulada: 4200, unidadesVendidas: 1, precioPromedioCompra: 3000, precioPromedioVenta: 4200, margenPromedio: 28, unidadesCompradas: 4, inversionTotal: 12000, ingresosTotales: 4200 }; }
 `,
   useInsumos: `const insumos = [
   { id: 'i1', nombre: 'Carne molida de res', categoria: 'Carne', unidadCompra: 'kg', cantidadCompra: 5, precioCompra: 450, unidadBase: 'g', factorConversion: 1000, costoUnidadBase: 0.09, stockActual: 5000, stockMinimo: 1000, proveedor: 'Carnicería La Central', notas: null, activo: true },
@@ -301,7 +293,7 @@ for (const vista of [
     return JSON.stringify({
       titulo: texto.includes('Transacciones') ? 'ok' : 'NO',
       chipsPeriodo: botones.filter(t => ['Hoy', 'Ayer', 'Esta semana', 'Este mes', 'Todo el tiempo'].includes(t)),
-      chipsNegocio: botones.filter(t => ['Todos', 'Hamburguesas', 'AirPods', 'Personal'].includes(t)),
+      chipsNegocio: botones.filter(t => t === 'Hamburguesas'),
       gruposDia: dias.slice(0, 4),
       totalPeriodo: lineas.some(t => t.includes('Total del período')),
       ctaDesktop: [...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Nuevo Registro' && b.getBoundingClientRect().width > 0),

@@ -20,7 +20,7 @@ const formatoMXN = (valor: number) =>
  *   FinanceContext y mueve el scroll del DOM.
  */
 export const AlertaPedidosBot: React.FC = () => {
-  const { pedidos, selectedEntity } = useFinance();
+  const { pedidos } = useFinance();
   // "Ahora" se calcula una sola vez al montar (evita Date.now() en render)
   const [ahoraMs] = useState(() => Date.now());
 
@@ -34,8 +34,6 @@ export const AlertaPedidosBot: React.FC = () => {
     [pedidos]
   );
 
-  // Los pedidos son del negocio de hamburguesas
-  if (selectedEntity !== 'all' && selectedEntity !== 'hamburguesas') return null;
   if (pendientes.length === 0) return null;
 
   const ultimo = pendientes[0];

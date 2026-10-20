@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { tabsDisponibles } from '../../lib/roles';
 import type { TabId } from '../../lib/roles';
-import { LayoutDashboard, Wallet, List } from 'lucide-react';
+import { LayoutDashboard, List } from 'lucide-react';
 
 interface BottomNavProps {
   currentTab: TabId;
@@ -12,14 +12,12 @@ interface BottomNavProps {
 /** Icono y etiqueta corta de cada pestaña. */
 const TAB_CONFIG: Record<TabId, { label: string; icon: React.ReactNode }> = {
   dashboard: { label: 'Dash', icon: <LayoutDashboard className="w-5 h-5" /> },
-  cashflow: { label: 'Flujo', icon: <Wallet className="w-5 h-5" /> },
   transactions: { label: 'Lista', icon: <List className="w-5 h-5" /> },
 };
 
 /**
  * Navegación inferior estilo app nativa (solo móvil, <640px).
- * Las pestañas visibles dependen del rol: el socio no tiene Flujo de Caja
- * porque esa vista expone datos de Personal y AirPods.
+ * Las pestañas visibles dependen del rol.
  * En pantallas `sm` y superiores desaparece por completo.
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, setCurrentTab }) => {

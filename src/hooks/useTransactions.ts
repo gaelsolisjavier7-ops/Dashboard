@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import type { Transaccion } from '../types/finance';
 
@@ -17,7 +17,8 @@ export function useTransactions() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const items: Transaccion[] = snapshot.docs.map((docSnap) => {
+        const items: Transaccion[] = snapshot.docs
+          .map((docSnap): Transaccion | null => {
           const data = docSnap.data();
 
           // Normalizar fecha si viene como Firestore Timestamp o string
@@ -37,10 +38,14 @@ export function useTransactions() {
           const tipo: 'ingreso' | 'gasto' =
             rawTipo === 'income' || rawTipo === 'ingreso' ? 'ingreso' : 'gasto';
 
-          // Normalizar negocio ('personal' | 'hamburguesas' | 'airpods')
-          const rawNegocio = (data.negocio || data.entity || 'personal').toLowerCase();
-          const negocio =
-            rawNegocio === 'hamburguesas' || rawNegocio === 'airpods' ? rawNegocio : 'personal';
+          // Fase 2: los registros legacy de los negocios eliminados (Personal /
+          // AirPods) se descartan para que no contaminen las métricas.
+          const rawNegocio = String(data.negocio ?? data.entity ?? '').toLowerCase();
+          if (rawNegocio === 'personal' || rawNegocio === 'airpods') return null;
+
+          // Único negocio activo. Los documentos antiguos sin `negocio` se
+          // consideran hamburguesas.
+          const negocio: Transaccion['negocio'] = 'hamburguesas';
 
           const monto = Number(data.monto ?? data.amount ?? 0);
           const descripcion = String(data.descripcion ?? data.title ?? '');
@@ -64,7 +69,8 @@ export function useTransactions() {
             notes: data.notes || '',
             paymentMethod: data.paymentMethod || data.metodoPago || 'transferencia',
           };
-        });
+        })
+          .filter((item): item is Transaccion => item !== null);
 
         // Ordenar por fecha descendente
         items.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());

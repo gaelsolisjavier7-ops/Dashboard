@@ -9,11 +9,8 @@ import { Sidebar } from './components/common/Sidebar';
 import { AlertaPedidosBot } from './components/dashboard/AlertaPedidosBot';
 import { HeroMetrics } from './components/dashboard/HeroMetrics';
 import { PedidosRecientes } from './components/dashboard/PedidosRecientes';
-import { AirPodsModule } from './components/dashboard/AirPodsModule';
 import { InsumosModule } from './components/dashboard/InsumosModule';
 import { ExpenseCategoryChart } from './components/dashboard/ExpenseCategoryChart';
-import { EntityComparison } from './components/dashboard/EntityComparison';
-import { CashFlowView } from './components/cashflow/CashFlowView';
 import { TransactionList } from './components/transactions/TransactionList';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { AuthModal } from './components/auth/AuthModal';
@@ -25,30 +22,33 @@ import {
 import { FirebaseConfigModal } from './components/common/FirebaseConfigModal';
 import { Footer } from './components/common/Footer';
 import type { Transaction } from './types/finance';
-import { puedeVerSeccion, puedeVerTab, seccionInicial, tabsDisponibles } from './lib/roles';
+import {
+  isEmailAllowed,
+  puedeVerSeccion,
+  seccionInicial,
+  tabsDisponibles,
+} from './lib/roles';
 import type { Rol, SeccionId, TabId } from './lib/roles';
-import { ArrowRight } from 'lucide-react';
 
 function FinanceApp({ rol }: { rol: Rol }) {
-  const { selectedEntity, setSelectedEntity } = useFinance();
+  const { selectedSection, setSelectedSection } = useFinance();
   const [currentTabSolicitado, setCurrentTab] = useState<TabId>('dashboard');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFirebaseConfigModalOpen, setIsFirebaseConfigModalOpen] = useState(false);
 
-  // ── Protección de pestañas (punto 5): si el rol no puede ver la pestaña
-  // solicitada se cae a la primera permitida (el socio nunca llega a Flujo de
-  // Caja, que expone Personal y AirPods).
+  // Protección de pestañas: si el rol no puede ver la pestaña solicitada,
+  // se cae a la primera permitida.
   const pestañasPermitidas = tabsDisponibles(rol);
   const currentTab: TabId = pestañasPermitidas.includes(currentTabSolicitado)
     ? currentTabSolicitado
     : (pestañasPermitidas[0] ?? 'dashboard');
 
-  // ── Protección de sección: si la pill activa no es visible para el rol se
-  // renderiza la sección inicial del rol (Hamburguesas para el socio).
-  const seccion: SeccionId = puedeVerSeccion(rol, selectedEntity)
-    ? selectedEntity
+  // Protección de sección: si la sección activa no es visible para el rol se
+  // renderiza la sección inicial (Hamburguesas).
+  const seccion: SeccionId = puedeVerSeccion(rol, selectedSection)
+    ? selectedSection
     : seccionInicial(rol);
 
   const handleOpenNewTransaction = () => {
@@ -71,7 +71,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         seccion={seccion}
-        setSeccion={setSelectedEntity}
+        setSeccion={setSelectedSection}
       />
 
       <div className="flex-1 min-w-0 flex flex-col">
@@ -83,7 +83,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
         onOpenFirebaseConfig={() => setIsFirebaseConfigModalOpen(true)}
       />
 
-      {/* 52px Frosted Sub Navigation with Entity Switcher */}
+      {/* 52px Frosted Sub Navigation with Section Switcher */}
       <SubNav
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -93,10 +93,7 @@ function FinanceApp({ rol }: { rol: Rol }) {
       {/* Main Content Areas */}
       <main className="flex-1 bg-[var(--bg)]">
         {currentTab === 'dashboard' &&
-          (seccion === 'airpods' ? (
-            /* Tab AirPods: módulo de inventario en lugar del resumen general */
-            <AirPodsModule />
-          ) : esSeccionCosteo ? (
+          (esSeccionCosteo ? (
             /* Insumos y Recetas: módulo de costeo con sub-tabs Inventario | Recetas */
             <InsumosModule
               key={seccion}
@@ -119,36 +116,8 @@ function FinanceApp({ rol }: { rol: Rol }) {
                   <ExpenseCategoryChart />
                 </div>
               </div>
-
-              {/* 3. Entity Comparison (Smash Burgers, AirPods, Personal) */}
-              <EntityComparison />
-
-              {/* 4. Quick Jump to Cash Flow & Transactions (sólo si el rol puede) */}
-              {puedeVerTab(rol, 'cashflow') && (
-                <div className="w-full py-10 px-4 sm:py-14 sm:px-12 bg-[var(--bg)] border-b border-[var(--border-soft)]">
-                  <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div>
-                      <h3 className="text-[24px] font-semibold text-[var(--text)] tracking-tight">
-                        ¿Quieres ver cuánto dinero libre te queda exactamente?
-                      </h3>
-                      <p className="text-[15px] text-[var(--text-secondary)] mt-1">
-                        Accede a la vista detallada de Flujo de Caja con el desglose paso a paso de cada negocio.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setCurrentTab('cashflow')}
-                      className="apple-btn-primary whitespace-nowrap px-6 py-3 cursor-pointer"
-                    >
-                      <span>Abrir Flujo de Caja</span>
-                      <ArrowRight className="w-4 h-4 ml-1" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
-
-        {currentTab === 'cashflow' && <CashFlowView />}
 
         {currentTab === 'transactions' && (
           <TransactionList
@@ -206,7 +175,14 @@ function AppGate() {
   const { user, rol, loading } = useAuth();
 
   if (loading) return <PantallaCargando />;
-  if (!user) return <PantallaLogin />;
+
+  // Puerta cerrada: sin sesión, con correo fuera de la whitelist o con correo
+  // sin verificar NUNCA se monta el dashboard ni el FinanceProvider (por tanto
+  // tampoco se abren listeners de Firestore).
+  if (!user || !user.emailVerified || !isEmailAllowed(user.email)) {
+    return <PantallaLogin />;
+  }
+
   if (!rol) return <PantallaPendiente />;
 
   return (

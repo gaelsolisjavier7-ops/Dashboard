@@ -32,10 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Guardia de whitelist: cualquier correo no autorizado cierra sesión al instante
+  // Guardia de whitelist: cualquier correo no autorizado (o sin verificar)
+  // cierra sesión al instante.
   useEffect(() => {
     if (!usuarioAuth) return;
-    if (isEmailAllowed(usuarioAuth.email)) return;
+    if (usuarioAuth.emailVerified && isEmailAllowed(usuarioAuth.email)) return;
 
     console.warn('[permisos] Correo no autorizado, cerrando sesión:', usuarioAuth.email);
     setAuthError(MENSAJE_ACCESO_DENEGADO);
@@ -56,8 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = await signInWithPopup(auth, provider);
       const loggedUser = result.user;
 
-      if (!isEmailAllowed(loggedUser.email)) {
-        // Correo no autorizado → cerrar sesión inmediatamente
+      if (!loggedUser.emailVerified || !isEmailAllowed(loggedUser.email)) {
+        // Correo no autorizado o no verificado → cerrar sesión inmediatamente
         console.warn('[permisos] Intento de acceso con correo no autorizado:', loggedUser.email);
         setAuthError(MENSAJE_ACCESO_DENEGADO);
         await signOut(auth);

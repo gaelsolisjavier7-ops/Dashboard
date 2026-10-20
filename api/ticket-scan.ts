@@ -10,6 +10,7 @@
 
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { esCorreoAutorizado } from './_lib/auth.js';
 import { leerServiceAccount } from './_lib/firestore.js';
 import { analizarTicket } from './_lib/ticket-gemini.js';
 import { leerBearer, procesarTicket } from './_lib/ticket.js';
@@ -38,7 +39,14 @@ function asegurarAdmin(): void {
 
 /**
  * Verifica el ID token de Firebase del header `Authorization`.
- * Token ausente, inválido, expirado o sin configuración → false (401 en el flujo).
+ *
+ * Además de que el token sea válido, exige:
+ *   - correo verificado (evita cuentas email/password creadas con un correo
+ *     de la whitelist que el atacante no controla), y
+ *   - correo dentro de la whitelist de dueños.
+ *
+ * Token ausente, inválido, expirado, no verificado o sin configuración →
+ * false (401 en el flujo).
  */
 export async function verificarIdToken(authorization: string | undefined): Promise<boolean> {
   const token = leerBearer(authorization);
@@ -47,7 +55,8 @@ export async function verificarIdToken(authorization: string | undefined): Promi
   try {
     asegurarAdmin();
     const decodificado = await getAuth().verifyIdToken(token);
-    return Boolean(decodificado?.uid);
+    if (!decodificado?.uid || decodificado.email_verified !== true) return false;
+    return esCorreoAutorizado(decodificado.email);
   } catch (error) {
     console.warn(
       '[ticket] token rechazado:',
@@ -85,10 +94,9 @@ export default async function handler(
   try {
     await crearHandler(depsReales())(peticion, respuesta);
   } catch (error) {
+    // El detalle queda en los logs del servidor; al cliente no se le exponen
+    // nombres de variables de entorno ni trazas internas.
     console.error('[ticket] error inesperado:', error);
-    respuesta.status(500).json({
-      ok: false,
-      error: error instanceof Error ? error.message : 'Error interno',
-    });
+    respuesta.status(500).json({ ok: false, error: 'Error interno' });
   }
 }

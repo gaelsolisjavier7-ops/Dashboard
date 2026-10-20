@@ -58,7 +58,7 @@ export const ExpenseCategoryChart: React.FC = () => {
             Gastos por Categoría
           </h3>
           <p className="text-[14px] text-[#7a7a7a] mt-0.5">
-            Distribución proporcional del gasto operativo y personal
+            Distribución proporcional del gasto operativo
           </p>
         </div>
 
