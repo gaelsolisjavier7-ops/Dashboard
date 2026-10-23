@@ -14,6 +14,8 @@ export type Confianza = 'alta' | 'baja';
 export type MetodoPago = 'Efectivo' | 'Transferencia' | 'Efectivo (Cambio)';
 
 export interface ProductoDetectado {
+  /** id canónico del menú: enlaza con `recetas.productoId`. */
+  productoId: string;
   nombre: string;
   cantidad: number;
   precioUnitario: number;
@@ -333,6 +335,7 @@ export function normalizarOperacion(
     const precioUnitario = precioProducto(producto.nombre, usaPapas);
 
     productos.push({
+      productoId: producto.id,
       nombre: producto.nombre,
       cantidad,
       precioUnitario,
@@ -581,6 +584,7 @@ export function construirDocumentoPedido(pedido: PedidoDetectado, idCortoPedido:
       direccion: pedido.direccion,
     },
     productos: pedido.productos.map((p) => ({
+      productoId: p.productoId,
       nombre: p.nombre,
       cantidad: p.cantidad,
       precioUnitario: p.precioUnitario,

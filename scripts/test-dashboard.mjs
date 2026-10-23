@@ -16,6 +16,8 @@ import {
   ingresoTransacciones,
   pedidoSumaComoIngreso,
 } from '../src/lib/ingresos.ts';
+import { movimientosStockVenta, resolverLineasVenta } from '../src/lib/inventario.ts';
+import { MENU_DATA } from '../src/lib/products.ts';
 
 let pass = 0;
 let fail = 0;
@@ -175,6 +177,86 @@ t('varios pedidos del bot sin transacciones no inventan ingreso', () => {
 t('un pedido web cancelado no suma aunque no sea del bot', () => {
   const pedidos = [{ origen: 'web', estado: 'Cancelado', total: 300, fechaMs: HOY }];
   assert.equal(ingresoTotalDelDashboard([], pedidos, INICIO, FIN), 0);
+});
+
+/* ═════════════ 4. Descuento de inventario al vender ═════════════ */
+grupo('4. Descuento automático de stock al registrar una venta');
+
+/** Receta real de "Burger Especial": 150 g de Carne Sirloin por pieza. */
+const RECETAS = [
+  {
+    productoId: 'burger-especial',
+    activo: true,
+    ingredientes: [
+      { insumoId: 'carne-sirloin', cantidad: 150 },
+      { insumoId: 'pan-brioche', cantidad: 1 },
+    ],
+  },
+];
+
+/** Aplica los movimientos como lo hace el writeBatch (`increment(-cantidad)`). */
+function stockTrasVenta(stockInicial, movimientos, insumoId) {
+  return movimientos
+    .filter((movimiento) => movimiento.insumoId === insumoId)
+    .reduce((stock, movimiento) => stock - movimiento.cantidad, stockInicial);
+}
+
+t('venta de "Burguer Especial" baja 150 g el stock de Carne Sirloin', () => {
+  // El modal manda los productos explícitos al usar los botones rápidos.
+  const lineas = resolverLineasVenta(
+    { tipo: 'ingreso', productos: [{ productoId: 'burger-especial', cantidad: 1 }] },
+    MENU_DATA
+  );
+  assert.deepEqual(lineas, [{ productoId: 'burger-especial', cantidad: 1 }]);
+
+  const movimientos = movimientosStockVenta(lineas, RECETAS);
+  const carne = movimientos.find((movimiento) => movimiento.insumoId === 'carne-sirloin');
+  assert.equal(carne?.cantidad, 150);
+
+  const stockFinal = stockTrasVenta(1000, movimientos, 'carne-sirloin');
+  console.log(`        Carne Sirloin: 1000 g → ${stockFinal} g`);
+  assert.equal(stockFinal, 850, '1000 g - 150 g = 850 g');
+});
+
+t('la venta escrita a mano también descuenta por descripción', () => {
+  const lineas = resolverLineasVenta(
+    { tipo: 'ingreso', descripcion: '2× Burguer Especial' },
+    MENU_DATA
+  );
+  assert.deepEqual(lineas, [{ productoId: 'burger-especial', cantidad: 2 }]);
+
+  const movimientos = movimientosStockVenta(lineas, RECETAS);
+  assert.equal(stockTrasVenta(1000, movimientos, 'carne-sirloin'), 700);
+});
+
+t('un gasto nunca descuenta stock y una receta inexistente no rompe la venta', () => {
+  const gasto = resolverLineasVenta(
+    { tipo: 'gasto', descripcion: '2× Burguer Especial' },
+    MENU_DATA
+  );
+  assert.deepEqual(gasto, []);
+
+  const sinReceta = resolverLineasVenta(
+    { tipo: 'ingreso', productos: [{ productoId: 'extra-papas', cantidad: 3 }] },
+    MENU_DATA
+  );
+  assert.deepEqual(movimientosStockVenta(sinReceta, RECETAS), []);
+});
+
+t('las cantidades del mismo insumo se agrupan en un solo movimiento', () => {
+  const lineas = resolverLineasVenta(
+    {
+      tipo: 'ingreso',
+      productos: [
+        { productoId: 'burger-especial', cantidad: 2 },
+        { productoId: 'burger-especial', cantidad: 1 },
+      ],
+    },
+    MENU_DATA
+  );
+  const movimientos = movimientosStockVenta(lineas, RECETAS);
+  assert.equal(movimientos.length, 2, 'carne + pan, sin duplicados');
+  assert.equal(stockTrasVenta(1000, movimientos, 'carne-sirloin'), 550);
 });
 
 console.log(`\n${pass} OK / ${fail} FALLAS`);

@@ -88,6 +88,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [ticketAplicado, setTicketAplicado] = useState(false);
   /** índice del producto del ticket → insumoId, '__nuevo__' o '' (ignorar). */
   const [mapeos, setMapeos] = useState<Record<number, string>>({});
+  /** Productos vendidos (botones rápidos): permiten descontar recetas al guardar. */
+  const [productosVenta, setProductosVenta] = useState<
+    { productoId: string; cantidad: number }[]
+  >([]);
   const ticketMapeadoRef = useRef<object | null>(null);
   const inputTicketRef = useRef<HTMLInputElement>(null);
   const {
@@ -129,6 +133,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setHotDogsAbiertos(false);
     setTicketAplicado(false);
     setMapeos({});
+    setProductosVenta([]);
     ticketMapeadoRef.current = null;
     resetTicket();
   }, [editingTransaction, isOpen, resetTicket]);
@@ -187,6 +192,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         date,
         paymentMethod,
         notes: notes.trim(),
+        ...(type === 'ingreso' && productosVenta.length > 0 ? { productos: productosVenta } : {}),
       };
 
       const movimientos =
@@ -259,7 +265,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setTicketAplicado(true);
   };
 
-  const agregarProducto = (nombre: string, precio: number) => {
+  /** Suma 1 al producto vendido (mismo id ⇒ misma línea). */
+  const registrarProductoVenta = (productoId: string) => {
+    setProductosVenta((previos) => {
+      const indice = previos.findIndex((item) => item.productoId === productoId);
+      if (indice < 0) return [...previos, { productoId, cantidad: 1 }];
+      return previos.map((item, i) =>
+        i === indice ? { ...item, cantidad: item.cantidad + 1 } : item
+      );
+    });
+  };
+
+  const agregarProducto = (nombre: string, precio: number, productoId: string) => {
+    registrarProductoVenta(productoId);
     setAmount(montoNumero + precio);
     setTitle((previo) => agregarItem(previo, nombreCorto(nombre)));
   };
@@ -268,7 +286,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
    * Hot dog: 2 botones (con/sin papas). Se usa el nombre completo (sin
    * `nombreCorto`) para que la descripción quede "1× Hot Dog Sencillo c/papas".
    */
-  const agregarHotDog = (nombre: string, precio: number, conPapas: boolean) => {
+  const agregarHotDog = (nombre: string, precio: number, conPapas: boolean, productoId: string) => {
+    registrarProductoVenta(productoId);
     setAmount(montoNumero + precio);
     setTitle((previo) => agregarItem(previo, conPapas ? `${nombre} c/papas` : nombre));
   };
@@ -558,7 +577,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <button
                         key={producto.id}
                         type="button"
-                        onClick={() => agregarProducto(producto.nombre, producto.precio)}
+                        onClick={() => agregarProducto(producto.nombre, producto.precio, producto.id)}
                         className="min-h-[56px] px-4 py-3 rounded-[12px] border border-white/10 bg-white/5 text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-3 text-left"
                       >
                         <Icono className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]" />
@@ -591,7 +610,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <React.Fragment key={producto.id}>
                         <button
                           type="button"
-                          onClick={() => agregarHotDog(producto.nombre, producto.precio, false)}
+                          onClick={() => agregarHotDog(producto.nombre, producto.precio, false, producto.id)}
                           className="min-h-[52px] px-4 py-3 rounded-[12px] border border-white/10 bg-white/5 text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2 text-left"
                         >
                           <UtensilsCrossed className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]" />
@@ -604,7 +623,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           <button
                             type="button"
                             onClick={() =>
-                              agregarHotDog(producto.nombre, producto.precioConPapas!, true)
+                              agregarHotDog(producto.nombre, producto.precioConPapas!, true, producto.id)
                             }
                             className="min-h-[52px] px-4 py-3 rounded-[12px] border border-white/10 bg-white/5 text-[14px] font-semibold text-[var(--text)] hover:border-[var(--accent)] hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2 text-left"
                           >

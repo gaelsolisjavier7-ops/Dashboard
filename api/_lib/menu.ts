@@ -12,6 +12,8 @@
 export type CategoriaMenu = 'Hamburguesas' | 'Hot Dogs' | 'Extras';
 
 export interface ProductoMenuBot {
+  /** id canónico (igual que `src/lib/products.ts`): enlaza con las recetas. */
+  id: string;
   /** Nombre canónico (igual que en el dashboard). */
   nombre: string;
   categoria: CategoriaMenu;
@@ -27,36 +29,42 @@ export const CARGO_ENVIO = 30;
 
 export const PRODUCTOS: ProductoMenuBot[] = [
   {
+    id: 'burger-sencilla',
     nombre: 'Burger Sencilla',
     categoria: 'Hamburguesas',
     precio: 100,
     alias: ['sencilla', 'hamburguesa sencilla', 'burger sencilla', 'burguer sencilla', 'hamburguesa de res', 'hamburguesa'],
   },
   {
+    id: 'burger-tocino',
     nombre: 'Burger Tocino',
     categoria: 'Hamburguesas',
     precio: 110,
     alias: ['tocino', 'hamburguesa de tocino', 'burger tocino', 'burguer tocino', 'hamburguesa con tocino'],
   },
   {
+    id: 'burger-hawaiana',
     nombre: 'Burger Hawaiana',
     categoria: 'Hamburguesas',
     precio: 125,
     alias: ['hawaiana', 'hamburguesa hawaiana', 'burger hawaiana', 'burguer hawaiana', 'hamburguesa con piña'],
   },
   {
+    id: 'burger-especial',
     nombre: 'Burger Especial',
     categoria: 'Hamburguesas',
     precio: 150,
     alias: ['especial', 'burguer especial', 'burger especial', 'hamburguesa especial', 'hamburguesa doble'],
   },
   {
+    id: 'burger-pollo',
     nombre: 'Burguer de Pollo',
     categoria: 'Hamburguesas',
     precio: 120,
     alias: ['pollo', 'hamburguesa de pollo', 'burger pollo', 'burguer pollo', 'hamburguesa con pollo'],
   },
   {
+    id: 'hotdog-sencillo',
     nombre: 'Hot Dog Sencillo',
     categoria: 'Hot Dogs',
     precio: 40,
@@ -64,6 +72,7 @@ export const PRODUCTOS: ProductoMenuBot[] = [
     alias: ['perro sencillo', 'hotdog sencillo', 'jocho sencillo', 'sencillo'],
   },
   {
+    id: 'hotdog-queso',
     nombre: 'Hot Dog Queso',
     categoria: 'Hot Dogs',
     precio: 45,
@@ -71,6 +80,7 @@ export const PRODUCTOS: ProductoMenuBot[] = [
     alias: ['de queso', 'con queso', 'hotdog queso', 'perro con queso', 'queso'],
   },
   {
+    id: 'hotdog-tocino',
     nombre: 'Hot Dog Tocino',
     categoria: 'Hot Dogs',
     precio: 65,
@@ -78,6 +88,7 @@ export const PRODUCTOS: ProductoMenuBot[] = [
     alias: ['tocino', 'hot dog de tocino', 'hotdog de tocino', 'perro con tocino', 'hot dog tocino'],
   },
   {
+    id: 'hotdog-hawaiano',
     nombre: 'Hot Dog Hawaiano',
     categoria: 'Hot Dogs',
     precio: 70,
@@ -85,6 +96,7 @@ export const PRODUCTOS: ProductoMenuBot[] = [
     alias: ['hawaiano', 'hot dog de piña', 'hotdog hawaiano', 'perro hawaiano'],
   },
   {
+    id: 'hotdog-combinado',
     nombre: 'Hot Dog Combinado',
     categoria: 'Hot Dogs',
     precio: 80,
@@ -92,6 +104,7 @@ export const PRODUCTOS: ProductoMenuBot[] = [
     alias: ['combinado', 'hot dog con todo', 'hotdog combinado', 'con todo'],
   },
   {
+    id: 'extra-papas',
     nombre: 'Papas',
     categoria: 'Extras',
     precio: 50,

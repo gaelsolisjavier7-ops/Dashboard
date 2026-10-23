@@ -16,6 +16,8 @@ import {
 } from './pedido.js';
 import type { PedidoResumen, RegistroPlano, ResumenDia } from './pedido.js';
 import type { Almacen } from './bot.js';
+import { lineasDesdePedido, movimientosStockVenta } from './inventario.js';
+import type { RecetaParaStock } from './inventario.js';
 
 export interface AlmacenBot extends Almacen {
   /** true si el update es nuevo; false si Telegram lo reintentó. */
@@ -138,6 +140,43 @@ export function crearAlmacen(config: ConfiguracionFirestore): AlmacenBot {
       for (const movimiento of construirTransacciones(referencia.id)) {
         lote.set(transacciones().doc(), preparar(movimiento) as RegistroPlano);
       }
+
+      // Venta del bot → recetas: se descuenta el stock en el MISMO lote que el
+      // pedido y sus transacciones (o se guarda todo o no se guarda nada).
+      const lineas = lineasDesdePedido(pedido.productos);
+      if (lineas.length > 0) {
+        const [recetasSnap, insumosSnap] = await Promise.all([
+          db.collection('recetas').get(),
+          db.collection('insumos').get(),
+        ]);
+
+        const recetas: RecetaParaStock[] = recetasSnap.docs.map((docSnap) => {
+          const datos = docSnap.data() as RegistroPlano;
+          const ingredientes = Array.isArray(datos.ingredientes) ? datos.ingredientes : [];
+          return {
+            productoId: String(datos.productoId ?? ''),
+            activo: datos.activo !== false,
+            ingredientes: ingredientes.map((item) => {
+              const ingrediente = (item ?? {}) as RegistroPlano;
+              return {
+                insumoId: String(ingrediente.insumoId ?? ''),
+                cantidad: Number(ingrediente.cantidad ?? 0),
+              };
+            }),
+          };
+        });
+
+        const insumosExistentes = new Set(insumosSnap.docs.map((docSnap) => docSnap.id));
+        for (const movimiento of movimientosStockVenta(lineas, recetas)) {
+          // Recetas huérfanas: si el insumo ya no existe, no se rompe la venta.
+          if (!insumosExistentes.has(movimiento.insumoId)) continue;
+          lote.update(db.collection('insumos').doc(movimiento.insumoId), {
+            stockActual: FieldValue.increment(-movimiento.cantidad),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
       await lote.commit();
       return referencia.id;
     },

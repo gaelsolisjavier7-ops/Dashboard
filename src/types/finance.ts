@@ -25,6 +25,11 @@ export interface Transaction {
   monto: number;
   descripcion: string;
   negocio: NegocioId;
+  /** Productos vendidos (sólo ingresos): se usan para descontar inventario. */
+  productos?: { productoId: string; cantidad: number }[];
+  /** Venta de un solo producto (compatibilidad / bot). */
+  productoId?: string;
+  cantidad?: number;
   // campos opcionales para compatibilidad
   title?: string;
   amount?: number;

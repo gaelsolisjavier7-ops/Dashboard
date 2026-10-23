@@ -26,8 +26,19 @@ import { useTransactions } from '../hooks/useTransactions';
 import { usePedidos } from '../hooks/usePedidos';
 import { useInsumos } from '../hooks/useInsumos';
 import { useRecetas } from '../hooks/useRecetas';
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  increment,
+  serverTimestamp,
+  writeBatch,
+} from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { MENU_DATA } from '../lib/products';
+import { movimientosStockVenta, resolverLineasVenta } from '../lib/inventario';
 
 interface FinanceContextType {
   /** Transacciones YA filtradas por rol (sólo hamburguesas). */
@@ -276,7 +287,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const monto = Number(data.monto ?? data.amount ?? 0);
     const descripcion = data.descripcion || data.title || 'Sin concepto';
 
-    await addDoc(collection(db, 'transacciones'), {
+    // Venta → recetas: se resuelve la línea vendida (productos explícitos, un
+    // productoId único o el texto de la descripción) y se acumulan los insumos.
+    const lineas =
+      tipo === 'ingreso'
+        ? resolverLineasVenta(
+            {
+              tipo,
+              productos: data.productos,
+              productoId: data.productoId,
+              cantidad: data.cantidad,
+              descripcion,
+            },
+            MENU_DATA
+          )
+        : [];
+    const movimientos = movimientosStockVenta(lineas, recetas);
+    const insumosExistentes = new Set(insumos.map((insumo) => insumo.id));
+
+    // La transacción y el descuento de stock van juntos o no se guarda nada.
+    const batch = writeBatch(db);
+    const transaccionRef = doc(collection(db, 'transacciones'));
+    batch.set(transaccionRef, {
       fecha,
       tipo,
       categoria,
@@ -286,7 +318,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createdAt: serverTimestamp(),
       paymentMethod: data.paymentMethod || 'transferencia',
       notes: data.notes || '',
+      ...(lineas.length > 0 ? { productos: lineas } : {}),
     });
+
+    for (const movimiento of movimientos) {
+      // Recetas huérfanas: si el insumo ya no existe, no se rompe la venta.
+      if (!insumosExistentes.has(movimiento.insumoId)) continue;
+      batch.update(doc(db, 'insumos', movimiento.insumoId), {
+        stockActual: increment(-movimiento.cantidad),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
   };
 
   // Actualizar transacción en Firestore
