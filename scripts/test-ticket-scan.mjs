@@ -25,7 +25,13 @@ import {
   esCorreoAutorizado,
   normalizarCorreo,
 } from '../api/_lib/auth.ts';
-import { resolverCategoria } from '../src/lib/ticket.ts';
+import {
+  buscarInsumoPorNombre,
+  convertirCantidadAUnidadBase,
+  normalizarUnidad,
+  resolverCategoria,
+  unidadBaseDeTicket,
+} from '../src/lib/ticket.ts';
 
 let pass = 0;
 let fail = 0;
@@ -59,8 +65,8 @@ const TICKET_GEMINI = {
   fecha: '2026-10-12',
   total: 450.5,
   productos: [
-    { nombre: 'Carne molida', cantidad: 3, precioUnitario: 120 },
-    { nombre: 'Pan brioche', cantidad: 2, precioUnitario: 45.25 },
+    { nombre: 'Carne molida', cantidad: 3, unidad: 'kg', precioUnitario: 120 },
+    { nombre: 'Pan brioche', cantidad: 2, unidad: 'pza', precioUnitario: 45.25 },
   ],
   categoria: 'Insumos',
   confianza: 'alta',
@@ -116,6 +122,7 @@ t('normaliza todos los campos del ticket', () => {
   assert.equal(ticket.productos.length, 2);
   assert.equal(ticket.productos[0].nombre, 'Carne molida');
   assert.equal(ticket.productos[0].cantidad, 3);
+  assert.equal(ticket.productos[0].unidad, 'kg');
   assert.equal(ticket.productos[0].precioUnitario, 120);
   assert.equal(ticket.categoria, 'Insumos');
   assert.equal(ticket.confianza, 'alta');
@@ -221,8 +228,62 @@ t('la categoría sugerida se mapea al catálogo real del usuario', () => {
   assert.equal(resolverCategoria('Salsas', []), 'Salsas');
 });
 
-/* ═════════════ 4. Flujo HTTP del endpoint ═════════════ */
-grupo('4. Flujo HTTP (api/ticket-scan)');
+/* ═════════════ 3b. Mapeo ticket → inventario ═════════════ */
+grupo('3b. Unidades y match de insumos');
+
+t('normaliza las unidades que puede devolver Gemini', () => {
+  assert.equal(normalizarUnidad('kg'), 'kg');
+  assert.equal(normalizarUnidad('KG.'), 'kg');
+  assert.equal(normalizarUnidad('2 kg'), 'kg');
+  assert.equal(normalizarUnidad('gramos'), 'g');
+  assert.equal(normalizarUnidad('litro'), 'l');
+  assert.equal(normalizarUnidad('ml'), 'ml');
+  assert.equal(normalizarUnidad('pza'), 'pza');
+  assert.equal(normalizarUnidad('piezas'), 'pza');
+  assert.equal(normalizarUnidad(''), 'otro');
+});
+
+t('2 kg → 2000 g cuando el insumo se guarda en gramos', () => {
+  const conversion = convertirCantidadAUnidadBase(2, 'kg', 'g');
+  assert.equal(conversion.cantidad, 2000);
+  assert.equal(conversion.factor, 1000);
+  assert.equal(conversion.compatible, true);
+});
+
+t('litros → ml y unidades iguales se dejan tal cual', () => {
+  assert.equal(convertirCantidadAUnidadBase(1.5, 'litro', 'ml').cantidad, 1500);
+  assert.equal(convertirCantidadAUnidadBase(6, 'pza', 'pza').cantidad, 6);
+  assert.equal(convertirCantidadAUnidadBase(250, 'g', 'g').cantidad, 250);
+});
+
+t('unidades incompatibles se marcan y no se inventa una conversión', () => {
+  const conversion = convertirCantidadAUnidadBase(2, 'pza', 'g');
+  assert.equal(conversion.cantidad, 2);
+  assert.equal(conversion.compatible, false);
+});
+
+t('unidad base de un insumo nuevo según el ticket', () => {
+  assert.equal(unidadBaseDeTicket('kg'), 'g');
+  assert.equal(unidadBaseDeTicket('g'), 'g');
+  assert.equal(unidadBaseDeTicket('litro'), 'ml');
+  assert.equal(unidadBaseDeTicket('pza'), 'pza');
+});
+
+t('match automático por nombre (exacto, contenido y palabras)', () => {
+  const insumos = [
+    { id: 'i1', nombre: 'Carne molida de res' },
+    { id: 'i2', nombre: 'Pan brioche' },
+    { id: 'i3', nombre: 'Papas lisa europea' },
+  ];
+  assert.equal(buscarInsumoPorNombre('Carne molida de res', insumos)?.id, 'i1');
+  assert.equal(buscarInsumoPorNombre('PAN BRIOCHE', insumos)?.id, 'i2');
+  assert.equal(buscarInsumoPorNombre('Carne molida 3 kg', insumos)?.id, 'i1');
+  assert.equal(buscarInsumoPorNombre('Papas 10kg', insumos)?.id, 'i3');
+  assert.equal(buscarInsumoPorNombre('Servilletas', insumos), null);
+  assert.equal(buscarInsumoPorNombre('', insumos), null);
+});
+
+/* ═════════════ 4. Flujo HTTP del endpoint ═════════════ */grupo('4. Flujo HTTP (api/ticket-scan)');
 
 await ta('sin imagen → 400', async () => {
   const r = await procesarTicket(peticion({ mimeType: 'image/jpeg' }), deps());

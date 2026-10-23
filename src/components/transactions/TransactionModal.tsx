@@ -18,7 +18,12 @@ import {
   X,
 } from 'lucide-react';
 import { useTicketScan } from '../../hooks/useTicketScan';
-import { etiquetaConfianza, resolverCategoria } from '../../lib/ticket';
+import { etiquetaConfianza, buscarInsumoPorNombre, resolverCategoria } from '../../lib/ticket';
+import { MapeoInsumos } from './MapeoInsumos';
+import {
+  construirMovimientosTicket,
+  guardarTransaccionConStock,
+} from '../../services/ticket-inventario';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -68,7 +73,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onClose,
   editingTransaction,
 }) => {
-  const { categories, addTransaction, updateTransaction } = useFinance();
+  const { categories, addTransaction, updateTransaction, insumos } = useFinance();
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -81,6 +86,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [hotDogsAbiertos, setHotDogsAbiertos] = useState(false);
   const [ticketAplicado, setTicketAplicado] = useState(false);
+  /** índice del producto del ticket → insumoId, '__nuevo__' o '' (ignorar). */
+  const [mapeos, setMapeos] = useState<Record<number, string>>({});
+  const ticketMapeadoRef = useRef<object | null>(null);
   const inputTicketRef = useRef<HTMLInputElement>(null);
   const {
     scanning: escaneando,
@@ -120,8 +128,35 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
     setHotDogsAbiertos(false);
     setTicketAplicado(false);
+    setMapeos({});
+    ticketMapeadoRef.current = null;
     resetTicket();
   }, [editingTransaction, isOpen, resetTicket]);
+
+  /**
+   * Al detectar productos, sugiere un insumo por nombre. Si el ticket cambia
+   * se rehacen los mapeos; si sólo llegan los insumos (suscripción de
+   * Firestore), se completan los que aún no tenían sugerencia.
+   */
+  useEffect(() => {
+    if (!ticket || editingTransaction) {
+      setMapeos({});
+      ticketMapeadoRef.current = null;
+      return;
+    }
+
+    const esTicketNuevo = ticketMapeadoRef.current !== ticket;
+    if (esTicketNuevo) ticketMapeadoRef.current = ticket;
+
+    setMapeos((previos) => {
+      const siguientes: Record<number, string> = esTicketNuevo ? {} : { ...previos };
+      ticket.productos.forEach((producto, indice) => {
+        if (siguientes[indice] !== undefined) return;
+        siguientes[indice] = buscarInsumoPorNombre(producto.nombre, insumos)?.id ?? '';
+      });
+      return siguientes;
+    });
+  }, [ticket, insumos, editingTransaction]);
 
   // Update category when available categories change
   useEffect(() => {
@@ -154,11 +189,36 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         notes: notes.trim(),
       };
 
+      const movimientos =
+        !editingTransaction && type === 'gasto'
+          ? construirMovimientosTicket(
+              ticket?.productos ?? [],
+              mapeos,
+              insumos,
+              ticket?.proveedor
+            )
+          : [];
+
       if (editingTransaction) {
         await updateTransaction({
           ...editingTransaction,
           ...payload,
         });
+      } else if (movimientos.length > 0) {
+        // Gasto + stock en un solo writeBatch (atómico).
+        await guardarTransaccionConStock(
+          {
+            fecha: date,
+            tipo: type,
+            categoria: payload.categoria,
+            monto: Number(amount),
+            descripcion: payload.descripcion,
+            negocio: 'hamburguesas',
+            paymentMethod,
+            notes: notes.trim(),
+          },
+          movimientos
+        );
       } else {
         await addTransaction(payload);
       }
@@ -431,6 +491,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       {ticket.pesoKb} KB enviados · nada se guarda hasta que confirmes
                     </p>
                   </div>
+                )}
+
+                {ticket && !editingTransaction && (
+                  <MapeoInsumos
+                    productos={ticket.productos}
+                    insumos={insumos}
+                    mapeos={mapeos}
+                    onCambiar={(indice, valor) =>
+                      setMapeos((previos) => ({ ...previos, [indice]: valor }))
+                    }
+                  />
                 )}
               </div>
             )}

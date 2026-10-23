@@ -134,8 +134,8 @@ const RESPUESTA_TICKET = {
     fecha: '2026-10-12',
     total: 450.5,
     productos: [
-      { nombre: 'Carne molida', cantidad: 3, precioUnitario: 120 },
-      { nombre: 'Pan brioche', cantidad: 2, precioUnitario: 45.25 },
+      { nombre: 'Carne molida', cantidad: 3, unidad: 'kg', precioUnitario: 120 },
+      { nombre: 'Pan brioche', cantidad: 2, unidad: 'pza', precioUnitario: 45.25 },
     ],
     categoria: 'Insumos',
     confianza: 'media',
@@ -431,6 +431,10 @@ for (const vista of [
       usaDatos: botones.includes('Usar estos datos'),
       avisoBaja: texto.includes('Verifica antes de guardar'),
       error: texto.includes('No se pudo') || texto.includes('no disponible'),
+      insumosDetectados: texto.includes('Insumos detectados'),
+      selectsMapeo: [...document.querySelectorAll('select')].filter((s) =>
+        (s.getAttribute('aria-label') || '').startsWith('Insumo para')
+      ).length,
     });
   })()`);
   const peticion = peticionesTicket[0] ?? {};

@@ -22,14 +22,17 @@ Extrae:
 - "proveedor": el nombre del comercio (Carnemart, Oxxo, Soriana, La Costeña...). Si no se lee, "Desconocido".
 - "fecha": la fecha del ticket en formato ISO (YYYY-MM-DD). Si no se lee, cadena vacía.
 - "total": el total pagado en pesos MXN (número, sin símbolo ni comas).
-- "productos": lista de artículos con "nombre" (como aparece en el ticket), "cantidad" y "precioUnitario" en MXN.
+- "productos": lista de artículos con "nombre" (como aparece en el ticket), "cantidad", "unidad" de medida y "precioUnitario" en MXN.
 - "categoria": la categoría sugerida del gasto: "Insumos", "Salsas", "Papelería" u "Otros".
 - "confianza": "alta" si el ticket se lee con claridad, "media" si algo es dudoso, "baja" si es ilegible o borroso.
+
+Extrae la cantidad y la unidad de medida exacta (kg, pza, litro) para cada producto.
 
 Reglas:
 - Si la imagen NO es un ticket de compra, devuelve "total": 0, "productos": [] y "confianza": "baja".
 - No inventes productos ni precios: si no se leen, devuélvelos vacíos.
-- Los precios son en pesos mexicanos; ignora subtotales, IVA y descuentos (usa el total final).`;
+- Los precios son en pesos mexicanos; ignora subtotales, IVA y descuentos (usa el total final).
+- "unidad" debe ser la abreviatura que aparece en el ticket (kg, g, pza, litro, ml). Si no se lee, usa "pza".`;
 
 export const ESQUEMA_TICKET = {
   type: 'OBJECT',
@@ -44,9 +47,10 @@ export const ESQUEMA_TICKET = {
         properties: {
           nombre: { type: 'STRING' },
           cantidad: { type: 'NUMBER' },
+          unidad: { type: 'STRING' },
           precioUnitario: { type: 'NUMBER' },
         },
-        required: ['nombre', 'cantidad'],
+        required: ['nombre', 'cantidad', 'unidad'],
       },
     },
     categoria: { type: 'STRING', enum: [...CATEGORIAS_TICKET] },
@@ -58,6 +62,8 @@ export const ESQUEMA_TICKET = {
 export interface ProductoTicket {
   nombre: string;
   cantidad: number;
+  /** Unidad tal como aparece en el ticket: "kg", "g", "pza", "litro", "ml". */
+  unidad: string;
   precioUnitario: number;
 }
 
@@ -134,6 +140,7 @@ function normalizarProducto(valor: unknown): ProductoTicket | null {
   return {
     nombre,
     cantidad: Number.isFinite(cantidad) && cantidad > 0 ? redondear(cantidad) : 1,
+    unidad: String(bruto.unidad ?? '').trim(),
     precioUnitario: Number.isFinite(precio) && precio > 0 ? redondear(precio) : 0,
   };
 }
