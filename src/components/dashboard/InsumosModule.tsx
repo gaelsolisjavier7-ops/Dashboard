@@ -193,6 +193,7 @@ export const InsumosModule: React.FC<InsumosModuleProps> = ({ subTabInicial = 'i
           {subTab === 'inventario' ? (
             <InventarioPanel
               insumos={insumos}
+              recetas={recetas}
               loading={loadingInsumos}
               error={errorInsumos}
               notificar={notificar}

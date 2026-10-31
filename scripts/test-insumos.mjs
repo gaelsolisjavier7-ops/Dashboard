@@ -8,6 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import {
+  GRAMOS_POR_PORCION_CARNE,
   PORCION_PAPAS_G,
   calcularCostoUnidadBase,
   calcularMargen,
@@ -20,7 +21,10 @@ import {
   formatMXN,
   insumoPapas,
   promediosRecetas,
+  rendimientoReceta,
   resolverConversion,
+  semaforoStock,
+  stockAmigable,
   stockBajo,
   unidadesBaseDeCompra,
   valorInventario,
@@ -327,6 +331,52 @@ t('precios de hamburguesas y hot dogs coinciden con el menú', () => {
 });
 t('un producto inexistente devuelve precio 0', () => {
   assert.equal(precioVentaProducto('no-existe'), 0);
+});
+
+/* ─────────── 8. presentación amigable del inventario ─────────── */
+grupo('8. Tarjetas de inventario (semáforo, unidades y recetas)');
+
+const carne = { id: 'carne', nombre: 'Carne', categoria: 'Carne', unidadBase: 'g', stockActual: 15000, stockMinimo: 2000 };
+const queso = { id: 'queso', nombre: 'Queso', categoria: 'Quesos', unidadBase: 'g', stockActual: 800, stockMinimo: 300 };
+const pan = { id: 'pan', nombre: 'Pan', categoria: 'Panadería', unidadBase: 'pza', stockActual: 30, stockMinimo: 10 };
+const aceite = { id: 'aceite', nombre: 'Aceite', categoria: 'Extras', unidadBase: 'ml', stockActual: 1500, stockMinimo: 0 };
+
+t('carne debajo del mínimo → rojo', () => {
+  assert.equal(semaforoStock({ ...carne, stockActual: 1000 }), 'rojo');
+});
+t('cerca del mínimo (menos de 1.5×) → amarillo', () => {
+  assert.equal(semaforoStock({ ...queso, stockActual: 400 }), 'amarillo'); // 300 ≤ 400 < 450
+  assert.equal(semaforoStock({ ...pan, stockActual: 12 }), 'amarillo');
+});
+t('suficiente stock → verde', () => {
+  assert.equal(semaforoStock(carne), 'verde');
+  assert.equal(semaforoStock(queso), 'verde');
+});
+t('sin stock → rojo aunque no haya mínimo', () => {
+  assert.equal(semaforoStock({ ...aceite, stockActual: 0 }), 'rojo');
+  assert.equal(semaforoStock({ ...aceite, stockActual: 500 }), 'verde');
+});
+t('gramos grandes se muestran en kg', () => {
+  assert.deepEqual(stockAmigable(carne), { valor: '15', unidad: 'kg', equivalencia: '100 porciones' });
+  assert.deepEqual(stockAmigable({ ...queso, stockActual: 450 }), { valor: '450', unidad: 'g', equivalencia: null });
+});
+t(`${GRAMOS_POR_PORCION_CARNE} g = 1 porción de carne`, () => {
+  const una = stockAmigable({ ...carne, stockActual: 150 });
+  assert.equal(una.equivalencia, '1 porción');
+});
+t('mililitros grandes se muestran en litros y piezas en lenguaje simple', () => {
+  assert.deepEqual(stockAmigable(aceite), { valor: '1.5', unidad: 'L', equivalencia: null });
+  assert.deepEqual(stockAmigable({ ...pan, stockActual: 1 }), { valor: '1', unidad: 'pieza', equivalencia: null });
+  assert.deepEqual(stockAmigable(pan), { valor: '30', unidad: 'piezas', equivalencia: null });
+});
+t('rendimientoReceta divide stock entre la cantidad de la receta', () => {
+  assert.equal(rendimientoReceta(15000, 150), 100);
+  assert.equal(rendimientoReceta(2000, 150), 13); // entero hacia abajo
+  assert.equal(rendimientoReceta(100, 150), 0);
+});
+t('rendimientoReceta no divide por cero', () => {
+  assert.equal(rendimientoReceta(1000, 0), 0);
+  assert.equal(rendimientoReceta(0, 150), 0);
 });
 
 console.log(`\n${pass} OK / ${fail} FALLAS`);

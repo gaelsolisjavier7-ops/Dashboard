@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   CATEGORIAS_INSUMO,
-  UNIDADES_COMPRA,
   calcularCostoUnidadBase,
   formatCostoUnitario,
   resolverConversion,
@@ -10,7 +9,7 @@ import {
 import type { UnidadCompra } from '../../lib/costeo';
 import type { Insumo } from '../../types/finance';
 import { actualizarInsumo, crearInsumo } from '../../services/insumos';
-import { AlertCircle, Loader2, X } from 'lucide-react';
+import { AlertCircle, ChevronDown, Loader2, Settings2, X } from 'lucide-react';
 import { ETIQUETA_CLASE, INPUT_CLASE, INPUT_NUM_CLASE, OVERLAY_MODAL, PANEL_MODAL } from './estilos';
 import { etiquetaUnidad } from './estilos';
 
@@ -22,6 +21,18 @@ interface InsumoModalProps {
 }
 
 const numero = (valor: string) => Number(valor) || 0;
+
+/** Etiquetas pensadas para cocina, no para inventario técnico. */
+const ETIQUETA_COMPRA: Record<UnidadCompra, string> = {
+  kg: 'kilogramos (kg)',
+  litro: 'litros (L)',
+  pza: 'piezas',
+  paquete: 'paquetes',
+};
+
+/** Nombre de la unidad base sin abreviaturas para el resumen de costo. */
+const nombreUnidadBase = (unidadBase: string) =>
+  unidadBase === 'g' ? 'gramo' : unidadBase === 'ml' ? 'ml' : 'pieza';
 
 export const InsumoModal: React.FC<InsumoModalProps> = ({ insumo = null, onClose, onSaved }) => {
   const editando = Boolean(insumo);
@@ -40,6 +51,7 @@ export const InsumoModal: React.FC<InsumoModalProps> = ({ insumo = null, onClose
   const [stockMinimo, setStockMinimo] = useState(insumo ? String(insumo.stockMinimo) : '');
   const [proveedor, setProveedor] = useState(insumo?.proveedor ?? '');
   const [notas, setNotas] = useState(insumo?.notas ?? '');
+  const [avanzado, setAvanzado] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +109,7 @@ export const InsumoModal: React.FC<InsumoModalProps> = ({ insumo = null, onClose
               {editando ? 'Editar insumo' : 'Nuevo insumo'}
             </h3>
             <p className="text-[13px] text-[#7a7a7a] mt-1">
-              El costo por {etiquetaUnidad(unidadBase)} se calcula solo con la regla de conversión.
+              Lo básico: nombre, precio y cuánto trae la compra.
             </p>
           </div>
           <button
@@ -123,43 +135,38 @@ export const InsumoModal: React.FC<InsumoModalProps> = ({ insumo = null, onClose
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={ETIQUETA_CLASE}>Categoría</label>
-              <select
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
-                className={`${INPUT_CLASE} cursor-pointer`}
-              >
-                {CATEGORIAS_INSUMO.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className={ETIQUETA_CLASE}>Unidad de compra</label>
-              <select
-                value={unidadCompra}
-                onChange={(e) => setUnidadCompra(e.target.value as UnidadCompra)}
-                className={`${INPUT_CLASE} cursor-pointer`}
-              >
-                {UNIDADES_COMPRA.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className={ETIQUETA_CLASE}>Categoría</label>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className={`${INPUT_CLASE} cursor-pointer`}
+            >
+              {CATEGORIAS_INSUMO.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={ETIQUETA_CLASE}>
-                Cantidad de compra ({unidadCompra === 'paquete' ? 'paquetes' : unidadCompra})
-              </label>
+          <div>
+            <label className={ETIQUETA_CLASE}>Precio de la compra (MXN) *</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={precioCompra}
+              onChange={(e) => setPrecioCompra(e.target.value)}
+              className={INPUT_NUM_CLASE}
+              placeholder="450.00"
+              required
+            />
+          </div>
+
+          <div>
+            <label className={ETIQUETA_CLASE}>¿Cuánto trae? *</label>
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
               <input
                 type="number"
                 min="0"
@@ -168,28 +175,30 @@ export const InsumoModal: React.FC<InsumoModalProps> = ({ insumo = null, onClose
                 onChange={(e) => setCantidadCompra(e.target.value)}
                 className={INPUT_NUM_CLASE}
                 placeholder={unidadCompra === 'kg' ? '5' : '1'}
+                aria-label="Cantidad que trae la compra"
                 required
               />
+              <select
+                value={unidadCompra}
+                onChange={(e) => setUnidadCompra(e.target.value as UnidadCompra)}
+                aria-label="Unidad de la compra"
+                className={`${INPUT_CLASE} cursor-pointer`}
+              >
+                {(Object.keys(ETIQUETA_COMPRA) as UnidadCompra[]).map((u) => (
+                  <option key={u} value={u}>
+                    {ETIQUETA_COMPRA[u]}
+                  </option>
+                ))}
+              </select>
             </div>
-
-            <div>
-              <label className={ETIQUETA_CLASE}>Precio de compra total (MXN)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={precioCompra}
-                onChange={(e) => setPrecioCompra(e.target.value)}
-                className={INPUT_NUM_CLASE}
-                placeholder="450.00"
-                required
-              />
-            </div>
+            <p className="text-[11px] text-[#8e8e93] mt-1">
+              Ej. compraste 5 kg de carne por $450 → pon 5 y “kilogramos”.
+            </p>
           </div>
 
           {esPaquete && (
             <div>
-              <label className={ETIQUETA_CLASE}>¿Cuántas piezas trae el paquete? *</label>
+              <label className={ETIQUETA_CLASE}>¿Cuántas piezas trae cada paquete? *</label>
               <input
                 type="number"
                 min="1"
@@ -203,78 +212,105 @@ export const InsumoModal: React.FC<InsumoModalProps> = ({ insumo = null, onClose
             </div>
           )}
 
-          {/* Preview en vivo */}
-          <div className="rounded-[14px] bg-[#f5f5f7] border border-[#e0e0e0] p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] text-[#7a7a7a]">
-                Costo por {etiquetaUnidad(unidadBase)}
-              </span>
-              <span className="text-[20px] font-semibold text-[#1d1d1f] tracking-tight">
-                {formatCostoUnitario(costoUnidadBase)}
-              </span>
+          {/* Preview en lenguaje simple */}
+          {cantidadNum > 0 && precioNum > 0 && (
+            <div className="rounded-[14px] bg-[#f5f5f7] border border-[#e0e0e0] px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[13px] text-[#7a7a7a]">
+                  Te sale a {formatCostoUnitario(costoUnidadBase)} por {nombreUnidadBase(unidadBase)}
+                </span>
+                <span className="text-[13px] font-semibold text-[#1d1d1f] whitespace-nowrap">
+                  {compraCompleta.toLocaleString('es-MX')} {etiquetaUnidad(unidadBase)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-[12px] text-[#7a7a7a] mt-2 pt-2 border-t border-dashed border-[#e0e0e0]">
-              <span>Conversión</span>
-              <span>
-                {cantidadNum || 0} {unidadCompra} × {factorConversion || 0} ={' '}
-                {compraCompleta.toLocaleString('es-MX')} {etiquetaUnidad(unidadBase)}
-              </span>
-            </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={ETIQUETA_CLASE}>Stock inicial ({etiquetaUnidad(unidadBase)})</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={stockActual}
-                onChange={(e) => setStockActual(e.target.value)}
-                className={INPUT_NUM_CLASE}
-                placeholder={String(compraCompleta || 0)}
+          {/* Configuración avanzada */}
+          <div className="rounded-[14px] border border-[#e0e0e0] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setAvanzado((v) => !v)}
+              aria-expanded={avanzado}
+              className="w-full min-h-[48px] px-4 flex items-center justify-between gap-3 bg-[#f5f5f7] hover:bg-[#e0e0e0] transition-colors cursor-pointer"
+            >
+              <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1d1d1f] whitespace-nowrap">
+                <Settings2 className="w-4 h-4 text-[#7a7a7a] flex-shrink-0" />
+                Configuración Avanzada
+                <span className="hidden sm:inline text-[11px] font-normal text-[#8e8e93]">(opcional)</span>
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#7a7a7a] transition-transform ${avanzado ? 'rotate-180' : ''}`}
               />
-              <p className="text-[11px] text-[#8e8e93] mt-1">
-                Si lo dejas vacío se asume la compra completa ({compraCompleta.toLocaleString('es-MX')}{' '}
-                {etiquetaUnidad(unidadBase)}).
-              </p>
-            </div>
+            </button>
 
-            <div>
-              <label className={ETIQUETA_CLASE}>Stock mínimo ({etiquetaUnidad(unidadBase)})</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={stockMinimo}
-                onChange={(e) => setStockMinimo(e.target.value)}
-                className={INPUT_NUM_CLASE}
-                placeholder="0"
-              />
-              <p className="text-[11px] text-[#8e8e93] mt-1">Alerta cuando el stock baje de aquí.</p>
-            </div>
-          </div>
+            {avanzado && (
+              <div className="p-4 space-y-4 border-t border-[#e0e0e0]">
+                <div className="rounded-[12px] bg-[#f5f5f7] border border-[#e0e0e0] px-3 py-2 text-[12px] text-[#7a7a7a] flex items-center justify-between gap-3">
+                  <span>Conversión a unidad base</span>
+                  <span className="font-semibold text-[#1d1d1f]">
+                    1 {unidadCompra} = {factorConversion || 0} {etiquetaUnidad(unidadBase)}
+                  </span>
+                </div>
 
-          <div>
-            <label className={ETIQUETA_CLASE}>Proveedor (opcional)</label>
-            <input
-              type="text"
-              value={proveedor}
-              onChange={(e) => setProveedor(e.target.value)}
-              className={INPUT_CLASE}
-              placeholder="Ej. Carnicería La Central"
-            />
-          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={ETIQUETA_CLASE}>Stock inicial ({etiquetaUnidad(unidadBase)})</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={stockActual}
+                      onChange={(e) => setStockActual(e.target.value)}
+                      className={INPUT_NUM_CLASE}
+                      placeholder={String(compraCompleta || 0)}
+                    />
+                    <p className="text-[11px] text-[#8e8e93] mt-1">
+                      Si lo dejas vacío se asume la compra completa (
+                      {compraCompleta.toLocaleString('es-MX')} {etiquetaUnidad(unidadBase)}).
+                    </p>
+                  </div>
 
-          <div>
-            <label className={ETIQUETA_CLASE}>Notas (opcional)</label>
-            <textarea
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              rows={2}
-              className={`${INPUT_CLASE} resize-none py-3`}
-              placeholder="Ej. Bolsa de 10 medallones"
-            />
+                  <div>
+                    <label className={ETIQUETA_CLASE}>Stock mínimo ({etiquetaUnidad(unidadBase)})</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={stockMinimo}
+                      onChange={(e) => setStockMinimo(e.target.value)}
+                      className={INPUT_NUM_CLASE}
+                      placeholder="0"
+                    />
+                    <p className="text-[11px] text-[#8e8e93] mt-1">
+                      La tarjeta se pone roja cuando baja de aquí.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={ETIQUETA_CLASE}>Proveedor (opcional)</label>
+                  <input
+                    type="text"
+                    value={proveedor}
+                    onChange={(e) => setProveedor(e.target.value)}
+                    className={INPUT_CLASE}
+                    placeholder="Ej. Carnicería La Central"
+                  />
+                </div>
+
+                <div>
+                  <label className={ETIQUETA_CLASE}>Notas (opcional)</label>
+                  <textarea
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                    rows={2}
+                    className={`${INPUT_CLASE} resize-none py-3`}
+                    placeholder="Ej. Bolsa de 10 medallones"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (

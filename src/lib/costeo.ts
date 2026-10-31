@@ -103,6 +103,92 @@ export function stockBajo(insumo: InsumoParaCosto): boolean {
   return minimo > 0 && actual < minimo;
 }
 
+/* ─────────────────── presentación amigable del inventario ─────────────────── */
+
+/** Semáforo visual de una tarjeta de insumo. */
+export type SemaforoStock = 'rojo' | 'amarillo' | 'verde';
+
+/** 1 porción de carne = 150 g (misma porción que se usa para las papas). */
+export const GRAMOS_POR_PORCION_CARNE = 150;
+
+/** “Cerca del mínimo”: por debajo de 1.5× el stock mínimo. */
+export const FACTOR_CASI_MINIMO = 1.5;
+
+/**
+ * 🔴 debajo del mínimo (o sin stock) · 🟡 cerca del mínimo · 🟢 suficiente.
+ * Si el insumo no tiene mínimo configurado, sólo se marca rojo cuando llega a 0.
+ */
+export function semaforoStock(insumo: InsumoParaCosto): SemaforoStock {
+  const actual = Math.max(0, Number(insumo.stockActual) || 0);
+  const minimo = Math.max(0, Number(insumo.stockMinimo) || 0);
+
+  if (actual <= 0) return 'rojo';
+  if (minimo <= 0) return 'verde';
+  if (actual < minimo) return 'rojo';
+  if (actual < minimo * FACTOR_CASI_MINIMO) return 'amarillo';
+  return 'verde';
+}
+
+const formatearCantidad = (valor: number): string =>
+  new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(valor);
+
+export interface StockAmigable {
+  /** Cifra ya convertida a la unidad fácil de leer ("15", "750", "6"). */
+  valor: string;
+  /** Unidad fácil de leer ("kg", "L", "piezas"). */
+  unidad: string;
+  /** Equivalencia extra para cocina ("100 porciones" en carne). */
+  equivalencia: string | null;
+}
+
+/**
+ * Traduce las unidades base a lenguaje de cocina:
+ *   15000 g → 15 kg · 750 g → 750 g · 1500 ml → 1.5 L · 6 pza → 6 piezas
+ * Para carne en gramos agrega “~100 porciones” (1 porción = 150 g).
+ */
+export function stockAmigable(insumo: InsumoParaCosto): StockAmigable {
+  const actual = Math.max(0, Number(insumo.stockActual) || 0);
+  const base = String(insumo.unidadBase ?? 'pza');
+  const esCarne =
+    String(insumo.categoria ?? '').trim().toLowerCase() === 'carne';
+
+  if (base === 'g') {
+    const equivalencia = esCarne
+      ? `${Math.floor(actual / GRAMOS_POR_PORCION_CARNE)} ${
+          Math.floor(actual / GRAMOS_POR_PORCION_CARNE) === 1 ? 'porción' : 'porciones'
+        }`
+      : null;
+
+    if (actual >= 1000) {
+      return { valor: formatearCantidad(actual / 1000), unidad: 'kg', equivalencia };
+    }
+    return { valor: formatearCantidad(actual), unidad: 'g', equivalencia };
+  }
+
+  if (base === 'ml') {
+    if (actual >= 1000) {
+      return { valor: formatearCantidad(actual / 1000), unidad: 'L', equivalencia: null };
+    }
+    return { valor: formatearCantidad(actual), unidad: 'ml', equivalencia: null };
+  }
+
+  return {
+    valor: formatearCantidad(actual),
+    unidad: actual === 1 ? 'pieza' : 'piezas',
+    equivalencia: null,
+  };
+}
+
+/**
+ * ¿Para cuántas porciones de una receta alcanza el stock?
+ * Devuelve el entero hacia abajo (0 si no alcanza ni para una).
+ */
+export function rendimientoReceta(stockActual: number, cantidadPorReceta: number): number {
+  const cantidad = Number(cantidadPorReceta) || 0;
+  if (cantidad <= 0) return 0;
+  return Math.floor((Number(stockActual) || 0) / cantidad);
+}
+
 export function valorInventario(insumos: InsumoParaCosto[]): number {
   return redondear(
     insumos.reduce(
