@@ -53,6 +53,20 @@ const ORDINAL_TRIMESTRE = ['1er', '2º', '3er', '4º'];
 /* ─────────────────────────── parseo de fechas ─────────────────────────── */
 
 /**
+ * Fecha LOCAL del usuario en formato YYYY-MM-DD.
+ *
+ * `new Date().toISOString()` usa UTC: en México (UTC-6) después de las 18:00
+ * devuelve el día siguiente. Esta función usa los getters locales para que el
+ * <input type="date"> y lo que se guarda en Firestore coincidan con el día real.
+ */
+export function fechaLocalISO(fecha: Date = new Date()): string {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+}
+
+/**
  * Convierte un campo de fecha de Firestore (Timestamp, { seconds }, ISO string,
  * YYYY-MM-DD, DD/MM/YYYY o epoch) a milisegundos locales.
  */

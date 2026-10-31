@@ -283,6 +283,17 @@ t('match automático por nombre (exacto, contenido y palabras)', () => {
   assert.equal(buscarInsumoPorNombre('', insumos), null);
 });
 
+t('match por contexto: producto preparado → insumo de su categoría', () => {
+  const insumos = [
+    { id: 'c1', nombre: 'Carne Sirloin', categoria: 'Carne' },
+    { id: 'q1', nombre: 'Queso Oaxaca', categoria: 'Quesos' },
+    { id: 'p1', nombre: 'Papas lisa europea', categoria: 'Papas' },
+  ];
+  assert.equal(buscarInsumoPorNombre('HAMBURGUESA DE PO', insumos)?.id, 'c1');
+  assert.equal(buscarInsumoPorNombre('HAMBURGUESA CON PAPAS', insumos)?.id, 'p1');
+  assert.equal(buscarInsumoPorNombre('SERVILLETAS', insumos), null);
+});
+
 /* ═════════════ 4. Flujo HTTP del endpoint ═════════════ */grupo('4. Flujo HTTP (api/ticket-scan)');
 
 await ta('sin imagen → 400', async () => {

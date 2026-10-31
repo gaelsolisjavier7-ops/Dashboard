@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { useTicketScan } from '../../hooks/useTicketScan';
+import { fechaLocalISO } from '../../lib/fechas';
 import { etiquetaConfianza, buscarInsumoPorNombre, resolverCategoria } from '../../lib/ticket';
 import { MapeoInsumos } from './MapeoInsumos';
 import {
@@ -80,7 +81,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Por defecto "Pedido" (ingreso): el 90% de los registros manuales son ventas
   const [type, setType] = useState<TransactionType>('ingreso');
   const [category, setCategory] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(fechaLocalISO());
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('transferencia');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -119,14 +120,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setAmount(editingTransaction.monto ?? editingTransaction.amount ?? '');
       setType(editingTransaction.tipo === 'ingreso' ? 'ingreso' : 'gasto');
       setCategory(editingTransaction.categoria || editingTransaction.category || '');
-      setDate(editingTransaction.fecha || editingTransaction.date || new Date().toISOString().split('T')[0]);
+      setDate(editingTransaction.fecha || editingTransaction.date || fechaLocalISO());
       setPaymentMethod(editingTransaction.paymentMethod || 'transferencia');
       setNotes(editingTransaction.notes || '');
     } else {
       setTitle('');
       setAmount('');
       setType('ingreso');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(fechaLocalISO());
       setPaymentMethod('transferencia');
       setNotes('');
     }
@@ -178,8 +179,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
     setSubmitting(true);
     try {
+      // Si el usuario borra el campo, se guarda HOY en hora local (nunca UTC).
+      const fecha = date || fechaLocalISO();
+
       const payload: Partial<Transaction> = {
-        fecha: date,
+        fecha,
         tipo: type,
         categoria: category || availableCategories[0]?.name || 'General',
         monto: Number(amount),
@@ -189,7 +193,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         amount: Number(amount),
         type,
         category: category || availableCategories[0]?.name || 'General',
-        date,
+        date: fecha,
         paymentMethod,
         notes: notes.trim(),
         ...(type === 'ingreso' && productosVenta.length > 0 ? { productos: productosVenta } : {}),
@@ -214,7 +218,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         // Gasto + stock en un solo writeBatch (atómico).
         await guardarTransaccionConStock(
           {
-            fecha: date,
+            fecha,
             tipo: type,
             categoria: payload.categoria,
             monto: Number(amount),

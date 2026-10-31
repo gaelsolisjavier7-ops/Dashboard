@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { fechaLocalISO } from '../lib/fechas';
 import type { Transaccion } from '../types/finance';
 
 export function useTransactions() {
@@ -24,13 +25,14 @@ export function useTransactions() {
           // Normalizar fecha si viene como Firestore Timestamp o string
           let fechaStr = '';
           if (data.fecha?.toDate) {
-            fechaStr = data.fecha.toDate().toISOString().split('T')[0];
+            // Timestamp → día LOCAL (toISOString daría el día UTC y se adelanta).
+            fechaStr = fechaLocalISO(data.fecha.toDate());
           } else if (typeof data.fecha === 'string') {
             fechaStr = data.fecha;
           } else if (data.date) {
             fechaStr = data.date;
           } else {
-            fechaStr = new Date().toISOString().split('T')[0];
+            fechaStr = fechaLocalISO();
           }
 
           // Normalizar tipo ('ingreso' | 'gasto')

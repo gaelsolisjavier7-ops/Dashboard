@@ -1,4 +1,12 @@
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  increment,
+  serverTimestamp,
+  updateDoc,
+} from 'firebase/firestore';
 import { db } from './firebase';
 import {
   calcularCostoUnidadBase,
@@ -129,6 +137,25 @@ export async function actualizarInsumo(id: string, data: InsumoFormData): Promis
 
 export async function eliminarInsumo(id: string): Promise<void> {
   await deleteDoc(doc(db, COLECCION_INSUMOS, id));
+}
+
+/**
+ * Ajuste rápido de stock desde la tabla (+/-).
+ *
+ * Usa `increment` dentro de un `updateDoc` para que dos ajustes simultáneos se
+ * sumen en Firestore en lugar de pisarse con un valor calculado en el cliente.
+ * `delta` viene en la unidad base del insumo (g, ml o pza).
+ */
+export async function ajustarStockInsumo(id: string, delta: number): Promise<void> {
+  const cantidad = Number(delta);
+  if (!Number.isFinite(cantidad) || cantidad === 0) {
+    throw new Error('El ajuste de stock debe ser distinto de 0.');
+  }
+
+  await updateDoc(doc(db, COLECCION_INSUMOS, id), {
+    stockActual: increment(cantidad),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /** Normaliza un documento de Firestore al tipo Insumo de la UI. */

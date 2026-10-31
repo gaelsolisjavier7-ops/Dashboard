@@ -4,9 +4,10 @@ import {
   CATEGORIAS_INSUMO,
   formatCostoUnitario,
   formatMXN,
+  redondear,
   stockBajo,
 } from '../../lib/costeo';
-import { eliminarInsumo } from '../../services/insumos';
+import { ajustarStockInsumo, eliminarInsumo } from '../../services/insumos';
 import { InsumoModal } from './InsumoModal';
 import { IconoCategoria } from './IconoCategoria';
 import { etiquetaUnidad } from './estilos';
@@ -15,6 +16,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Minus,
   Package,
   Pencil,
   Plus,
@@ -32,6 +34,80 @@ interface InventarioPanelProps {
 
 type OrdenInsumos = 'nombre' | 'costo' | 'stock';
 
+const UNIDADES_AJUSTE: Record<string, { unidad: 'g' | 'ml' | 'pza'; factor: number }> = {
+  g: { unidad: 'g', factor: 1 },
+  gr: { unidad: 'g', factor: 1 },
+  grs: { unidad: 'g', factor: 1 },
+  gramo: { unidad: 'g', factor: 1 },
+  gramos: { unidad: 'g', factor: 1 },
+  kg: { unidad: 'g', factor: 1000 },
+  kgs: { unidad: 'g', factor: 1000 },
+  kilo: { unidad: 'g', factor: 1000 },
+  kilos: { unidad: 'g', factor: 1000 },
+  kilogramo: { unidad: 'g', factor: 1000 },
+  kilogramos: { unidad: 'g', factor: 1000 },
+  ml: { unidad: 'ml', factor: 1 },
+  mls: { unidad: 'ml', factor: 1 },
+  mililitro: { unidad: 'ml', factor: 1 },
+  mililitros: { unidad: 'ml', factor: 1 },
+  l: { unidad: 'ml', factor: 1000 },
+  lt: { unidad: 'ml', factor: 1000 },
+  lts: { unidad: 'ml', factor: 1000 },
+  litro: { unidad: 'ml', factor: 1000 },
+  litros: { unidad: 'ml', factor: 1000 },
+  pza: { unidad: 'pza', factor: 1 },
+  pzas: { unidad: 'pza', factor: 1 },
+  pz: { unidad: 'pza', factor: 1 },
+  pieza: { unidad: 'pza', factor: 1 },
+  piezas: { unidad: 'pza', factor: 1 },
+  u: { unidad: 'pza', factor: 1 },
+  unidad: { unidad: 'pza', factor: 1 },
+  unidades: { unidad: 'pza', factor: 1 },
+};
+
+/**
+ * Convierte lo que escribe el usuario ("5000", "5 kg", "1.5 L", "2 pzas") a la
+ * unidad base del insumo. Si omite la unidad, se asume la unidad base.
+ */
+function parsearCantidadAjuste(
+  entrada: string,
+  unidadBase: string
+): { cantidad: number; error: string | null } {
+  const texto = entrada
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  const match = /^(\d+(?:[.,]\d+)?)\s*([a-z]*)$/.exec(texto);
+
+  if (!match) {
+    return { cantidad: 0, error: 'Escribe una cantidad válida (ej. 5000, 5 kg o 2 pzas).' };
+  }
+
+  const numero = Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return { cantidad: 0, error: 'La cantidad debe ser mayor a 0.' };
+  }
+
+  const base: 'g' | 'ml' | 'pza' =
+    unidadBase === 'g' || unidadBase === 'ml' ? unidadBase : 'pza';
+  const sufijo = match[2];
+  if (!sufijo) return { cantidad: numero, error: null };
+
+  const equivalencia = UNIDADES_AJUSTE[sufijo];
+  if (!equivalencia) {
+    return { cantidad: 0, error: `No reconozco la unidad "${sufijo}". Usa ${etiquetaUnidad(base)}.` };
+  }
+  if (equivalencia.unidad !== base) {
+    return {
+      cantidad: 0,
+      error: `Este insumo se mide en ${etiquetaUnidad(base)}; escribe la cantidad en esa unidad.`,
+    };
+  }
+
+  return { cantidad: numero * equivalencia.factor, error: null };
+}
+
 /** Tabla/lista de insumos con filtros, alta, edición y borrado inline. */
 export const InventarioPanel: React.FC<InventarioPanelProps> = ({
   insumos,
@@ -46,6 +122,7 @@ export const InventarioPanel: React.FC<InventarioPanelProps> = ({
   const [editando, setEditando] = useState<Insumo | null>(null);
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [borrandoId, setBorrandoId] = useState<string | null>(null);
+  const [ajustando, setAjustando] = useState<{ id: string; delta: number } | null>(null);
 
   const categorias = useMemo(() => {
     const set = new Set(insumos.map((i) => i.categoria));
@@ -93,6 +170,53 @@ export const InventarioPanel: React.FC<InventarioPanelProps> = ({
       notificar(e?.message || 'No se pudo eliminar el insumo.', 'error');
     } finally {
       setBorrandoId(null);
+    }
+  };
+
+  /**
+   * Ajuste rápido desde la tabla: [+] suma stock (compra) y [−] registra una
+   * merma. Se pide la cantidad con un prompt para no abrir el modal completo.
+   */
+  const ajustarStock = async (insumo: Insumo, signo: 1 | -1) => {
+    const esSuma = signo > 0;
+    const unidad = etiquetaUnidad(insumo.unidadBase);
+    const ejemplo =
+      insumo.unidadBase === 'g' ? '5 kg o 5000' : insumo.unidadBase === 'ml' ? '1.5 L o 1500' : '2';
+
+    const entrada = window.prompt(
+      `${esSuma ? 'Agregar stock' : 'Registrar merma'} · ${insumo.nombre}\n\n` +
+        `Stock actual: ${insumo.stockActual.toLocaleString('es-MX')} ${unidad}\n` +
+        `Cantidad a ${esSuma ? 'sumar' : 'restar'} (ej. ${ejemplo}):`
+    );
+    if (entrada === null) return;
+
+    const { cantidad, error } = parsearCantidadAjuste(entrada, insumo.unidadBase);
+    if (error) {
+      notificar(error, 'error');
+      return;
+    }
+
+    const cantidadFinal = redondear(cantidad, 4);
+    if (!esSuma && cantidadFinal > insumo.stockActual) {
+      notificar(
+        `No puedes restar ${cantidadFinal.toLocaleString('es-MX')} ${unidad}: el stock actual es ${insumo.stockActual.toLocaleString('es-MX')} ${unidad}.`,
+        'error'
+      );
+      return;
+    }
+
+    setAjustando({ id: insumo.id, delta: signo });
+    try {
+      await ajustarStockInsumo(insumo.id, esSuma ? cantidadFinal : -cantidadFinal);
+      notificar(
+        `${esSuma ? '+' : '−'}${cantidadFinal.toLocaleString('es-MX')} ${unidad} · ${insumo.nombre}`
+      );
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      console.error('Error al ajustar el stock:', err);
+      notificar(e?.message || 'No se pudo ajustar el stock.', 'error');
+    } finally {
+      setAjustando(null);
     }
   };
 
@@ -148,16 +272,29 @@ export const InventarioPanel: React.FC<InventarioPanelProps> = ({
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, proveedor o categoría..."
-            className={`${INPUT_CLASE} pl-9`}
+            placeholder="Buscar insumo por nombre..."
+            aria-label="Buscar insumos"
+            className={`${INPUT_CLASE} pl-9 ${busqueda ? 'pr-10' : ''}`}
           />
+          {busqueda && (
+            <button
+              type="button"
+              onClick={() => setBusqueda('')}
+              title="Limpiar búsqueda"
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-[#8e8e93] hover:bg-[#e8e8ed] hover:text-[#1d1d1f] transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
           <select
             value={categoria}
             onChange={(e) => setCategoria(e.target.value)}
-            className={`${INPUT_CLASE} cursor-pointer`}
+            aria-label="Filtrar por categoría"
+            className={`${INPUT_CLASE} cursor-pointer min-w-0 lg:w-auto`}
           >
             {categorias.map((cat) => (
               <option key={cat} value={cat}>
@@ -169,7 +306,8 @@ export const InventarioPanel: React.FC<InventarioPanelProps> = ({
           <select
             value={orden}
             onChange={(e) => setOrden(e.target.value as OrdenInsumos)}
-            className={`${INPUT_CLASE} cursor-pointer`}
+            aria-label="Ordenar insumos"
+            className={`${INPUT_CLASE} cursor-pointer min-w-0 lg:w-auto`}
           >
             <option value="nombre">Ordenar: nombre</option>
             <option value="costo">Ordenar: costo</option>
@@ -281,21 +419,56 @@ export const InventarioPanel: React.FC<InventarioPanelProps> = ({
                     </span>
                   </div>
 
-                  {/* Stock actual */}
-                  <div className="sm:col-span-2 flex items-center justify-between sm:justify-end gap-2">
-                    <span className="sm:hidden text-[12px] font-semibold uppercase tracking-wide text-[#7a7a7a]">
-                      Stock actual
-                    </span>
-                    <span
-                      className={`text-[15px] font-semibold ${
-                        bajo ? 'text-[#ff3b30]' : 'text-[#1d1d1f]'
-                      }`}
-                    >
-                      {insumo.stockActual.toLocaleString('es-MX')}{' '}
-                      <span className="text-[12px] font-normal text-[#7a7a7a]">
-                        {etiquetaUnidad(insumo.unidadBase)}
+                  {/* Stock actual + ajuste rápido [-] [+] */}
+                  <div className="sm:col-span-2 flex flex-col sm:items-end gap-1.5">
+                    <div className="flex w-full items-center justify-between sm:justify-end gap-2">
+                      <span className="sm:hidden text-[12px] font-semibold uppercase tracking-wide text-[#7a7a7a]">
+                        Stock actual
                       </span>
-                    </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => void ajustarStock(insumo, -1)}
+                          disabled={ajustando?.id === insumo.id}
+                          title="Registrar merma (restar stock)"
+                          aria-label={`Restar stock de ${insumo.nombre}`}
+                          className="w-7 h-7 flex-shrink-0 rounded-full border border-[#d2d2d7] text-[#7a7a7a] hover:border-[#ff3b30] hover:bg-[#fff0f0] hover:text-[#ff3b30] transition-colors cursor-pointer flex items-center justify-center disabled:opacity-40 disabled:cursor-wait"
+                        >
+                          {ajustando?.id === insumo.id && ajustando.delta < 0 ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Minus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+
+                        <span
+                          className={`text-[15px] font-semibold tabular-nums ${
+                            bajo ? 'text-[#ff3b30]' : 'text-[#1d1d1f]'
+                          }`}
+                        >
+                          {insumo.stockActual.toLocaleString('es-MX')}{' '}
+                          <span className="text-[12px] font-normal text-[#7a7a7a]">
+                            {etiquetaUnidad(insumo.unidadBase)}
+                          </span>
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => void ajustarStock(insumo, 1)}
+                          disabled={ajustando?.id === insumo.id}
+                          title="Agregar stock (sumar cantidad)"
+                          aria-label={`Sumar stock de ${insumo.nombre}`}
+                          className="w-7 h-7 flex-shrink-0 rounded-full border border-[#d2d2d7] text-[#7a7a7a] hover:border-[#34c759] hover:bg-[#f0fff4] hover:text-[#248a3d] transition-colors cursor-pointer flex items-center justify-center disabled:opacity-40 disabled:cursor-wait"
+                        >
+                          {ajustando?.id === insumo.id && ajustando.delta > 0 ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
                     {bajo && (
                       <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-[#ff3b30]/10 text-[#ff3b30] text-[11px] font-semibold border border-[#ff3b30]/30 whitespace-nowrap">
                         <AlertCircle className="w-3 h-3" />

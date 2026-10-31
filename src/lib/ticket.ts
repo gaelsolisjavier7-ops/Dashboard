@@ -206,15 +206,186 @@ function palabrasClave(texto: string): string[] {
     .filter((palabra) => !PALABRAS_SIN_PESO.has(palabra));
 }
 
+interface GrupoSugerencia {
+  /** Palabras del ticket que activan este grupo ("hamburguesa", "queso"...). */
+  disparadores: string[];
+  /** Palabras que debe tener el nombre del insumo o su categoría. */
+  palabras: string[];
+  /** Categorías del inventario compatibles (normalizadas, sin acentos). */
+  categorias: string[];
+}
+
 /**
- * Busca el insumo más parecido por nombre: primero coincidencia exacta
- * normalizada, luego contención y por último proporción de palabras en común.
- * Devuelve null si no hay una coincidencia razonable (umbral 50 %).
+ * Diccionario para adivinar el insumo cuando el ticket no trae el nombre exacto
+ * del inventario. Ej.: "HAMBURGUESA DE PO" (producto preparado) → cualquier
+ * insumo de la categoría Carne o con "carne/sirloin/res" en el nombre.
  */
-export function buscarInsumoPorNombre<T extends { id: string; nombre: string }>(
+const GRUPOS_SUGERENCIA: GrupoSugerencia[] = [
+  {
+    disparadores: ['pan', 'brioche', 'bolillo', 'telera', 'baguette'],
+    palabras: ['pan', 'brioche', 'bolillo', 'telera', 'baguette'],
+    categorias: ['panaderia'],
+  },
+  {
+    disparadores: ['queso', 'quesillo', 'mozzarella', 'cheddar', 'manchego', 'parmesano'],
+    palabras: ['queso', 'quesillo', 'mozzarella', 'cheddar', 'manchego', 'parmesano'],
+    categorias: ['quesos'],
+  },
+  {
+    disparadores: ['papa', 'papas', 'frita', 'fritas', 'french'],
+    palabras: ['papa', 'papas', 'frita', 'fritas', 'french'],
+    categorias: ['papas'],
+  },
+  {
+    disparadores: [
+      'lechuga',
+      'tomate',
+      'jitomate',
+      'cebolla',
+      'aguacate',
+      'pepinillo',
+      'chile',
+      'jalapeno',
+      'cilantro',
+      'verdura',
+      'verduras',
+    ],
+    palabras: [
+      'lechuga',
+      'tomate',
+      'jitomate',
+      'cebolla',
+      'aguacate',
+      'pepinillo',
+      'chile',
+      'jalapeno',
+      'cilantro',
+      'verdura',
+      'verduras',
+    ],
+    categorias: ['verduras'],
+  },
+  {
+    disparadores: ['salsa', 'mayonesa', 'mayo', 'catsup', 'ketchup', 'mostaza', 'aderezo', 'bbq'],
+    palabras: ['salsa', 'mayonesa', 'mayo', 'catsup', 'ketchup', 'mostaza', 'aderezo', 'bbq'],
+    categorias: ['salsas'],
+  },
+  {
+    disparadores: ['refresco', 'coca', 'sprite', 'agua', 'jugo', 'bebida', 'cerveza'],
+    palabras: ['refresco', 'coca', 'sprite', 'agua', 'jugo', 'bebida', 'cerveza'],
+    categorias: ['bebidas'],
+  },
+  {
+    disparadores: ['tocino', 'bacon', 'panceta'],
+    palabras: ['tocino', 'bacon', 'panceta'],
+    categorias: ['extras', 'carne'],
+  },
+  {
+    disparadores: ['salchicha', 'jocho', 'viena', 'chorizo', 'hotdog', 'hot dog', 'hot-dog'],
+    palabras: ['salchicha', 'jocho', 'viena', 'chorizo', 'hotdog'],
+    categorias: ['carne', 'extras'],
+  },
+  {
+    disparadores: [
+      'hamburguesa',
+      'burger',
+      'carne',
+      'res',
+      'sirloin',
+      'molida',
+      'pollo',
+      'pavo',
+      'cerdo',
+      'bistec',
+      'arrachera',
+      'costilla',
+    ],
+    palabras: [
+      'hamburguesa',
+      'burger',
+      'carne',
+      'res',
+      'sirloin',
+      'molida',
+      'pollo',
+      'pavo',
+      'cerdo',
+      'bistec',
+      'arrachera',
+      'costilla',
+    ],
+    categorias: ['carne'],
+  },
+];
+
+/**
+ * Segunda pasada: si no hubo coincidencia de texto, busca por contexto.
+ * Prefiere insumos que coincidan por nombre y, si el ticket menciona la
+ * palabra, suma un extra (ej. "QUESO PARA HAMBURGUESA" → Queso, no Carne).
+ */
+function sugerirPorContexto<T extends { id: string; nombre: string; categoria?: string | null }>(
   nombreTicket: string,
   insumos: T[]
 ): T | null {
+  const texto = normalizar(nombreTicket)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!texto) return null;
+
+  const clavesTicket = new Set(palabrasClave(nombreTicket));
+  let mejor: T | null = null;
+  let mejorPuntaje = 0;
+
+  for (const grupo of GRUPOS_SUGERENCIA) {
+    const activo = grupo.disparadores.some((disparador) =>
+      disparador.includes(' ') ? texto.includes(disparador) : clavesTicket.has(disparador)
+    );
+    if (!activo) continue;
+
+    for (const insumo of insumos ?? []) {
+      const nombreInsumo = normalizar(insumo.nombre)
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!nombreInsumo) continue;
+
+      const palabrasInsumo = new Set(palabrasClave(insumo.nombre));
+      const categoria = normalizar(String(insumo.categoria ?? ''));
+      const coincideNombre = grupo.palabras.some((palabra) =>
+        palabra.includes(' ') ? nombreInsumo.includes(palabra) : palabrasInsumo.has(palabra)
+      );
+      const coincideCategoria = Boolean(categoria) && grupo.categorias.includes(categoria);
+      if (!coincideNombre && !coincideCategoria) continue;
+
+      // El nombre pesa más que la categoría; mención explícita en el ticket
+      // desempata a favor del ingrediente real (queso, papas, tocino...).
+      const mencionadoEnTicket = grupo.palabras.some(
+        (palabra) => palabrasInsumo.has(palabra) && clavesTicket.has(palabra)
+      );
+      const puntaje =
+        (coincideNombre ? 1 : 0) + (coincideCategoria ? 0.75 : 0) + (mencionadoEnTicket ? 0.5 : 0);
+
+      if (puntaje > mejorPuntaje) {
+        mejor = insumo;
+        mejorPuntaje = puntaje;
+      }
+    }
+  }
+
+  return mejor;
+}
+
+/**
+ * Busca el insumo más parecido por nombre: primero coincidencia exacta
+ * normalizada, luego contención y proporción de palabras en común. Si no hay
+ * coincidencia directa, intenta inferir el insumo por contexto (p. ej. una
+ * "HAMBURGUESA" se asocia a la categoría Carne).
+ * Devuelve null si no hay una coincidencia razonable.
+ */
+export function buscarInsumoPorNombre<
+  T extends { id: string; nombre: string; categoria?: string | null },
+>(nombreTicket: string, insumos: T[]): T | null {
   const objetivo = normalizar(nombreTicket)
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -259,5 +430,5 @@ export function buscarInsumoPorNombre<T extends { id: string; nombre: string }>(
     }
   }
 
-  return mejor;
+  return mejor ?? sugerirPorContexto(nombreTicket, insumos);
 }

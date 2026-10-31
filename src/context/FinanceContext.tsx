@@ -15,6 +15,7 @@ import { pedidoEnPeriodo } from '../lib/pedidos';
 import { ingresoPedidosWeb } from '../lib/ingresos';
 import {
   DATE_FILTERS,
+  fechaLocalISO,
   formatPeriodoLabel,
   parseFechaFirestore,
   rangoDePeriodo,
@@ -280,7 +281,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Guardar nueva transacción en Firestore (colección 'transacciones').
   // Fase 2: todas las transacciones pertenecen a hamburguesas.
   const addTransaction = async (data: Partial<Transaction>) => {
-    const fecha = data.fecha || data.date || new Date().toISOString().split('T')[0];
+    const fecha = data.fecha || data.date || fechaLocalISO();
     const rawTipo = (data.tipo || data.type || 'gasto').toLowerCase();
     const tipo = rawTipo === 'ingreso' || rawTipo === 'income' ? 'ingreso' : 'gasto';
     const categoria = data.categoria || data.category || 'General';
@@ -336,7 +337,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Actualizar transacción en Firestore
   const updateTransaction = async (tx: Transaction) => {
     const docRef = doc(db, 'transacciones', tx.id);
-    const fecha = tx.fecha || tx.date || new Date().toISOString().split('T')[0];
+    const fecha = tx.fecha || tx.date || fechaLocalISO();
     const rawTipo = (tx.tipo || tx.type || 'gasto').toLowerCase();
     const tipo = rawTipo === 'ingreso' || rawTipo === 'income' ? 'ingreso' : 'gasto';
     const categoria = tx.categoria || tx.category || 'General';
@@ -382,7 +383,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (Array.isArray(list)) {
         for (const item of list) {
           await addDoc(collection(db, 'transacciones'), {
-            fecha: item.fecha || item.date || new Date().toISOString().split('T')[0],
+            fecha: item.fecha || item.date || fechaLocalISO(),
             tipo: item.tipo || item.type || 'gasto',
             categoria: item.categoria || item.category || 'General',
             monto: Number(item.monto ?? item.amount ?? 0),

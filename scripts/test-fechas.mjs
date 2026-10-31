@@ -8,6 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import {
+  fechaLocalISO,
   formatPeriodoLabel,
   rangoDePeriodo,
   estaEnPeriodo,
@@ -30,6 +31,18 @@ const t = (nombre, fn) => {
 
 const f = (y, m, d, h = 0, min = 0, s = 0, ms = 0) => new Date(y, m - 1, d, h, min, s, ms);
 const AHORA = f(2026, 10, 12, 15, 30); // lunes 12 de octubre de 2026, 3:30 pm
+
+/* ─────────── 0. fechaLocalISO ─────────── */
+grupo('0. fechaLocalISO');
+
+t('usa el día LOCAL aunque en UTC ya sea el día siguiente', () => {
+  // 31 Oct 2026, 11:30 pm en México (UTC-6) = 1 Nov 05:30 UTC.
+  assert.equal(fechaLocalISO(f(2026, 10, 31, 23, 30)), '2026-10-31');
+});
+
+t('rellena mes y día con ceros', () => {
+  assert.equal(fechaLocalISO(f(2026, 1, 5, 0, 15)), '2026-01-05');
+});
 
 /* ─────────── 1. rangoDePeriodo ─────────── */
 grupo('1. rangoDePeriodo');
