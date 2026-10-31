@@ -22,9 +22,13 @@ export function useTransactions() {
           .map((docSnap): Transaccion | null => {
           const data = docSnap.data();
 
-          // Normalizar fecha si viene como Firestore Timestamp o string
+          // Normalizar fecha si viene como Firestore Timestamp o string.
+          // `fechaLocal` (YYYY-MM-DD) la escribe el bot ya calculada en hora de
+          // México: evita que un pedido de la noche caiga en el día siguiente.
           let fechaStr = '';
-          if (data.fecha?.toDate) {
+          if (typeof data.fechaLocal === 'string' && data.fechaLocal.trim()) {
+            fechaStr = data.fechaLocal;
+          } else if (data.fecha?.toDate) {
             // Timestamp → día LOCAL (toISOString daría el día UTC y se adelanta).
             fechaStr = fechaLocalISO(data.fecha.toDate());
           } else if (typeof data.fecha === 'string') {

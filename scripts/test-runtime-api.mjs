@@ -183,7 +183,7 @@ grupo('4. Flujo completo usando los .js compilados');
 
 const CHAT = '6002544825';
 
-await ta('mensaje → resumen con botones → confirmar → pedido + 2 transacciones', async () => {
+await ta('mensaje → resumen con botones → confirmar → pedido + 1 transacción', async () => {
   const { crearBot } = await import(pathToFileURL(path.join(salida, '_lib', 'bot.js')).href);
   const { crearHandler } = moduloTelegrama;
 
@@ -304,8 +304,13 @@ await ta('mensaje → resumen con botones → confirmar → pedido + 2 transacci
   assert.equal(estado.pedidos.length, 1);
   assert.equal(estado.pedidos[0].total, 395);
   assert.equal(estado.pedidos[0].requiereReparto, true);
-  assert.equal(estado.transacciones.length, 2);
-  assert.equal(estado.transacciones[1].categoria, 'Envíos');
+  assert.equal(estado.transacciones.length, 1);
+  assert.equal(estado.transacciones[0].monto, 395);
+  assert.equal(estado.transacciones[0].tipo, 'ingreso');
+  assert.equal(estado.transacciones[0].negocio, 'hamburguesas');
+  assert.equal(estado.transacciones[0].descripcion, 'Pedido WhatsApp #RT123');
+  assert.ok(estado.transacciones[0].fecha instanceof Date);
+  assert.equal(estado.transacciones[0].fecha.getTime(), estado.pedidos[0].fecha.getTime());
 });
 
 /* ═════════ limpieza ═════════ */

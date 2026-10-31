@@ -13,6 +13,8 @@ import {
   MARCA_SERVIDOR,
   VIGENCIA_BORRADOR_MS,
   VIGENCIA_UPDATE_MS,
+  fechaMexicoISO,
+  horaLocal,
 } from './pedido.js';
 import type { PedidoResumen, RegistroPlano, ResumenDia } from './pedido.js';
 import type { Almacen } from './bot.js';
@@ -79,9 +81,14 @@ function crearDb(config: ConfiguracionFirestore): Firestore {
   return db;
 }
 
-/** Reemplaza la marca por el serverTimestamp real (recursivo en objetos planos). */
+/**
+ * Reemplaza la marca por el serverTimestamp real y convierte los `Date` en
+ * `Timestamp` (recursivo en objetos planos).
+ */
 function preparar(valor: unknown): unknown {
   if (valor === MARCA_SERVIDOR) return FieldValue.serverTimestamp();
+  // Sin esto, un Date se trataría como objeto plano y se guardaría como {}.
+  if (valor instanceof Date) return Timestamp.fromDate(valor);
   if (Array.isArray(valor)) return valor.map(preparar);
   if (valor && typeof valor === 'object') {
     const salida: RegistroPlano = {};
@@ -125,6 +132,37 @@ function clienteDe(datos: RegistroPlano): { nombre: string; direccion: string | 
   return { nombre: String(cliente ?? datos.nombre ?? 'Cliente'), direccion: (datos.direccion as string | null) ?? null };
 }
 
+/**
+ * Transacción de respaldo construida desde el propio pedido guardado.
+ *
+ * Se usa sólo si el constructor inyectado no devuelve movimientos: así un
+ * pedido confirmado NUNCA queda sin su ingreso en `transacciones`.
+ */
+function transaccionDePedido(datos: RegistroPlano, pedidoId: string): RegistroPlano {
+  const folio = folioDe(pedidoId, datos);
+  const fecha = datos.fecha instanceof Date ? datos.fecha : new Date();
+  const fechaMs = fecha.getTime();
+  const metodo = String(datos.metodo_pago ?? datos.paymentMethod ?? 'Efectivo');
+  const total = Number(datos.total ?? datos.monto ?? 0);
+
+  return {
+    tipo: 'ingreso',
+    negocio: 'hamburguesas',
+    categoria: datos.modalidad === 'delivery' ? 'Ventas Delivery' : 'Ventas Mostrador',
+    monto: total,
+    subtotal: Number(datos.subtotal ?? total),
+    cargoEnvio: Number(datos.cargoEnvio ?? 0),
+    descripcion: `Pedido WhatsApp #${folio}`,
+    metodo_pago: metodo,
+    paymentMethod: metodo.toLowerCase() === 'transferencia' ? 'transferencia' : 'efectivo',
+    pedidoId,
+    fecha: new Date(fechaMs),
+    fechaLocal: typeof datos.fechaLocal === 'string' ? datos.fechaLocal : fechaMexicoISO(fechaMs),
+    horaLocal: typeof datos.horaLocal === 'string' ? datos.horaLocal : horaLocal(fechaMs),
+    createdAt: MARCA_SERVIDOR,
+  };
+}
+
 export function crearAlmacen(config: ConfiguracionFirestore): AlmacenBot {
   const db = crearDb(config);
   const pedidos = () => db.collection('pedidos');
@@ -137,7 +175,13 @@ export function crearAlmacen(config: ConfiguracionFirestore): AlmacenBot {
       const referencia = pedidos().doc();
       const lote = db.batch();
       lote.set(referencia, preparar(pedido) as RegistroPlano);
-      for (const movimiento of construirTransacciones(referencia.id)) {
+
+      // El ingreso se crea SIEMPRE en el mismo lote que el pedido. Si el
+      // constructor no devuelve nada, se arma desde el propio documento.
+      const movimientos = construirTransacciones(referencia.id);
+      const ingresos =
+        movimientos.length > 0 ? movimientos : [transaccionDePedido(pedido, referencia.id)];
+      for (const movimiento of ingresos) {
         lote.set(transacciones().doc(), preparar(movimiento) as RegistroPlano);
       }
 

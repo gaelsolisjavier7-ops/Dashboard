@@ -184,9 +184,13 @@ export function crearBot(deps: DepsBot): BotTelegram {
     messageId: number | null
   ): Promise<void> {
     const folio = generarFolio();
+    // Una sola marca de tiempo para el pedido y su transacción: así ambos
+    // documentos comparten exactamente la misma fecha (hora de México).
+    const ahoraMsPedido = ahoraMs();
     try {
-      await deps.almacen.guardarPedido(construirDocumentoPedido(operacion, folio), (pedidoId) =>
-        construirTransaccionesPedido(operacion, folio, pedidoId)
+      await deps.almacen.guardarPedido(
+        construirDocumentoPedido(operacion, folio, ahoraMsPedido),
+        (pedidoId) => construirTransaccionesPedido(operacion, folio, pedidoId, ahoraMsPedido)
       );
       await borrarBorrador(chatId);
       await editar(chatId, messageId, formatearConfirmadoPedido(operacion, folio));

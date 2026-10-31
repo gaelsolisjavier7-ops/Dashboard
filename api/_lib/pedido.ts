@@ -409,6 +409,25 @@ export function horaLocal(ms: number): string {
   return `${hh}:${mm}`;
 }
 
+/**
+ * Fecha ajustada a la zona de México (UTC-6, sin horario de verano).
+ *
+ * Devuelve un `Date` desplazado: sus getters **UTC** representan la hora local
+ * de México. Vercel corre en UTC, así que nunca hay que confiar en `new Date()`
+ * ni en `serverTimestamp()` para decidir el día del pedido.
+ */
+export function fechaMexico(ahoraMs: number = Date.now()): Date {
+  return new Date(ahoraMs + OFFSET_HORAS_MX * HORA);
+}
+
+/** Día local de México en `YYYY-MM-DD`, independiente del TZ del servidor. */
+export function fechaMexicoISO(ahoraMs: number = Date.now()): string {
+  const local = fechaMexico(ahoraMs);
+  const mes = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const dia = String(local.getUTCDate()).padStart(2, '0');
+  return `${local.getUTCFullYear()}-${mes}-${dia}`;
+}
+
 /** Medianoche local de México (en epoch UTC), con desplazamiento en días. */
 export function inicioDiaLocal(ahoraMs: number, dias = 0): number {
   const local = new Date(ahoraMs + OFFSET_HORAS_MX * HORA);
@@ -573,7 +592,18 @@ export function idCorto(aleatorio: () => number = Math.random): string {
   return salida;
 }
 
-export function construirDocumentoPedido(pedido: PedidoDetectado, idCortoPedido: string): RegistroPlano {
+/**
+ * Documento de `pedidos`.
+ *
+ * `fecha` se guarda como `Date` (el almacén la convierte en `Timestamp`): es un
+ * instante absoluto, así que el día se calcula con `fechaMexicoISO()` y se
+ * persiste en `fechaLocal` para que el dashboard no dependa del TZ del server.
+ */
+export function construirDocumentoPedido(
+  pedido: PedidoDetectado,
+  idCortoPedido: string,
+  ahoraMs: number = Date.now()
+): RegistroPlano {
   return {
     origen: 'whatsapp',
     estado: ESTADO_PENDIENTE,
@@ -599,7 +629,11 @@ export function construirDocumentoPedido(pedido: PedidoDetectado, idCortoPedido:
     requiereReparto: pedido.modalidad === 'delivery',
     telefono: null,
     direccion: pedido.direccion,
-    fecha: MARCA_SERVIDOR,
+    // Instante real del pedido (mismo valor para la transacción).
+    fecha: new Date(ahoraMs),
+    // Día y hora de México: la UI los usa para no adelantarse un día en UTC.
+    fechaLocal: fechaMexicoISO(ahoraMs),
+    horaLocal: horaLocal(ahoraMs),
     createdAt: MARCA_SERVIDOR,
   };
 }
@@ -611,44 +645,39 @@ function paymentMethodApp(metodo: MetodoPago): string {
   return 'efectivo';
 }
 
+/**
+ * Ingreso que acompaña a un pedido confirmado.
+ *
+ * Se escribe SIEMPRE en el mismo lote que el pedido. `monto` es el total
+ * cobrado (productos + envío), para que el dashboard sume exactamente lo que
+ * el bot confirmó por Telegram.
+ */
 export function construirTransaccionesPedido(
   pedido: PedidoDetectado,
   idCortoPedido: string,
-  pedidoId: string
+  pedidoId: string,
+  ahoraMs: number = Date.now()
 ): RegistroPlano[] {
   const categoria = pedido.modalidad === 'delivery' ? 'Ventas Delivery' : 'Ventas Mostrador';
-  const descripcion = `Pedido WhatsApp #${folioDe(idCortoPedido)}`;
 
-  const base = {
-    tipo: 'ingreso',
-    negocio: 'hamburguesas',
-    metodo_pago: pedido.metodoPago,
-    paymentMethod: paymentMethodApp(pedido.metodoPago),
-    pedidoId,
-    fecha: MARCA_SERVIDOR,
-    createdAt: MARCA_SERVIDOR,
-  };
-
-  const movimientos: RegistroPlano[] = [
+  return [
     {
-      ...base,
+      tipo: 'ingreso',
+      negocio: 'hamburguesas',
       categoria,
-      monto: pedido.subtotalProductos,
-      descripcion,
+      monto: pedido.total,
+      subtotal: pedido.subtotalProductos,
+      cargoEnvio: pedido.cargoEnvio,
+      descripcion: `Pedido WhatsApp #${folioDe(idCortoPedido)}`,
+      metodo_pago: pedido.metodoPago,
+      paymentMethod: paymentMethodApp(pedido.metodoPago),
+      pedidoId,
+      fecha: new Date(ahoraMs),
+      fechaLocal: fechaMexicoISO(ahoraMs),
+      horaLocal: horaLocal(ahoraMs),
+      createdAt: MARCA_SERVIDOR,
     },
   ];
-
-  // El envío se cobra aparte: ingreso propio para poder verlo en el dashboard.
-  if (pedido.modalidad === 'delivery' && pedido.cargoEnvio > 0) {
-    movimientos.push({
-      ...base,
-      categoria: 'Envíos',
-      monto: pedido.cargoEnvio,
-      descripcion: `Envío pedido #${folioDe(idCortoPedido)}`,
-    });
-  }
-
-  return movimientos;
 }
 
 export function construirDocumentoGasto(gasto: GastoDetectado): RegistroPlano {

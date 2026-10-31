@@ -29,6 +29,7 @@ import {
   extraerDireccion,
   extraerMonto,
   fechaLocal,
+  fechaMexicoISO,
   formatearResumenDia,
   formatearResumenPedido,
   inicioDiaLocal,
@@ -265,6 +266,16 @@ t('rangoDiaLocal cubre 24 h y fechaLocal etiqueta el día', () => {
   assert.equal(fechaLocal(inicioDiaLocal(AHORA, -1)), '11 Oct');
 });
 
+t('fechaMexicoISO usa el día de México aunque en UTC ya sea el siguiente', () => {
+  assert.equal(fechaMexicoISO(AHORA), '2026-10-12');
+  // 2026-10-13 02:00 UTC = 20:00 del 12 en México.
+  assert.equal(fechaMexicoISO(Date.UTC(2026, 9, 13, 2)), '2026-10-12');
+  // 2026-10-13 05:59 UTC = 23:59 del 12 en México.
+  assert.equal(fechaMexicoISO(Date.UTC(2026, 9, 13, 5, 59)), '2026-10-12');
+  // 2026-10-13 06:00 UTC = 00:00 del 13 en México.
+  assert.equal(fechaMexicoISO(Date.UTC(2026, 9, 13, 6)), '2026-10-13');
+});
+
 /* ═══════════════════════ 4. Normalización de lo que responde Gemini ═══════════════════════ */
 grupo('4. Normalización de la respuesta de Gemini');
 
@@ -480,7 +491,7 @@ const PEDIDO_EJEMPLO = normalizarOperacion(
 );
 
 t('el documento de pedido trae todo lo que pide la spec', () => {
-  const doc = construirDocumentoPedido(PEDIDO_EJEMPLO, 'AB12C');
+  const doc = construirDocumentoPedido(PEDIDO_EJEMPLO, 'AB12C', AHORA);
   assert.equal(doc.origen, 'whatsapp');
   assert.equal(doc.estado, 'Pendiente');
   assert.deepEqual(doc.cliente, { nombre: 'Cliente WhatsApp', telefono: null, direccion: 'Calle Hidalgo 123' });
@@ -491,23 +502,33 @@ t('el documento de pedido trae todo lo que pide la spec', () => {
   assert.equal(doc.metodo_pago, 'Efectivo');
   assert.equal(doc.requiereReparto, true);
   assert.equal(doc.folio, 'AB12C');
-  assert.equal(doc.fecha, MARCA_SERVIDOR);
+  // `fecha` es el instante real (el almacén lo convierte a Timestamp) y
+  // `fechaLocal` guarda el día de México ya calculado.
+  assert.ok(doc.fecha instanceof Date);
+  assert.equal(doc.fecha.getTime(), AHORA);
+  assert.equal(doc.fechaLocal, '2026-10-12');
+  assert.equal(doc.horaLocal, '15:30');
   assert.equal(doc.createdAt, MARCA_SERVIDOR);
   assert.equal(doc.productos.length, 2);
 });
 
-t('delivery → 2 transacciones (productos + envío)', () => {
-  const movimientos = construirTransaccionesPedido(PEDIDO_EJEMPLO, 'AB12C', 'pedido-1');
-  assert.equal(movimientos.length, 2);
-  assert.equal(movimientos[0].tipo, 'ingreso');
-  assert.equal(movimientos[0].negocio, 'hamburguesas');
-  assert.equal(movimientos[0].categoria, 'Ventas Delivery');
-  assert.equal(movimientos[0].monto, 365);
-  assert.equal(movimientos[0].descripcion, 'Pedido WhatsApp #AB12C');
-  assert.equal(movimientos[0].pedidoId, 'pedido-1');
-  assert.equal(movimientos[1].categoria, 'Envíos');
-  assert.equal(movimientos[1].monto, 30);
-  assert.equal(movimientos[1].descripcion, 'Envío pedido #AB12C');
+t('delivery → 1 transacción con el total cobrado', () => {
+  const movimientos = construirTransaccionesPedido(PEDIDO_EJEMPLO, 'AB12C', 'pedido-1', AHORA);
+  assert.equal(movimientos.length, 1);
+  const [movimiento] = movimientos;
+  assert.equal(movimiento.tipo, 'ingreso');
+  assert.equal(movimiento.negocio, 'hamburguesas');
+  assert.equal(movimiento.categoria, 'Ventas Delivery');
+  assert.equal(movimiento.monto, 395);
+  assert.equal(movimiento.subtotal, 365);
+  assert.equal(movimiento.cargoEnvio, 30);
+  assert.equal(movimiento.descripcion, 'Pedido WhatsApp #AB12C');
+  assert.equal(movimiento.metodo_pago, 'Efectivo');
+  assert.equal(movimiento.paymentMethod, 'efectivo');
+  assert.equal(movimiento.pedidoId, 'pedido-1');
+  assert.ok(movimiento.fecha instanceof Date);
+  assert.equal(movimiento.fecha.getTime(), AHORA);
+  assert.equal(movimiento.fechaLocal, '2026-10-12');
 });
 
 t('pickup → 1 sola transacción, categoría mostrador y sin reparto', () => {
@@ -802,7 +823,7 @@ await ta('pedido "para recoger": el resumen no trae línea de dirección', async
   assert.ok(!enviado.texto.includes('(no detectada)'), enviado.texto);
 });
 
-await ta('confirmar guarda el pedido + 2 transacciones y responde', async () => {
+await ta('confirmar guarda el pedido + 1 transacción y responde', async () => {
   const { estado, bot } = crearEntorno();
   await bot.manejarUpdate({ update_id: 1, message: { message_id: 10, text: '2 hamburguesas especiales y 1 hot dog de tocino a domicilio en Calle Hidalgo 123 efectivo', chat: { id: CHAT } } });
   const data = selloDe(estado);
@@ -817,9 +838,13 @@ await ta('confirmar guarda el pedido + 2 transacciones y responde', async () => 
   assert.equal(pedido.estado, 'Pendiente');
   assert.equal(pedido.total, 395);
   assert.equal(pedido.requiereReparto, true);
-  assert.equal(transacciones.length, 2);
+  assert.equal(transacciones.length, 1);
   assert.equal(transacciones[0].pedidoId, 'pedido-1');
-  assert.equal(transacciones[1].categoria, 'Envíos');
+  assert.equal(transacciones[0].monto, 395);
+  assert.equal(transacciones[0].descripcion, 'Pedido WhatsApp #AB12C');
+  // Pedido y transacción comparten la misma fecha (hora de México).
+  assert.equal(transacciones[0].fecha.getTime(), pedido.fecha.getTime());
+  assert.equal(pedido.fechaLocal, '2026-10-12');
   assert.equal(estado.borradores.size, 0, 'el borrador se limpia');
 
   const editado = estado.editados.at(-1);

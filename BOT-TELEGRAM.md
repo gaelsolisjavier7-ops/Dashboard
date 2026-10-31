@@ -189,13 +189,17 @@ La modalidad se decide con reglas de palabras clave (deterministas):
 
 1. `pedidos/{autoId}`: `origen: "whatsapp"`, `estado: "Pendiente"`,
    `cliente: {nombre, telefono, direccion}`, productos, subtotal, cargoEnvio, total,
-   `modalidad`, `metodo_pago`, `requiereReparto`, `folio`, `fecha` y `createdAt`.
-2. `transacciones`: ingreso por productos (`Ventas Delivery` o `Ventas Mostrador`,
-   monto = subtotal) y, si es delivery, otro ingreso de `Envíos` por $30.
-   Ambos llevan `pedidoId` y la descripción `Pedido WhatsApp #AB12C`.
+   `modalidad`, `metodo_pago`, `requiereReparto`, `folio`, `fecha` (Timestamp),
+   `fechaLocal`/`horaLocal` (hora de México) y `createdAt`.
+2. `transacciones`: **un** ingreso con `tipo: "ingreso"`,
+   `negocio: "hamburguesas"`, `monto` = total cobrado (productos + envío),
+   `descripcion: "Pedido WhatsApp #AB12C"`, `metodo_pago`, `pedidoId`, `fecha`,
+   `fechaLocal` y `horaLocal`.
 3. **No** se registra gasto de repartidor: eso lo agregas tú al final del día.
 
 Todo se escribe en un solo lote (`batch`) para que no queden pedidos sin sus ingresos.
+La fecha se calcula con el helper de UTC-6: el servidor de Vercel corre en UTC, así
+que un pedido de la noche no debe guardarse con el día siguiente.
 
 ### Gastos
 
